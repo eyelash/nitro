@@ -1,5 +1,4 @@
 #include "gles2.hpp"
-#include <stb_image.h>
 
 namespace GLES2 {
 
@@ -78,12 +77,13 @@ Program::Program (Shader* vertex_shader, Shader* fragment_shader) {
 }
 Program::Program (const char* vertex_shader, const char* fragment_shader) {
 	identifier = glCreateProgram ();
-	Shader* v = new Shader (vertex_shader, GL_VERTEX_SHADER);
-	Shader* f = new Shader (fragment_shader, GL_FRAGMENT_SHADER);
-	glAttachShader (identifier, v->identifier);
-	glAttachShader (identifier, f->identifier);
-	glLinkProgram (identifier);
-	// add error handling here
+	Shader v (vertex_shader, GL_VERTEX_SHADER);
+	Shader f (fragment_shader, GL_FRAGMENT_SHADER);
+	glAttachShader (identifier, v.identifier);
+	glAttachShader (identifier, f.identifier);
+	link ();
+	//glDetachShader (identifier, v.identifier);
+	//glDetachShader (identifier, f.identifier);
 }
 Program::Program () {
 	identifier = glCreateProgram ();
@@ -93,6 +93,9 @@ Program::~Program () {
 }
 void Program::attach_shader (Shader* shader) {
 	glAttachShader (identifier, shader->identifier);
+}
+void Program::detach_shader (Shader* shader) {
+	glDetachShader (identifier, shader->identifier);
 }
 void Program::link () {
 	glLinkProgram (identifier);

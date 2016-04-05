@@ -9,7 +9,7 @@ static Window window;
 static EGLDisplay egl_display;
 static EGLSurface surface;
 
-atmosphere::Window::Window(int width, int height, const char* name) {
+atmosphere::Window::Window (int width, int height, const char* title) {
 	display = XOpenDisplay (NULL);
 	egl_display = eglGetDisplay (display);
 	eglInitialize (egl_display, NULL, NULL);
@@ -67,12 +67,18 @@ atmosphere::Window::Window(int width, int height, const char* name) {
 	//glEnable (0x809D); // GL_MULTISAMPLE
 
 	XFree (visual);
+
+	XStoreName (display, window, title);
 }
 
-static void dispatch_events () {
+void atmosphere::Window::dispatch_events () {
 	XEvent event;
 	while (XPending (display)) {
 		XNextEvent (display, &event);
+		if (event.type == ConfigureNotify) {
+			glViewport (0, 0, event.xconfigure.width, event.xconfigure.height);
+			scene_graph.set_size (event.xconfigure.width, event.xconfigure.height);
+		}
 	}
 }
 

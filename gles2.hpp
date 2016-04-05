@@ -76,6 +76,7 @@ public:
 	Program ();
 	~Program ();
 	void attach_shader (Shader* shader);
+	void detach_shader (Shader* shader);
 	void link ();
 	void use ();
 	GLint get_attribute_location (const char* name);
@@ -103,6 +104,10 @@ public:
 	void use ();
 	void bind ();
 	void unbind ();
+};
+
+class State {
+
 };
 
 }
