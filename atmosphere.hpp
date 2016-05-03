@@ -1,5 +1,7 @@
 #include "gles2.hpp"
 #include <set>
+#include <vector>
+#include <functional>
 
 namespace atmosphere {
 
@@ -8,6 +10,7 @@ protected:
 	float x, y, width, height;
 public:
 	virtual void draw(const GLES2::mat4& projection) = 0;
+	void set_position(float x, float y);
 };
 
 class TextureAtlas {
@@ -48,6 +51,52 @@ public:
 	Window(int width, int height, const char* title);
 	void add(Node* node);
 	void run();
+};
+
+class AnimationType {
+public:
+	virtual float get_y (float x) const = 0;
+	static const AnimationType* LINEAR;
+	static const AnimationType* ACCELERATING;
+	static const AnimationType* DECELERATING;
+	static const AnimationType* OSCILLATING;
+	static const AnimationType* SWAY;
+};
+class LinearAnimation: public AnimationType {
+public:
+	float get_y(float x) const override;
+};
+class AcceleratingAnimation: public AnimationType {
+public:
+	float get_y(float x) const override;
+};
+class DeceleratingAnimation: public AnimationType {
+public:
+	float get_y(float x) const override;
+};
+class OscillatingAnimation: public AnimationType {
+public:
+	float get_y(float x) const override;
+};
+class SwayAnimation: public AnimationType {
+public:
+	float get_y(float x) const override;
+};
+
+class Animation {
+	using ApplyFunction = std::function<void(float)>;
+	float start_value, end_value;
+	long start_time, duration;
+	ApplyFunction apply_function;
+	const AnimationType* type;
+	static std::vector<Animation> animations;
+	static long time;
+public:
+	Animation(float from, float to, long duration, const ApplyFunction& apply_function, const AnimationType* type);
+	bool apply();
+	static void animate(float from, float to, long duration, const ApplyFunction& apply_function, const AnimationType* type = AnimationType::SWAY);
+	static void set_time(long time);
+	static void apply_all();
 };
 
 }

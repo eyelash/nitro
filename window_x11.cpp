@@ -9,6 +9,12 @@ static Window window;
 static EGLDisplay egl_display;
 static EGLSurface surface;
 
+static void set_time () {
+	struct timespec ts;
+	clock_gettime (CLOCK_MONOTONIC, &ts);
+	atmosphere::Animation::set_time (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
+}
+
 atmosphere::Window::Window (int width, int height, const char* title) {
 	display = XOpenDisplay (NULL);
 	egl_display = eglGetDisplay (display);
@@ -69,6 +75,8 @@ atmosphere::Window::Window (int width, int height, const char* title) {
 	XFree (visual);
 
 	XStoreName (display, window, title);
+
+	set_time ();
 }
 
 void atmosphere::Window::dispatch_events () {
@@ -86,6 +94,8 @@ void atmosphere::Window::run () {
 	XMapWindow (display, window);
 	while (true) {
 		dispatch_events ();
+		set_time ();
+		Animation::apply_all ();
 		glClear (GL_COLOR_BUFFER_BIT);
 		scene_graph.draw ();
 		//glFlush ();

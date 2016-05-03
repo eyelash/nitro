@@ -3,6 +3,11 @@
 
 using namespace GLES2;
 
+void atmosphere::Node::set_position(float x, float y) {
+	this->x = x;
+	this->y = y;
+}
+
 // Rectangle
 atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const GLES2::vec4& color): color(color) {
 	this->x = x;

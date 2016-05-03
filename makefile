@@ -1,4 +1,4 @@
-SOURCES = test.cpp scene_graph.cpp gles2.cpp window_x11.cpp 3rdparty/3rdparty.c
+SOURCES = test.cpp scene_graph.cpp gles2.cpp animation.cpp window_x11.cpp 3rdparty/3rdparty.c
 OBJECTS = $(addsuffix .o,$(basename $(SOURCES)))
 CC = gcc
 CXX = g++
