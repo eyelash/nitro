@@ -3,6 +3,24 @@
 
 using namespace GLES2;
 
+// Node
+atmosphere::Node::Node(): x(0), y(0), clipping(false) {
+
+}
+void atmosphere::Node::add_child(Node* node) {
+	children.push_back(node);
+}
+void atmosphere::Node::draw(const DrawContext& parent_draw_context) {
+	DrawContext draw_context;
+	draw_context.projection = parent_draw_context.projection * translate(x, y);
+	if (clipping)
+		draw_context.clipping = scale(1.f/width, 1.f/height);
+	else
+		draw_context.clipping = parent_draw_context.clipping * translate(x, y);
+	for (Node* node: children) {
+		node->draw(draw_context);
+	}
+}
 void atmosphere::Node::set_position(float x, float y) {
 	this->x = x;
 	this->y = y;
@@ -15,7 +33,7 @@ atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, co
 	this->width = width;
 	this->height = height;
 }
-void atmosphere::Rectangle::draw(const GLES2::mat4& projection) {
+void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
 	static Program* program = nullptr;
 	if (!program) program = new Program ("shaders/vertex.glsl", "shaders/fragment.glsl");
 
@@ -27,7 +45,8 @@ void atmosphere::Rectangle::draw(const GLES2::mat4& projection) {
 	};
 
 	program->use ();
-	program->set_uniform ("projection", projection);
+	program->set_uniform ("projection", draw_context.projection);
+	program->set_uniform ("clipping", draw_context.clipping);
 	GLint vertex_location = program->get_attribute_location ("vertex");
 	glVertexAttribPointer (vertex_location, 2, GL_FLOAT, GL_FALSE, 0, vertices);
 	glEnableVertexAttribArray (vertex_location);
@@ -36,6 +55,8 @@ void atmosphere::Rectangle::draw(const GLES2::mat4& projection) {
 	glDrawArrays (GL_TRIANGLE_FAN, 0, 4);
 
 	glDisableVertexAttribArray (vertex_location);
+
+	Node::draw(draw_context);
 }
 
 // Image
@@ -49,7 +70,7 @@ atmosphere::Image::Image(const char* file_name, float x, float y) {
 	texture = new Texture(width, height, depth, data);
 	stbi_image_free(data);
 }
-void atmosphere::Image::draw(const GLES2::mat4& projection) {
+void atmosphere::Image::draw(const DrawContext& draw_context) {
 	static Program* texture_program = nullptr;
 	if (!texture_program) texture_program = new Program ("shaders/vertex-texture.glsl", "shaders/fragment-texture.glsl");
 
@@ -67,7 +88,8 @@ void atmosphere::Image::draw(const GLES2::mat4& projection) {
 	};
 
 	texture_program->use ();
-	texture_program->set_uniform ("projection", projection);
+	texture_program->set_uniform ("projection", draw_context.projection);
+	texture_program->set_uniform ("clipping", draw_context.clipping);
 	//texture_program->set_uniform ("texture", image->identifier);
 	GLint vertex_location = texture_program->get_attribute_location ("vertex");
 	glVertexAttribPointer (vertex_location, 2, GL_FLOAT, GL_FALSE, 0, vertices);
@@ -85,19 +107,6 @@ void atmosphere::Image::draw(const GLES2::mat4& projection) {
 	glDisable (GL_TEXTURE_2D);
 	glDisableVertexAttribArray (texcoord_location);
 	glDisableVertexAttribArray (vertex_location);
-}
 
-// SceneGraph
-atmosphere::SceneGraph::SceneGraph(): projection(glOrtho (0, 800, 0, 600, -1, 1)) {
-
-}
-void atmosphere::SceneGraph::add_node(Node* node) {
-	nodes.insert(node);
-}
-void atmosphere::SceneGraph::draw() {
-	for (Node* node: nodes)
-		node->draw(projection);
-}
-void atmosphere::SceneGraph::set_size(int width, int height) {
-	projection = glOrtho (0, width, 0, height, -1, 1);
+	Node::draw(draw_context);
 }

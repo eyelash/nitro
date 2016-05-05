@@ -85,7 +85,8 @@ void atmosphere::Window::dispatch_events () {
 		XNextEvent (display, &event);
 		if (event.type == ConfigureNotify) {
 			glViewport (0, 0, event.xconfigure.width, event.xconfigure.height);
-			scene_graph.set_size (event.xconfigure.width, event.xconfigure.height);
+			draw_context.projection = GLES2::glOrtho (0, event.xconfigure.width, 0, event.xconfigure.height, -1, 1);
+			draw_context.clipping = GLES2::scale (0.f, 0.f);
 		}
 	}
 }
@@ -97,12 +98,12 @@ void atmosphere::Window::run () {
 		set_time ();
 		Animation::apply_all ();
 		glClear (GL_COLOR_BUFFER_BIT);
-		scene_graph.draw ();
+		root_node.draw (draw_context);
 		//glFlush ();
 		eglSwapBuffers (egl_display, surface);
 	}
 }
 
-void atmosphere::Window::add (Node* node) {
-	scene_graph.add_node (node);
+void atmosphere::Window::add_child (Node* node) {
+	root_node.add_child (node);
 }

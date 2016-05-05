@@ -5,11 +5,20 @@
 
 namespace atmosphere {
 
+struct DrawContext {
+	GLES2::mat4 projection;
+	GLES2::mat4 clipping;
+};
+
 class Node {
+	std::vector<Node*> children;
 protected:
 	float x, y, width, height;
 public:
-	virtual void draw(const GLES2::mat4& projection) = 0;
+	bool clipping;
+	Node();
+	void add_child(Node* node);
+	virtual void draw(const DrawContext& draw_context);
 	void set_position(float x, float y);
 };
 
@@ -20,18 +29,18 @@ public:
 	//TextureAtlas(): Texture(512, 512, 4, nullptr) {}
 };
 
-class Image: public Node {
-	GLES2::Texture* texture;
-public:
-	Image(const char* file_name, float x = 0.f, float y = 0.f);
-	void draw(const GLES2::mat4& projection);
-};
-
 class Rectangle: public Node {
 	GLES2::vec4 color;
 public:
 	Rectangle(float x, float y, float width, float height, const GLES2::vec4& color);
-	void draw(const GLES2::mat4& projection);
+	void draw(const DrawContext& draw_context) override;
+};
+
+class Image: public Node {
+	GLES2::Texture* texture;
+public:
+	Image(const char* file_name, float x = 0.f, float y = 0.f);
+	void draw(const DrawContext& draw_context) override;
 };
 
 class SceneGraph {
@@ -45,11 +54,13 @@ public:
 };
 
 class Window {
-	SceneGraph scene_graph;
+	Node root_node;
+	DrawContext draw_context;
+	GLES2::mat4 projection;
 	void dispatch_events();
 public:
 	Window(int width, int height, const char* title);
-	void add(Node* node);
+	void add_child(Node* node);
 	void run();
 };
 

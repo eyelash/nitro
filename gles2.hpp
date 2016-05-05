@@ -32,7 +32,7 @@ inline mat4 operator * (const mat4& lhs, const mat4& rhs) {
 	return mat4 {lhs * rhs[0], lhs * rhs[1], lhs * rhs[2], lhs * rhs[3]};
 }
 
-static mat4 glOrtho (float l, float r, float b, float t, float n, float f) {
+inline mat4 glOrtho (float l, float r, float b, float t, float n, float f) {
 	return mat4 {
 		vec4 {2.f/(r-l), 0.f, 0.f, 0.f},
 		vec4 {0.f, 2.f/(t-b), 0.f, 0.f},
@@ -41,7 +41,7 @@ static mat4 glOrtho (float l, float r, float b, float t, float n, float f) {
 	};
 }
 
-static mat4 translate (float x, float y, float z = 0.f) {
+inline mat4 translate (float x, float y, float z = 0.f) {
 	return mat4 {
 		vec4 {1.f, 0.f, 0.f, 0.f},
 		vec4 {0.f, 1.f, 0.f, 0.f},
@@ -50,7 +50,16 @@ static mat4 translate (float x, float y, float z = 0.f) {
 	};
 }
 
-static mat4 rotateZ (float a) {
+inline mat4 scale (float x, float y, float z = 1.f) {
+	return mat4 {
+		vec4 {x, 0.f, 0.f, 0.f},
+		vec4 {0.f, y, 0.f, 0.f},
+		vec4 {0.f, 0.f, z, 0.f},
+		vec4 {0.f, 0.f, 0.f, 1.f}
+	};
+}
+
+inline mat4 rotateZ (float a) {
 	return mat4 {
 		vec4 {cosf(a), sinf(a), 0.f, 0.f},
 		vec4 {-sinf(a), cosf(a), 0.f, 0.f},
