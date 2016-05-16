@@ -36,11 +36,32 @@ public:
 	void draw(const DrawContext& draw_context) override;
 };
 
+class Texcoord {
+public:
+	float x0, y0, x1, y1;
+};
+
 class Image: public Node {
 	GLES2::Texture* texture;
+	Texcoord texcoord;
 public:
 	Image(const char* file_name, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
+};
+
+class Mask: public Node {
+	GLES2::vec4 color;
+	GLES2::Texture* mask;
+	Texcoord mask_texcoord;
+public:
+	Mask(float x, float y, float width, float height, const GLES2::vec4& color, GLES2::Texture* texture, const Texcoord& texcoord);
+	void draw(const DrawContext& draw_context) override;
+};
+
+class RoundedRectangle: public Node {
+	static GLES2::Texture* create_texture(int radius);
+public:
+	RoundedRectangle(float x, float y, float width, float height, const GLES2::vec4& color, float radius);
 };
 
 class SceneGraph {

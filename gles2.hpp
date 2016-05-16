@@ -90,6 +90,8 @@ public:
 	void use ();
 	GLint get_attribute_location (const char* name);
 	void set_attribute (const char* name, const vec4& value);
+	void set_uniform (const char* name, int value);
+	void set_uniform (const char* name, const vec4& value);
 	void set_uniform (const char* name, const mat4& value);
 };
 
@@ -99,8 +101,8 @@ public:
 	int width, height;
 	Texture (int width, int height, int depth, const unsigned char* data);
 	~Texture ();
-	void bind ();
-	void unbind ();
+	void bind (GLenum texture_unit = GL_TEXTURE0);
+	void unbind (GLenum texture_unit = GL_TEXTURE0);
 };
 
 class FramebufferObject {

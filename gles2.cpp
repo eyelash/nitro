@@ -111,6 +111,14 @@ void Program::set_attribute (const char* name, const vec4& value) {
 	GLint location = glGetAttribLocation (identifier, name);
 	glVertexAttrib4f (location, value.x, value.y, value.z, value.w);
 }
+void Program::set_uniform (const char* name, int value) {
+	GLint location = glGetUniformLocation (identifier, name);
+	glUniform1i (location, value);
+}
+void Program::set_uniform (const char* name, const vec4& value) {
+	GLint location = glGetUniformLocation (identifier, name);
+	glUniform4f (location, value.x, value.y, value.z, value.w);
+}
 void Program::set_uniform (const char* name, const mat4& value) {
 	GLint location = glGetUniformLocation (identifier, name);
 	glUniformMatrix4fv (location, 1, GL_FALSE, &value[0].x);
@@ -124,19 +132,24 @@ Texture::Texture (int width, int height, int depth, const unsigned char* data): 
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	if (depth == 3)
+	glPixelStorei (GL_UNPACK_ALIGNMENT, 1);
+	if (depth == 1)
+		glTexImage2D (GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, data);
+	else if (depth == 3)
 		glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-	if (depth == 4)
+	else if (depth == 4)
 		glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	unbind ();
 }
 Texture::~Texture () {
 	glDeleteTextures (1, &identifier);
 }
-void Texture::bind () {
+void Texture::bind (GLenum texture_unit) {
+	glActiveTexture (texture_unit);
 	glBindTexture (GL_TEXTURE_2D, identifier);
 }
-void Texture::unbind () {
+void Texture::unbind (GLenum texture_unit) {
+	glActiveTexture (texture_unit);
 	glBindTexture (GL_TEXTURE_2D, 0);
 }
 
