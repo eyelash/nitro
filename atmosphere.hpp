@@ -64,6 +64,11 @@ public:
 	RoundedRectangle(float x, float y, float width, float height, const GLES2::vec4& color, float radius);
 };
 
+class Text: public Node {
+public:
+	Text(const char* text, const GLES2::vec4& color);
+};
+
 class SceneGraph {
 	std::set<Node*> nodes;
 	GLES2::mat4 projection;
