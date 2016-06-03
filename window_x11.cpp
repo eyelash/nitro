@@ -85,7 +85,7 @@ void atmosphere::Window::dispatch_events () {
 		XNextEvent (display, &event);
 		if (event.type == ConfigureNotify) {
 			glViewport (0, 0, event.xconfigure.width, event.xconfigure.height);
-			draw_context.projection = GLES2::glOrtho (0, event.xconfigure.width, 0, event.xconfigure.height, -1, 1);
+			draw_context.projection = GLES2::project (event.xconfigure.width, event.xconfigure.height, event.xconfigure.width*2);
 			draw_context.clipping = GLES2::scale (0.f, 0.f);
 		}
 	}

@@ -3,8 +3,19 @@
 
 using namespace GLES2;
 
+// Transformation
+atmosphere::Transformation::Transformation(): x(0.f), y(0.f), scale(1.f), rotation_x(0.f), rotation_y(0.f), rotation_z(0.f) {
+
+}
+mat4 atmosphere::Transformation::get_matrix(float width, float height) const {
+	return translate(width/2.f+x, height/2.f+y) * GLES2::scale(scale, scale) * rotateX(rotation_x) * rotateY(rotation_y) * rotateZ(rotation_z) * translate(-width/2.f, -height/2.f);
+}
+mat4 atmosphere::Transformation::get_inverse_matrix(float width, float height) const {
+	return translate(width/2.f, height/2.f) * rotateZ(-rotation_z) * rotateY(-rotation_y) * rotateX(-rotation_x) * GLES2::scale(1.f/scale, 1.f/scale) * translate(-width/2.f-x, -height/2.f-y);
+}
+
 // Node
-atmosphere::Node::Node(): x(0), y(0), clipping(false) {
+atmosphere::Node::Node(): clipping(false) {
 
 }
 void atmosphere::Node::add_child(Node* node) {
@@ -12,35 +23,39 @@ void atmosphere::Node::add_child(Node* node) {
 }
 void atmosphere::Node::draw(const DrawContext& parent_draw_context) {
 	DrawContext draw_context;
-	draw_context.projection = parent_draw_context.projection * translate(x, y);
+	draw_context.projection = parent_draw_context.projection * transformation.get_matrix(width, height);
 	if (clipping)
 		draw_context.clipping = scale(1.f/width, 1.f/height);
 	else
-		draw_context.clipping = parent_draw_context.clipping * translate(x, y);
+		draw_context.clipping = parent_draw_context.clipping * transformation.get_matrix(width, height);
+	draw_node(draw_context);
 	for (Node* node: children) {
 		node->draw(draw_context);
 	}
 }
+void atmosphere::Node::draw_node(const DrawContext& draw_context) {
+
+}
 void atmosphere::Node::set_position(float x, float y) {
-	this->x = x;
-	this->y = y;
+	transformation.x = x;
+	transformation.y = y;
 }
 
 // Rectangle
 atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const vec4& color): color(color) {
-	this->x = x;
-	this->y = y;
+	transformation.x = x;
+	transformation.y = y;
 	this->width = width;
 	this->height = height;
 }
-void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
+void atmosphere::Rectangle::draw_node(const DrawContext& draw_context) {
 	static Program program{"shaders/vertex.glsl", "shaders/fragment.glsl"};
 
 	GLfloat vertices[] = {
-		x, y,
-		x+width, y,
-		x+width, y+height,
-		x, y+height
+		0.f, 0.f,
+		width, 0.f,
+		width, height,
+		0.f, height
 	};
 
 	program.use();
@@ -55,29 +70,27 @@ void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
 	glDisableVertexAttribArray(vertex_location);
-
-	Node::draw(draw_context);
 }
 
 // Image
 atmosphere::Image::Image(const char* file_name, float x, float y): texcoord{0.f, 1.f, 1.f, 0.f} {
 	int width, height, depth;
 	unsigned char* data = stbi_load(file_name, &width, &height, &depth, 0);
-	this->x = x;
-	this->y = y;
+	transformation.x = x;
+	transformation.y = y;
 	this->width = width;
 	this->height = height;
 	texture = new Texture(width, height, depth, data);
 	stbi_image_free(data);
 }
-void atmosphere::Image::draw(const DrawContext& draw_context) {
+void atmosphere::Image::draw_node(const DrawContext& draw_context) {
 	static Program texture_program{"shaders/vertex-texture.glsl", "shaders/fragment-texture.glsl"};
 
 	GLfloat vertices[] = {
-		x, y,
-		x + width, y,
-		x + width, y + height,
-		x, y + height
+		0.f, 0.f,
+		width, 0.f,
+		width, height,
+		0.f, height
 	};
 	GLfloat texcoords[] = {
 		texcoord.x0, texcoord.y0,
@@ -104,25 +117,23 @@ void atmosphere::Image::draw(const DrawContext& draw_context) {
 	texture->unbind();
 	glDisableVertexAttribArray(texcoord_location);
 	glDisableVertexAttribArray(vertex_location);
-
-	Node::draw(draw_context);
 }
 
 // Mask
 atmosphere::Mask::Mask(float x, float y, float width, float height, const vec4& color, Texture* mask, const Texcoord& texcoord): color(color), mask(mask), mask_texcoord{texcoord} {
-	this->x = x;
-	this->y = y;
+	transformation.x = x;
+	transformation.y = y;
 	this->width = width;
 	this->height = height;
 }
-void atmosphere::Mask::draw(const DrawContext& draw_context) {
+void atmosphere::Mask::draw_node(const DrawContext& draw_context) {
 	static Program mask_program{"shaders/vertex-mask.glsl", "shaders/fragment-mask.glsl"};
 
 	GLfloat vertices[] = {
-		x, y,
-		x + width, y,
-		x + width, y + height,
-		x, y + height
+		0.f, 0.f,
+		width, 0.f,
+		width, height,
+		0.f, height
 	};
 	GLfloat texcoords[] = {
 		mask_texcoord.x0, mask_texcoord.y0,
@@ -150,8 +161,6 @@ void atmosphere::Mask::draw(const DrawContext& draw_context) {
 	mask->unbind();
 	glDisableVertexAttribArray(texcoord_location);
 	glDisableVertexAttribArray(vertex_location);
-
-	Node::draw(draw_context);
 }
 
 // RoundedRectangle
@@ -193,8 +202,8 @@ Texture* atmosphere::RoundedRectangle::create_texture(int radius) {
 	return result;
 }
 atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, float height, const vec4& color, float radius) {
-	this->x = x;
-	this->y = y;
+	transformation.x = x;
+	transformation.y = y;
 	this->width = width;
 	this->height = height;
 	Texture* texture = create_texture(radius);

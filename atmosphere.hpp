@@ -5,6 +5,16 @@
 
 namespace atmosphere {
 
+class Transformation {
+public:
+	float x, y;
+	float scale;
+	float rotation_x, rotation_y, rotation_z;
+	Transformation();
+	GLES2::mat4 get_matrix(float width, float height) const;
+	GLES2::mat4 get_inverse_matrix(float width, float height) const;
+};
+
 struct DrawContext {
 	GLES2::mat4 projection;
 	GLES2::mat4 clipping;
@@ -12,13 +22,14 @@ struct DrawContext {
 
 class Node {
 	std::vector<Node*> children;
-protected:
-	float x, y, width, height;
 public:
+	Transformation transformation;
+	float width, height;
 	bool clipping;
 	Node();
 	void add_child(Node* node);
-	virtual void draw(const DrawContext& draw_context);
+	void draw(const DrawContext& parent_draw_context);
+	virtual void draw_node(const DrawContext& draw_context);
 	void set_position(float x, float y);
 };
 
@@ -33,7 +44,7 @@ class Rectangle: public Node {
 	GLES2::vec4 color;
 public:
 	Rectangle(float x, float y, float width, float height, const GLES2::vec4& color);
-	void draw(const DrawContext& draw_context) override;
+	void draw_node(const DrawContext& draw_context) override;
 };
 
 class Texcoord {
@@ -46,7 +57,7 @@ class Image: public Node {
 	Texcoord texcoord;
 public:
 	Image(const char* file_name, float x = 0.f, float y = 0.f);
-	void draw(const DrawContext& draw_context) override;
+	void draw_node(const DrawContext& draw_context) override;
 };
 
 class Mask: public Node {
@@ -55,7 +66,7 @@ class Mask: public Node {
 	Texcoord mask_texcoord;
 public:
 	Mask(float x, float y, float width, float height, const GLES2::vec4& color, GLES2::Texture* texture, const Texcoord& texcoord);
-	void draw(const DrawContext& draw_context) override;
+	void draw_node(const DrawContext& draw_context) override;
 };
 
 class RoundedRectangle: public Node {
@@ -82,7 +93,6 @@ public:
 class Window {
 	Node root_node;
 	DrawContext draw_context;
-	GLES2::mat4 projection;
 	void dispatch_events();
 public:
 	Window(int width, int height, const char* title);

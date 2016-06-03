@@ -17,6 +17,14 @@ struct mat4 {
 	const vec4& operator [] (int i) const {
 		return values[i];
 	}
+	static constexpr mat4 id () {
+		return mat4 {
+			vec4 {1.f, 0.f, 0.f, 0.f},
+			vec4 {0.f, 1.f, 0.f, 0.f},
+			vec4 {0.f, 0.f, 1.f, 0.f},
+			vec4 {0.f, 0.f, 0.f, 1.f}
+		};
+	}
 };
 
 inline vec4 operator * (const mat4& lhs, const vec4& rhs) {
@@ -41,6 +49,15 @@ inline mat4 glOrtho (float l, float r, float b, float t, float n, float f) {
 	};
 }
 
+inline mat4 project (float w, float h, float d) {
+	return mat4 {
+		vec4 {2.f/w, 0.f, 0.f, 0.f},
+		vec4 {0.f, 2.f/h, 0.f, 0.f},
+		vec4 {0.f, 0.f, 0.f, -1.f/d},
+		vec4 {-1.f, -1.f, 0.f, 1.f}
+	};
+}
+
 inline mat4 translate (float x, float y, float z = 0.f) {
 	return mat4 {
 		vec4 {1.f, 0.f, 0.f, 0.f},
@@ -59,6 +76,22 @@ inline mat4 scale (float x, float y, float z = 1.f) {
 	};
 }
 
+inline mat4 rotateX (float a) {
+	return mat4 {
+		vec4 {1.f, 0.f, 0.f, 0.f},
+		vec4 {0.f, cosf(a), sinf(a), 0.f},
+		vec4 {0.f, -sinf(a), cosf(a), 0.f},
+		vec4 {0.f, 0.f, 0.f, 1.f}
+	};
+}
+inline mat4 rotateY (float a) {
+	return mat4 {
+		vec4 {cosf(a), 0.f, -sinf(a), 0.f},
+		vec4 {0.f, 1.f, 0.f, 0.f},
+		vec4 {sinf(a), 0.f, cosf(a), 0.f},
+		vec4 {0.f, 0.f, 0.f, 1.f}
+	};
+}
 inline mat4 rotateZ (float a) {
 	return mat4 {
 		vec4 {cosf(a), sinf(a), 0.f, 0.f},
