@@ -36,9 +36,26 @@ void atmosphere::Node::draw(const DrawContext& parent_draw_context) {
 void atmosphere::Node::draw_node(const DrawContext& draw_context) {
 
 }
-void atmosphere::Node::set_position(float x, float y) {
-	transformation.x = x;
-	transformation.y = y;
+atmosphere::Property<float> atmosphere::Node::position_x() {
+	return Property<float> {this, [](Node* node) {
+		return node->transformation.x;
+	}, [](Node* node, float value) {
+		node->transformation.x = value;
+	}};
+}
+atmosphere::Property<float> atmosphere::Node::position_y() {
+	return Property<float> {this, [](Node* node) {
+		return node->transformation.y;
+	}, [](Node* node, float value) {
+		node->transformation.y = value;
+	}};
+}
+atmosphere::Property<float> atmosphere::Node::rotation_z() {
+	return Property<float> {this, [](Node* node) {
+		return node->transformation.rotation_z;
+	}, [](Node* node, float value) {
+		node->transformation.rotation_z = value;
+	}};
 }
 
 // Rectangle
