@@ -11,11 +11,11 @@ mat4 atmosphere::Transformation::get_matrix(float width, float height) const {
 	return translate(width/2.f+x, height/2.f+y) * GLES2::scale(scale, scale) * rotateX(rotation_x) * rotateY(rotation_y) * rotateZ(rotation_z) * translate(-width/2.f, -height/2.f);
 }
 mat4 atmosphere::Transformation::get_inverse_matrix(float width, float height) const {
-	return translate(width/2.f, height/2.f) * rotateZ(-rotation_z) * rotateY(-rotation_y) * rotateX(-rotation_x) * GLES2::scale(1.f/scale, 1.f/scale) * translate(-width/2.f-x, -height/2.f-y);
+	return translate(width/2.f, height/2.f) * rotateZ(-rotation_z) * GLES2::scale(1.f/scale, 1.f/scale) * translate(-width/2.f-x, -height/2.f-y);
 }
 
 // Node
-atmosphere::Node::Node(): clipping(false) {
+atmosphere::Node::Node(): clipping(false), mouse_inside(false) {
 
 }
 void atmosphere::Node::add_child(Node* node) {
@@ -34,6 +34,30 @@ void atmosphere::Node::draw(const DrawContext& parent_draw_context) {
 	}
 }
 void atmosphere::Node::draw_node(const DrawContext& draw_context) {
+
+}
+void atmosphere::Node::handle_mouse_motion_event(const vec4& parent_position) {
+	vec4 p = transformation.get_inverse_matrix(width, height) * parent_position;
+	if (p.x >= 0.f && p.x < width && p.y >= 0.f && p.y < height) {
+		if (!mouse_inside) {
+			mouse_enter();
+			mouse_inside = true;
+		}
+	}
+	else {
+		if (mouse_inside) {
+			mouse_leave();
+			mouse_inside = false;
+		}
+	}
+	for (Node* node: children) {
+		node->handle_mouse_motion_event(p);
+	}
+}
+void atmosphere::Node::mouse_enter() {
+
+}
+void atmosphere::Node::mouse_leave() {
 
 }
 atmosphere::Property<float> atmosphere::Node::position_x() {

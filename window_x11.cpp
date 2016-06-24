@@ -2,6 +2,7 @@
 #include <X11/Xlib.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
+#include <time.h>
 #include <cstdio>
 
 static Display *display;
@@ -83,10 +84,17 @@ void atmosphere::Window::dispatch_events () {
 	XEvent event;
 	while (XPending (display)) {
 		XNextEvent (display, &event);
-		if (event.type == ConfigureNotify) {
+		switch (event.type) {
+		case MotionNotify:
+			root_node.handle_mouse_motion_event (GLES2::vec4 {event.xmotion.x, root_node.height - event.xmotion.y, 0.f, 1.f});
+			break;
+		case ConfigureNotify:
+			root_node.width = event.xconfigure.width;
+			root_node.height = event.xconfigure.height;
 			glViewport (0, 0, event.xconfigure.width, event.xconfigure.height);
 			draw_context.projection = GLES2::project (event.xconfigure.width, event.xconfigure.height, event.xconfigure.width*2);
 			draw_context.clipping = GLES2::scale (0.f, 0.f);
+			break;
 		}
 	}
 }

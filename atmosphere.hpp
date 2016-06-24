@@ -26,10 +26,14 @@ public:
 	Transformation transformation;
 	float width, height;
 	bool clipping;
+	bool mouse_inside;
 	Node();
 	void add_child(Node* node);
 	void draw(const DrawContext& parent_draw_context);
 	virtual void draw_node(const DrawContext& draw_context);
+	void handle_mouse_motion_event(const GLES2::vec4& parent_position);
+	virtual void mouse_enter();
+	virtual void mouse_leave();
 	Property<float> position_x();
 	Property<float> position_y();
 	Property<float> rotation_z();
