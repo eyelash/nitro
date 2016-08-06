@@ -163,15 +163,10 @@ void atmosphere::Rectangle::draw_node(const DrawContext& draw_context) {
 	program.use();
 	program.set_uniform("projection", draw_context.projection);
 	program.set_uniform("clipping", draw_context.clipping);
-	GLint vertex_location = program.get_attribute_location("vertex");
-	glVertexAttribPointer(vertex_location, 2, GL_FLOAT, GL_FALSE, 0, vertices);
 	program.set_attribute("color", _color.with_alpha(draw_context.alpha).unpremultiply());
-
-	glEnableVertexAttribArray(vertex_location);
+	VertexAttributeArray vertex = program.set_attribute_array("vertex", 2, vertices);
 
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-
-	glDisableVertexAttribArray(vertex_location);
 }
 atmosphere::Property<atmosphere::Color> atmosphere::Rectangle::color() {
 	return Property<Color> {this, [](Rectangle* rectangle) {
@@ -225,20 +220,14 @@ void atmosphere::Image::draw_node(const DrawContext& draw_context) {
 	texture_program.set_uniform("projection", draw_context.projection);
 	texture_program.set_uniform("clipping", draw_context.clipping);
 	texture_program.set_uniform("texture", 0);
-	GLint vertex_location = texture_program.get_attribute_location("vertex");
-	glVertexAttribPointer(vertex_location, 2, GL_FLOAT, GL_FALSE, 0, vertices);
-	GLint texcoord_location = texture_program.get_attribute_location("texcoord");
-	glVertexAttribPointer(texcoord_location, 2, GL_FLOAT, GL_FALSE, 0, texcoords);
+	VertexAttributeArray vertex = texture_program.set_attribute_array("vertex", 2, vertices);
+	VertexAttributeArray texcoord = texture_program.set_attribute_array("texcoord", 2, texcoords);
 
-	glEnableVertexAttribArray(vertex_location);
-	glEnableVertexAttribArray(texcoord_location);
 	texture->bind();
 
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
 	texture->unbind();
-	glDisableVertexAttribArray(texcoord_location);
-	glDisableVertexAttribArray(vertex_location);
 }
 
 // Mask
@@ -265,21 +254,15 @@ void atmosphere::Mask::draw_node(const DrawContext& draw_context) {
 	mask_program.set_uniform("projection", draw_context.projection);
 	mask_program.set_uniform("clipping", draw_context.clipping);
 	mask_program.set_uniform("texture", 0);
-	GLint vertex_location = mask_program.get_attribute_location("vertex");
-	glVertexAttribPointer(vertex_location, 2, GL_FLOAT, GL_FALSE, 0, vertices);
 	mask_program.set_attribute("color", _color.with_alpha(draw_context.alpha).unpremultiply());
-	GLint texcoord_location = mask_program.get_attribute_location("texcoord");
-	glVertexAttribPointer(texcoord_location, 2, GL_FLOAT, GL_FALSE, 0, texcoords);
+	VertexAttributeArray vertex = mask_program.set_attribute_array("vertex", 2, vertices);
+	VertexAttributeArray texcoord = mask_program.set_attribute_array("texcoord", 2, texcoords);
 
-	glEnableVertexAttribArray(vertex_location);
-	glEnableVertexAttribArray(texcoord_location);
 	mask->bind();
 
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
 	mask->unbind();
-	glDisableVertexAttribArray(texcoord_location);
-	glDisableVertexAttribArray(vertex_location);
 }
 atmosphere::Property<atmosphere::Color> atmosphere::Mask::color() {
 	return Property<Color> {this, [](Mask* mask) {

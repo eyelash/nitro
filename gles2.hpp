@@ -127,6 +127,13 @@ public:
 	Shader& operator = (const Shader&) = delete;
 };
 
+class VertexAttributeArray {
+	GLuint index;
+public:
+	VertexAttributeArray (GLuint index, GLint size, GLenum type, const GLvoid* pointer);
+	~VertexAttributeArray ();
+};
+
 class Program {
 public:
 	GLuint identifier;
@@ -139,6 +146,7 @@ public:
 	void link ();
 	void use ();
 	GLint get_attribute_location (const char* name);
+	VertexAttributeArray set_attribute_array (const char* name, GLint size, const GLfloat* pointer);
 	void set_attribute (const char* name, const vec4& value);
 	void set_uniform (const char* name, int value);
 	void set_uniform (const char* name, const vec4& value);

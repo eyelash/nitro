@@ -84,6 +84,15 @@ Shader::~Shader () {
 	glDeleteShader (identifier);
 }
 
+// VertexAttributeArray
+VertexAttributeArray::VertexAttributeArray (GLuint index, GLint size, GLenum type, const GLvoid* pointer): index(index) {
+	glVertexAttribPointer (index, size, type, GL_FALSE, 0, pointer);
+	glEnableVertexAttribArray (index);
+}
+VertexAttributeArray::~VertexAttributeArray () {
+	glDisableVertexAttribArray (index);
+}
+
 // Program
 Program::Program (Shader* vertex_shader, Shader* fragment_shader) {
 	identifier = glCreateProgram ();
@@ -123,6 +132,10 @@ void Program::use () {
 }
 GLint Program::get_attribute_location (const char* name) {
 	return glGetAttribLocation (identifier, name);
+}
+VertexAttributeArray Program::set_attribute_array (const char* name, GLint size, const GLfloat* pointer) {
+	GLint index = glGetAttribLocation (identifier, name);
+	return VertexAttributeArray (index, size, GL_FLOAT, pointer);
 }
 void Program::set_attribute (const char* name, const vec4& value) {
 	GLint location = glGetAttribLocation (identifier, name);
