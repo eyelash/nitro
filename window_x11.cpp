@@ -33,7 +33,7 @@ static void set_time () {
 	atmosphere::Animation::set_time (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }
 
-atmosphere::Window::Window (int width, int height, const char* title): root_node(0.f, 0.f, width, height) {
+atmosphere::Window::Window (int width, int height, const char* title): Bin{0, 0, width, height} {
 	display = XOpenDisplay (NULL);
 	egl_display = eglGetDisplay (display);
 	eglInitialize (egl_display, NULL, NULL);
@@ -103,11 +103,11 @@ void atmosphere::Window::dispatch_events () {
 		XNextEvent (display, &event);
 		switch (event.type) {
 		case MotionNotify:
-			root_node.handle_mouse_motion_event (GLES2::vec4 {event.xmotion.x, root_node.height().get() - event.xmotion.y, 0.f, 1.f});
+			handle_mouse_motion_event (GLES2::vec4 {event.xmotion.x, height().get() - event.xmotion.y, 0.f, 1.f});
 			break;
 		case ConfigureNotify:
-			root_node.width().set(event.xconfigure.width);
-			root_node.height().set(event.xconfigure.height);
+			width().set(event.xconfigure.width);
+			height().set(event.xconfigure.height);
 			glViewport (0, 0, event.xconfigure.width, event.xconfigure.height);
 			draw_context.projection = GLES2::project (event.xconfigure.width, event.xconfigure.height, event.xconfigure.width*2);
 			draw_context.clipping = GLES2::scale (0.f, 0.f);
@@ -124,12 +124,8 @@ void atmosphere::Window::run () {
 		set_time ();
 		Animation::apply_all ();
 		glClear (GL_COLOR_BUFFER_BIT);
-		root_node.draw (draw_context);
+		draw (draw_context);
 		//glFlush ();
 		eglSwapBuffers (egl_display, surface);
 	}
-}
-
-void atmosphere::Window::add_child (Node* node) {
-	root_node.add_child (node);
 }

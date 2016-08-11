@@ -24,9 +24,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 using namespace GLES2;
 
 // Transformation
-atmosphere::Transformation::Transformation(): x(0.f), y(0.f), scale(1.f), rotation_x(0.f), rotation_y(0.f), rotation_z(0.f) {
-
-}
 atmosphere::Transformation::Transformation(float x, float y): x(x), y(y), scale(1.f), rotation_x(0.f), rotation_y(0.f), rotation_z(0.f) {
 
 }
@@ -38,9 +35,6 @@ mat4 atmosphere::Transformation::get_inverse_matrix(float width, float height) c
 }
 
 // Node
-atmosphere::Node::Node(): _alpha(1.f), clipping(false), mouse_inside(false) {
-
-}
 atmosphere::Node::Node(float x, float y, float width, float height): transformation(x, y), _width(width), _height(height), _alpha(1.f), clipping(false), mouse_inside(false) {
 
 }
@@ -135,8 +129,25 @@ atmosphere::Property<float> atmosphere::Node::rotation_z() {
 	}};
 }
 
+// Bin
+atmosphere::Bin::Bin(float x, float y, float width, float height): Node{x, y, width, height}, child{nullptr} {
+
+}
+atmosphere::Node* atmosphere::Bin::get_child(int index) {
+	return index == 0 ? child : nullptr;
+}
+void atmosphere::Bin::layout(float width, float height) {
+	if (child) {
+		child->width().set(width);
+		child->height().set(height);
+	}
+}
+void atmosphere::Bin::set_child(Node* node) {
+	child = node;
+}
+
 // SimpleContainer
-atmosphere::SimpleContainer::SimpleContainer(float x, float y, float width, float height): Node(x, y, width, height) {
+atmosphere::SimpleContainer::SimpleContainer(float x, float y, float width, float height): Node{x, y, width, height} {
 
 }
 atmosphere::Node* atmosphere::SimpleContainer::get_child(int index) {
@@ -147,7 +158,7 @@ void atmosphere::SimpleContainer::add_child(Node* node) {
 }
 
 // Rectangle
-atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const Color& color): SimpleContainer(x, y, width, height), _color(color) {
+atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const Color& color): SimpleContainer{x, y, width, height}, _color(color) {
 
 }
 void atmosphere::Rectangle::draw_node(const DrawContext& draw_context) {

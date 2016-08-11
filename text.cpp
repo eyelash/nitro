@@ -19,7 +19,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-atmosphere::Text::Text(const char* text, const Color& color): Node(0,0,0,0), glyphs(0.f, 0.f, 0.f, 0.f) {
+atmosphere::Text::Text(const char* text, const Color& color): Node{0, 0, 0, 0} {
 	static FT_Library library = nullptr;
 	static FT_Face face = nullptr;
 	static float descender;
@@ -39,18 +39,43 @@ atmosphere::Text::Text(const char* text, const Color& color): Node(0,0,0,0), gly
 		const int width = face->glyph->bitmap.width;
 		const int height = face->glyph->bitmap.rows;
 		GLES2::Texture* texture = new GLES2::Texture{width, height, 1, face->glyph->bitmap.buffer};
-		glyphs.add_child(new Mask{x+face->glyph->bitmap_left, y+face->glyph->bitmap_top-height, (float)width, (float)height, color, texture, {0.f, 1.f, 1.f, 0.f}});
+		glyphs.push_back(new Mask{x+face->glyph->bitmap_left, y+face->glyph->bitmap_top-height, (float)width, (float)height, color, texture, {0.f, 1.f, 1.f, 0.f}});
 		x += face->glyph->advance.x >> 6;
 		y += face->glyph->advance.y >> 6;
 		++text;
 	}
-	glyphs.width().set(x);
-	glyphs.height().set(font_height);
+	width().set(x);
+	height().set(font_height);
 }
 atmosphere::Node* atmosphere::Text::get_child(int index) {
-	return index == 0 ? &glyphs : nullptr;
+	return index < glyphs.size() ? glyphs[index] : nullptr;
 }
-void atmosphere::Text::layout(float width, float height) {
-	glyphs.position_x().set(roundf((width - glyphs.width().get()) / 2.f));
-	glyphs.position_y().set(roundf((height - glyphs.height().get()) / 2.f));
+atmosphere::Property<atmosphere::Color> atmosphere::Text::color() {
+	return Property<Color> {this, [](Text* text) {
+		return text->glyphs[0]->color().get();
+	}, [](Text* text, Color color) {
+		for (Mask* mask: text->glyphs) {
+			mask->color().set(color);
+		}
+	}};
+}
+
+atmosphere::TextContainer::TextContainer(const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): Node{0, 0, width, height}, text{text, color}, horizontal_alignment{horizontal_alignment}, vertical_alignment{vertical_alignment} {
+	layout(width, height);
+}
+atmosphere::Node* atmosphere::TextContainer::get_child(int index) {
+	return index == 0 ? &text : nullptr;
+}
+void atmosphere::TextContainer::layout(float width, float height) {
+	if (horizontal_alignment == HorizontalAlignment::CENTER)
+		text.position_x().set(roundf((width - text.width().get()) / 2.f));
+	else if (horizontal_alignment == HorizontalAlignment::RIGHT)
+		text.position_x().set(roundf(width - text.width().get()));
+	if (vertical_alignment == VerticalAlignment::TOP)
+		text.position_y().set(roundf(height - text.height().get()));
+	else if (vertical_alignment == VerticalAlignment::CENTER)
+		text.position_y().set(roundf((height - text.height().get()) / 2.f));
+}
+atmosphere::Property<atmosphere::Color> atmosphere::TextContainer::color() {
+	return text.color();
 }

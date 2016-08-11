@@ -8,13 +8,13 @@ CXXFLAGS = -std=c++11 -O2
 LDFLAGS = -L.
 LDLIBS = -lX11 -lEGL -lGLESv2 -lfreetype
 
-all: test
+all: demo
 
 libatmosphere.so: $(sources) $(headers)
 	$(CXX) -shared -olibatmosphere.so -fPIC $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(sources) $(LDLIBS)
 
-test: test.cpp libatmosphere.so
-	$(CXX) -otest $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) test.cpp -latmosphere
+demo: demo.cpp libatmosphere.so
+	$(CXX) -odemo $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) demo.cpp -latmosphere
 
 clean:
 	rm -f test libatmosphere.so

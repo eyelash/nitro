@@ -27,14 +27,14 @@ public:
 	Color() {
 
 	}
-	constexpr Color(float r, float g, float b, float a = 1.f): r(r*a), g(g*a), b(b*a), a(a) {
+	constexpr Color(float r, float g, float b, float a = 1.f): r{r*a}, g{g*a}, b{b*a}, a{a} {
 
 	}
 	Color with_alpha(float alpha) const {
-		return {r, g, b, a*alpha};
+		return Color{r, g, b, a*alpha};
 	}
 	GLES2::vec4 unpremultiply() const {
-		return a == 0.f ? GLES2::vec4 {0.f, 0.f, 0.f, 0.f} : GLES2::vec4 {r/a, g/a, b/a, a};
+		return a == 0.f ? GLES2::vec4{0.f, 0.f, 0.f, 0.f} : GLES2::vec4{r/a, g/a, b/a, a};
 	}
 	Color operator+(const Color& c) const {
 		return Color{r+c.r, g+c.g, b+c.b, a+c.a};
@@ -49,7 +49,6 @@ public:
 	float x, y;
 	float scale;
 	float rotation_x, rotation_y, rotation_z;
-	Transformation();
 	Transformation(float x, float y);
 	GLES2::mat4 get_matrix(float width, float height) const;
 	GLES2::mat4 get_inverse_matrix(float width, float height) const;
@@ -68,7 +67,6 @@ class Node {
 public:
 	bool clipping;
 	bool mouse_inside;
-	Node();
 	Node(float x, float y, float width, float height);
 	virtual Node* get_child(int index);
 	void draw(const DrawContext& parent_draw_context);
@@ -83,6 +81,15 @@ public:
 	Property<float> height();
 	Property<float> alpha();
 	Property<float> rotation_z();
+};
+
+class Bin: public Node {
+	Node* child;
+public:
+	Bin(float x, float y, float width, float height);
+	Node* get_child(int index) override;
+	void layout(float width, float height) override;
+	void set_child(Node* node);
 };
 
 class SimpleContainer: public Node {
@@ -149,20 +156,39 @@ public:
 };
 
 class Text: public Node {
-	SimpleContainer glyphs;
+	std::vector<Mask*> glyphs;
 public:
 	Text(const char* text, const Color& color);
 	Node* get_child(int index) override;
-	void layout(float width, float height) override;
+	Property<Color> color();
 };
 
-class Window {
-	SimpleContainer root_node;
+enum class HorizontalAlignment {
+	LEFT,
+	CENTER,
+	RIGHT
+};
+enum class VerticalAlignment {
+	TOP,
+	CENTER,
+	BOTTOM
+};
+class TextContainer: public Node {
+	Text text;
+	HorizontalAlignment horizontal_alignment;
+	VerticalAlignment vertical_alignment;
+public:
+	TextContainer(const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment = HorizontalAlignment::CENTER, VerticalAlignment vertical_alignment = VerticalAlignment::CENTER);
+	Node* get_child(int index) override;
+	void layout(float width, float height) override;
+	Property<Color> color();
+};
+
+class Window: public Bin {
 	DrawContext draw_context;
 	void dispatch_events();
 public:
 	Window(int width, int height, const char* title);
-	void add_child(Node* node);
 	void run();
 };
 
