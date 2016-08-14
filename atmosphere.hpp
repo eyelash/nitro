@@ -85,8 +85,9 @@ public:
 
 class Bin: public Node {
 	Node* child;
+	float padding;
 public:
-	Bin(float x, float y, float width, float height);
+	Bin(float x, float y, float width, float height, float padding = 0.f);
 	Node* get_child(int index) override;
 	void layout(float width, float height) override;
 	void set_child(Node* node);
@@ -115,16 +116,32 @@ public:
 	Property<Color> color();
 };
 
-class Texcoord {
-public:
-	float x0, y0, x1, y1;
+struct Texcoord {
+	GLfloat t[8];
+	constexpr Texcoord rotate() const {
+		return Texcoord{
+			t[4], t[5],
+			t[0], t[1],
+			t[6], t[7],
+			t[2], t[3]
+		};
+	}
+	static constexpr Texcoord create(float x0, float y0, float x1, float y1) {
+		return Texcoord{
+			x0, y0,
+			x1, y0,
+			x0, y1,
+			x1, y1
+		};
+	}
 };
 
 class Image: public Node {
 	GLES2::Texture* texture;
 	Texcoord texcoord;
 public:
-	Image(const char* file_name, float x = 0.f, float y = 0.f);
+	Image(float x, float y, float width, float height, GLES2::Texture* texture, const Texcoord& texcoord);
+	static Image create_from_file(const char* file_name, float x = 0.f, float y = 0.f);
 	void draw_node(const DrawContext& draw_context) override;
 };
 
@@ -134,12 +151,12 @@ class Mask: public Node {
 	Texcoord mask_texcoord;
 public:
 	Mask(float x, float y, float width, float height, const Color& color, GLES2::Texture* texture, const Texcoord& texcoord);
+	static Mask create_from_file(const char* file_name, const Color& color, float x = 0.f, float y = 0.f);
 	void draw_node(const DrawContext& draw_context) override;
 	Property<Color> color();
 };
 
 class RoundedRectangle: public SimpleContainer {
-	static GLES2::Texture* create_texture(int radius);
 	float radius;
 	Mask* bottom_left;
 	Rectangle* bottom;

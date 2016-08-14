@@ -33,7 +33,7 @@ static void set_time () {
 	atmosphere::Animation::set_time (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }
 
-atmosphere::Window::Window (int width, int height, const char* title): Bin{0, 0, width, height} {
+atmosphere::Window::Window (int width, int height, const char* title): Bin{0, 0, (float)width, (float)height} {
 	display = XOpenDisplay (NULL);
 	egl_display = eglGetDisplay (display);
 	eglInitialize (egl_display, NULL, NULL);
@@ -103,7 +103,7 @@ void atmosphere::Window::dispatch_events () {
 		XNextEvent (display, &event);
 		switch (event.type) {
 		case MotionNotify:
-			handle_mouse_motion_event (GLES2::vec4 {event.xmotion.x, height().get() - event.xmotion.y, 0.f, 1.f});
+			handle_mouse_motion_event (GLES2::vec4 {(float)event.xmotion.x, height().get() - event.xmotion.y, 0.f, 1.f});
 			break;
 		case ConfigureNotify:
 			width().set(event.xconfigure.width);

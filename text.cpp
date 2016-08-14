@@ -39,7 +39,7 @@ atmosphere::Text::Text(const char* text, const Color& color): Node{0, 0, 0, 0} {
 		const int width = face->glyph->bitmap.width;
 		const int height = face->glyph->bitmap.rows;
 		GLES2::Texture* texture = new GLES2::Texture{width, height, 1, face->glyph->bitmap.buffer};
-		glyphs.push_back(new Mask{x+face->glyph->bitmap_left, y+face->glyph->bitmap_top-height, (float)width, (float)height, color, texture, {0.f, 1.f, 1.f, 0.f}});
+		glyphs.push_back(new Mask{x+face->glyph->bitmap_left, y+face->glyph->bitmap_top-height, (float)width, (float)height, color, texture, Texcoord::create(0.f, 1.f, 1.f, 0.f)});
 		x += face->glyph->advance.x >> 6;
 		y += face->glyph->advance.y >> 6;
 		++text;

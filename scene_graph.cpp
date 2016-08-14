@@ -102,6 +102,7 @@ atmosphere::Property<float> atmosphere::Node::width() {
 	return Property<float> {this, [](Node* node) {
 		return node->_width;
 	}, [](Node* node, float value) {
+		if (node->_width == value) return;
 		node->_width = value;
 		node->layout(node->_width, node->_height);
 	}};
@@ -110,6 +111,7 @@ atmosphere::Property<float> atmosphere::Node::height() {
 	return Property<float> {this, [](Node* node) {
 		return node->_height;
 	}, [](Node* node, float value) {
+		if (node->_height == value) return;
 		node->_height = value;
 		node->layout(node->_width, node->_height);
 	}};
@@ -130,7 +132,7 @@ atmosphere::Property<float> atmosphere::Node::rotation_z() {
 }
 
 // Bin
-atmosphere::Bin::Bin(float x, float y, float width, float height): Node{x, y, width, height}, child{nullptr} {
+atmosphere::Bin::Bin(float x, float y, float width, float height, float padding): Node{x, y, width, height}, child{nullptr}, padding{padding} {
 
 }
 atmosphere::Node* atmosphere::Bin::get_child(int index) {
@@ -138,12 +140,18 @@ atmosphere::Node* atmosphere::Bin::get_child(int index) {
 }
 void atmosphere::Bin::layout(float width, float height) {
 	if (child) {
-		child->width().set(width);
-		child->height().set(height);
+		child->width().set(width - 2.f * padding);
+		child->height().set(height - 2.f * padding);
 	}
 }
 void atmosphere::Bin::set_child(Node* node) {
 	child = node;
+	if (child) {
+		child->position_x().set(padding);
+		child->position_y().set(padding);
+		child->width().set(width().get() - 2.f * padding);
+		child->height().set(height().get() - 2.f * padding);
+	}
 }
 
 // SimpleContainer
@@ -167,8 +175,8 @@ void atmosphere::Rectangle::draw_node(const DrawContext& draw_context) {
 	GLfloat vertices[] = {
 		0.f, 0.f,
 		width().get(), 0.f,
-		width().get(), height().get(),
-		0.f, height().get()
+		0.f, height().get(),
+		width().get(), height().get()
 	};
 
 	program.use();
@@ -177,7 +185,7 @@ void atmosphere::Rectangle::draw_node(const DrawContext& draw_context) {
 	program.set_attribute("color", _color.with_alpha(draw_context.alpha).unpremultiply());
 	VertexAttributeArray vertex = program.set_attribute_array("vertex", 2, vertices);
 
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 atmosphere::Property<atmosphere::Color> atmosphere::Rectangle::color() {
 	return Property<Color> {this, [](Rectangle* rectangle) {
@@ -188,28 +196,35 @@ atmosphere::Property<atmosphere::Color> atmosphere::Rectangle::color() {
 }
 
 // Image
-atmosphere::Image::Image(const char* file_name, float x, float y): Node(x, y, 0.f, 0.f), texcoord{0.f, 1.f, 1.f, 0.f} {
-	int width, height, depth;
+static Texture* create_texture_from_file(const char* file_name, int& width, int& height) {
+	Texture* texture;
 	if (!strcmp(file_name+strlen(file_name)-4, ".svg")) {
 		NSVGimage* svg_image = nsvgParseFromFile(file_name, "px", 96);
 		width = svg_image->width;
 		height = svg_image->height;
-		printf("svg dimensions: %i x %i\n", width, height);
-		unsigned char* data = (unsigned char*) malloc(width*height*4);
+		unsigned char* data = (unsigned char*) malloc(width * height * 4);
 		NSVGrasterizer* rasterizer = nsvgCreateRasterizer();
-		nsvgRasterize(rasterizer, svg_image, 0.f, 0.f, 1.f, data, width, height, width*4);
+		nsvgRasterize(rasterizer, svg_image, 0.f, 0.f, 1.f, data, width, height, width * 4);
 		nsvgDeleteRasterizer(rasterizer);
 		nsvgDelete(svg_image);
 		texture = new Texture(width, height, 4, data);
 		free(data);
 	}
 	else {
+		int depth;
 		unsigned char* data = stbi_load(file_name, &width, &height, &depth, 0);
 		texture = new Texture(width, height, depth, data);
 		stbi_image_free(data);
 	}
-	this->width().set(width);
-	this->height().set(height);
+	return texture;
+}
+atmosphere::Image::Image(float x, float y, float width, float height, Texture* texture, const Texcoord& texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord} {
+
+}
+atmosphere::Image atmosphere::Image::create_from_file(const char* file_name, float x, float y) {
+	int width, height;
+	Texture* texture = create_texture_from_file(file_name, width, height);
+	return Image{x, y, (float)width, (float)height, texture, Texcoord::create(0.f, 1.f, 1.f, 0.f)};
 }
 void atmosphere::Image::draw_node(const DrawContext& draw_context) {
 	static Program texture_program{"shaders/vertex-texture.glsl", "shaders/fragment-texture.glsl"};
@@ -217,33 +232,32 @@ void atmosphere::Image::draw_node(const DrawContext& draw_context) {
 	GLfloat vertices[] = {
 		0.f, 0.f,
 		width().get(), 0.f,
-		width().get(), height().get(),
-		0.f, height().get()
-	};
-	GLfloat texcoords[] = {
-		texcoord.x0, texcoord.y0,
-		texcoord.x1, texcoord.y0,
-		texcoord.x1, texcoord.y1,
-		texcoord.x0, texcoord.y1
+		0.f, height().get(),
+		width().get(), height().get()
 	};
 
 	texture_program.use();
 	texture_program.set_uniform("projection", draw_context.projection);
 	texture_program.set_uniform("clipping", draw_context.clipping);
 	texture_program.set_uniform("texture", 0);
-	VertexAttributeArray vertex = texture_program.set_attribute_array("vertex", 2, vertices);
-	VertexAttributeArray texcoord = texture_program.set_attribute_array("texcoord", 2, texcoords);
+	VertexAttributeArray attr_vertex = texture_program.set_attribute_array("vertex", 2, vertices);
+	VertexAttributeArray attr_texcoord = texture_program.set_attribute_array("texcoord", 2, texcoord.t);
 
 	texture->bind();
 
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	texture->unbind();
 }
 
 // Mask
-atmosphere::Mask::Mask(float x, float y, float width, float height, const Color& color, Texture* mask, const Texcoord& texcoord): Node(x, y, width, height), _color(color), mask(mask), mask_texcoord{texcoord} {
+atmosphere::Mask::Mask(float x, float y, float width, float height, const Color& color, Texture* mask, const Texcoord& texcoord): Node{x, y, width, height}, _color{color}, mask{mask}, mask_texcoord{texcoord} {
 
+}
+atmosphere::Mask atmosphere::Mask::create_from_file(const char* file_name, const Color& color, float x, float y) {
+	int width, height;
+	Texture* texture = create_texture_from_file(file_name, width, height);
+	return Mask{x, y, (float)width, (float)height, color, texture, Texcoord::create(0.f, 1.f, 1.f, 0.f)};
 }
 void atmosphere::Mask::draw_node(const DrawContext& draw_context) {
 	static Program mask_program{"shaders/vertex-mask.glsl", "shaders/fragment-mask.glsl"};
@@ -251,14 +265,8 @@ void atmosphere::Mask::draw_node(const DrawContext& draw_context) {
 	GLfloat vertices[] = {
 		0.f, 0.f,
 		width().get(), 0.f,
-		width().get(), height().get(),
-		0.f, height().get()
-	};
-	GLfloat texcoords[] = {
-		mask_texcoord.x0, mask_texcoord.y0,
-		mask_texcoord.x1, mask_texcoord.y0,
-		mask_texcoord.x1, mask_texcoord.y1,
-		mask_texcoord.x0, mask_texcoord.y1
+		0.f, height().get(),
+		width().get(), height().get()
 	};
 
 	mask_program.use();
@@ -266,12 +274,12 @@ void atmosphere::Mask::draw_node(const DrawContext& draw_context) {
 	mask_program.set_uniform("clipping", draw_context.clipping);
 	mask_program.set_uniform("texture", 0);
 	mask_program.set_attribute("color", _color.with_alpha(draw_context.alpha).unpremultiply());
-	VertexAttributeArray vertex = mask_program.set_attribute_array("vertex", 2, vertices);
-	VertexAttributeArray texcoord = mask_program.set_attribute_array("texcoord", 2, texcoords);
+	VertexAttributeArray attr_vertex = mask_program.set_attribute_array("vertex", 2, vertices);
+	VertexAttributeArray attr_texcoord = mask_program.set_attribute_array("texcoord", 2, mask_texcoord.t);
 
 	mask->bind();
 
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	mask->unbind();
 }
@@ -310,7 +318,7 @@ static float corner(float x, float y, float w, float h) {
 	result += (int_curve(end)-int_curve(start) - (end-start)*y) / (w*h);
 	return result;
 }
-Texture* atmosphere::RoundedRectangle::create_texture(int radius) {
+static Texture* create_rounded_corner_texture(int radius) {
 	unsigned char* data = (unsigned char*)malloc(radius*radius);
 	for (int y = 0; y < radius; ++y) {
 		for (int x = 0; x < radius; ++x) {
@@ -322,12 +330,15 @@ Texture* atmosphere::RoundedRectangle::create_texture(int radius) {
 	return result;
 }
 atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius): SimpleContainer(x, y, width, height), radius(radius) {
-	Texture* texture = create_texture(radius);
-
-	bottom_left = new Mask{0.f, 0.f, radius, radius, color, texture, {1.f, 1.f, 0.f, 0.f}};
-	bottom_right = new Mask{width-radius, 0.f, radius, radius, color, texture, {0.f, 1.f, 1.f, 0.f}};
-	top_left = new Mask{0.f, height-radius, radius, radius, color, texture, {1.f, 0.f, 0.f, 1.f}};
-	top_right = new Mask{width-radius, height-radius, radius, radius, color, texture, {0.f, 0.f, 1.f, 1.f}};
+	Texture* texture = create_rounded_corner_texture(radius);
+	Texcoord texcoord = Texcoord::create(0.f, 0.f, 1.f, 1.f);
+	top_right = new Mask{width-radius, height-radius, radius, radius, color, texture, texcoord};
+	texcoord = texcoord.rotate();
+	top_left = new Mask{0.f, height-radius, radius, radius, color, texture, texcoord};
+	texcoord = texcoord.rotate();
+	bottom_left = new Mask{0.f, 0.f, radius, radius, color, texture, texcoord};
+	texcoord = texcoord.rotate();
+	bottom_right = new Mask{width-radius, 0.f, radius, radius, color, texture, texcoord};
 
 	bottom = new Rectangle{radius, 0.f, width-2.f*radius, radius, color};
 	center = new Rectangle{0.f, radius, width, height-2.f*radius, color};
