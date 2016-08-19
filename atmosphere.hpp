@@ -69,9 +69,9 @@ public:
 	bool mouse_inside;
 	Node(float x, float y, float width, float height);
 	virtual Node* get_child(int index);
-	void draw(const DrawContext& parent_draw_context);
-	virtual void draw_node(const DrawContext& draw_context);
-	virtual void layout(float width, float height);
+	virtual void prepare_draw();
+	virtual void draw(const DrawContext& draw_context);
+	virtual void layout();
 	void handle_mouse_motion_event(const GLES2::vec4& parent_position);
 	virtual void mouse_enter();
 	virtual void mouse_leave();
@@ -89,8 +89,9 @@ class Bin: public Node {
 public:
 	Bin(float x, float y, float width, float height, float padding = 0.f);
 	Node* get_child(int index) override;
-	void layout(float width, float height) override;
+	void layout() override;
 	void set_child(Node* node);
+	void set_padding(float padding);
 };
 
 class SimpleContainer: public Node {
@@ -108,11 +109,11 @@ public:
 	//TextureAtlas(): Texture(512, 512, 4, nullptr) {}
 };
 
-class Rectangle: public SimpleContainer {
+class Rectangle: public Bin {
 	Color _color;
 public:
 	Rectangle(float x, float y, float width, float height, const Color& color);
-	void draw_node(const DrawContext& draw_context) override;
+	void draw(const DrawContext& draw_context) override;
 	Property<Color> color();
 };
 
@@ -142,7 +143,7 @@ class Image: public Node {
 public:
 	Image(float x, float y, float width, float height, GLES2::Texture* texture, const Texcoord& texcoord);
 	static Image create_from_file(const char* file_name, float x = 0.f, float y = 0.f);
-	void draw_node(const DrawContext& draw_context) override;
+	void draw(const DrawContext& draw_context) override;
 };
 
 class Mask: public Node {
@@ -152,11 +153,11 @@ class Mask: public Node {
 public:
 	Mask(float x, float y, float width, float height, const Color& color, GLES2::Texture* texture, const Texcoord& texcoord);
 	static Mask create_from_file(const char* file_name, const Color& color, float x = 0.f, float y = 0.f);
-	void draw_node(const DrawContext& draw_context) override;
+	void draw(const DrawContext& draw_context) override;
 	Property<Color> color();
 };
 
-class RoundedRectangle: public SimpleContainer {
+class RoundedRectangle: public Bin {
 	float radius;
 	Mask* bottom_left;
 	Rectangle* bottom;
@@ -168,7 +169,7 @@ class RoundedRectangle: public SimpleContainer {
 public:
 	RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius);
 	Node* get_child(int index) override;
-	void layout(float width, float height) override;
+	void layout() override;
 	Property<Color> color();
 };
 
@@ -197,7 +198,7 @@ class TextContainer: public Node {
 public:
 	TextContainer(const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment = HorizontalAlignment::CENTER, VerticalAlignment vertical_alignment = VerticalAlignment::CENTER);
 	Node* get_child(int index) override;
-	void layout(float width, float height) override;
+	void layout() override;
 	Property<Color> color();
 };
 

@@ -61,20 +61,20 @@ atmosphere::Property<atmosphere::Color> atmosphere::Text::color() {
 }
 
 atmosphere::TextContainer::TextContainer(const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): Node{0, 0, width, height}, text{text, color}, horizontal_alignment{horizontal_alignment}, vertical_alignment{vertical_alignment} {
-	layout(width, height);
+	layout();
 }
 atmosphere::Node* atmosphere::TextContainer::get_child(int index) {
 	return index == 0 ? &text : nullptr;
 }
-void atmosphere::TextContainer::layout(float width, float height) {
+void atmosphere::TextContainer::layout() {
 	if (horizontal_alignment == HorizontalAlignment::CENTER)
-		text.position_x().set(roundf((width - text.width().get()) / 2.f));
+		text.position_x().set(roundf((width().get() - text.width().get()) / 2.f));
 	else if (horizontal_alignment == HorizontalAlignment::RIGHT)
-		text.position_x().set(roundf(width - text.width().get()));
+		text.position_x().set(roundf(width().get() - text.width().get()));
 	if (vertical_alignment == VerticalAlignment::TOP)
-		text.position_y().set(roundf(height - text.height().get()));
+		text.position_y().set(roundf(height().get() - text.height().get()));
 	else if (vertical_alignment == VerticalAlignment::CENTER)
-		text.position_y().set(roundf((height - text.height().get()) / 2.f));
+		text.position_y().set(roundf((height().get() - text.height().get()) / 2.f));
 }
 atmosphere::Property<atmosphere::Color> atmosphere::TextContainer::color() {
 	return text.color();

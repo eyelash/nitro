@@ -41,23 +41,24 @@ atmosphere::Node::Node(float x, float y, float width, float height): transformat
 atmosphere::Node* atmosphere::Node::get_child(int index) {
 	return nullptr;
 }
-void atmosphere::Node::draw(const DrawContext& parent_draw_context) {
-	DrawContext draw_context;
-	draw_context.projection = parent_draw_context.projection * transformation.get_matrix(_width, _height);
-	if (clipping)
-		draw_context.clipping = scale(1.f/_width, 1.f/_height);
-	else
-		draw_context.clipping = parent_draw_context.clipping * transformation.get_matrix(_width, _height);
-	draw_context.alpha = parent_draw_context.alpha * _alpha;
-	draw_node(draw_context);
+void atmosphere::Node::prepare_draw() {
 	for (int i = 0; Node* node = get_child(i); ++i) {
-		node->draw(draw_context);
+		node->prepare_draw();
 	}
 }
-void atmosphere::Node::draw_node(const DrawContext& draw_context) {
-
+void atmosphere::Node::draw(const DrawContext& draw_context) {
+	for (int i = 0; Node* node = get_child(i); ++i) {
+		DrawContext child_draw_context;
+		child_draw_context.projection = draw_context.projection * node->transformation.get_matrix(node->_width, node->_height);
+		if (node->clipping)
+			child_draw_context.clipping = scale(1.f/node->_width, 1.f/node->_height);
+		else
+			child_draw_context.clipping = draw_context.clipping * node->transformation.get_matrix(node->_width, node->_height);
+		child_draw_context.alpha = draw_context.alpha * node->_alpha;
+		node->draw(child_draw_context);
+	}
 }
-void atmosphere::Node::layout(float width, float height) {
+void atmosphere::Node::layout() {
 
 }
 void atmosphere::Node::handle_mouse_motion_event(const vec4& parent_position) {
@@ -104,7 +105,7 @@ atmosphere::Property<float> atmosphere::Node::width() {
 	}, [](Node* node, float value) {
 		if (node->_width == value) return;
 		node->_width = value;
-		node->layout(node->_width, node->_height);
+		node->layout();
 	}};
 }
 atmosphere::Property<float> atmosphere::Node::height() {
@@ -113,7 +114,7 @@ atmosphere::Property<float> atmosphere::Node::height() {
 	}, [](Node* node, float value) {
 		if (node->_height == value) return;
 		node->_height = value;
-		node->layout(node->_width, node->_height);
+		node->layout();
 	}};
 }
 atmosphere::Property<float> atmosphere::Node::alpha() {
@@ -138,20 +139,21 @@ atmosphere::Bin::Bin(float x, float y, float width, float height, float padding)
 atmosphere::Node* atmosphere::Bin::get_child(int index) {
 	return index == 0 ? child : nullptr;
 }
-void atmosphere::Bin::layout(float width, float height) {
-	if (child) {
-		child->width().set(width - 2.f * padding);
-		child->height().set(height - 2.f * padding);
-	}
-}
-void atmosphere::Bin::set_child(Node* node) {
-	child = node;
+void atmosphere::Bin::layout() {
 	if (child) {
 		child->position_x().set(padding);
 		child->position_y().set(padding);
 		child->width().set(width().get() - 2.f * padding);
 		child->height().set(height().get() - 2.f * padding);
 	}
+}
+void atmosphere::Bin::set_child(Node* node) {
+	child = node;
+	layout();
+}
+void atmosphere::Bin::set_padding(float padding) {
+	this->padding = padding;
+	layout();
 }
 
 // SimpleContainer
@@ -166,11 +168,11 @@ void atmosphere::SimpleContainer::add_child(Node* node) {
 }
 
 // Rectangle
-atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const Color& color): SimpleContainer{x, y, width, height}, _color(color) {
+atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const Color& color): Bin{x, y, width, height}, _color{color} {
 
 }
-void atmosphere::Rectangle::draw_node(const DrawContext& draw_context) {
-	static Program program{"shaders/vertex.glsl", "shaders/fragment.glsl"};
+void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
+	static Program program{"shaders/color.vs.glsl", "shaders/color.fs.glsl"};
 
 	GLfloat vertices[] = {
 		0.f, 0.f,
@@ -180,12 +182,15 @@ void atmosphere::Rectangle::draw_node(const DrawContext& draw_context) {
 	};
 
 	program.use();
-	program.set_uniform("projection", draw_context.projection);
-	program.set_uniform("clipping", draw_context.clipping);
-	program.set_attribute("color", _color.with_alpha(draw_context.alpha).unpremultiply());
-	VertexAttributeArray vertex = program.set_attribute_array("vertex", 2, vertices);
+	{
+		program.set_uniform("projection", draw_context.projection);
+		program.set_uniform("clipping", draw_context.clipping);
+		program.set_attribute("color", _color.with_alpha(draw_context.alpha).unpremultiply());
+		VertexAttributeArray attr_vertex = program.set_attribute_array("vertex", 2, vertices);
 
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	}
+	Bin::draw(draw_context);
 }
 atmosphere::Property<atmosphere::Color> atmosphere::Rectangle::color() {
 	return Property<Color> {this, [](Rectangle* rectangle) {
@@ -226,8 +231,8 @@ atmosphere::Image atmosphere::Image::create_from_file(const char* file_name, flo
 	Texture* texture = create_texture_from_file(file_name, width, height);
 	return Image{x, y, (float)width, (float)height, texture, Texcoord::create(0.f, 1.f, 1.f, 0.f)};
 }
-void atmosphere::Image::draw_node(const DrawContext& draw_context) {
-	static Program texture_program{"shaders/vertex-texture.glsl", "shaders/fragment-texture.glsl"};
+void atmosphere::Image::draw(const DrawContext& draw_context) {
+	static Program texture_program{"shaders/texture.vs.glsl", "shaders/texture.fs.glsl"};
 
 	GLfloat vertices[] = {
 		0.f, 0.f,
@@ -259,8 +264,8 @@ atmosphere::Mask atmosphere::Mask::create_from_file(const char* file_name, const
 	Texture* texture = create_texture_from_file(file_name, width, height);
 	return Mask{x, y, (float)width, (float)height, color, texture, Texcoord::create(0.f, 1.f, 1.f, 0.f)};
 }
-void atmosphere::Mask::draw_node(const DrawContext& draw_context) {
-	static Program mask_program{"shaders/vertex-mask.glsl", "shaders/fragment-mask.glsl"};
+void atmosphere::Mask::draw(const DrawContext& draw_context) {
+	static Program mask_program{"shaders/mask.vs.glsl", "shaders/mask.fs.glsl"};
 
 	GLfloat vertices[] = {
 		0.f, 0.f,
@@ -329,7 +334,7 @@ static Texture* create_rounded_corner_texture(int radius) {
 	free(data);
 	return result;
 }
-atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius): SimpleContainer(x, y, width, height), radius(radius) {
+atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius): Bin{x, y, width, height}, radius{radius} {
 	Texture* texture = create_rounded_corner_texture(radius);
 	Texcoord texcoord = Texcoord::create(0.f, 0.f, 1.f, 1.f);
 	top_right = new Mask{width-radius, height-radius, radius, radius, color, texture, texcoord};
@@ -353,19 +358,19 @@ atmosphere::Node* atmosphere::RoundedRectangle::get_child(int index) {
 		case 4: return top_left;
 		case 5: return top;
 		case 6: return top_right;
-		default: return SimpleContainer::get_child(index-7);
+		default: return Bin::get_child(index-7);
 	}
 }
-void atmosphere::RoundedRectangle::layout(float width, float height) {
-	bottom->width().set(width - 2.f * radius);
-	bottom_right->position_x().set(width - radius);
-	center->width().set(width);
-	center->height().set(height - 2.f * radius);
-	top_left->position_y().set(height - radius);
-	top->position_y().set(height - radius);
-	top->width().set(width-2.f*radius);
-	top_right->position_x().set(width - radius);
-	top_right->position_y().set(height - radius);
+void atmosphere::RoundedRectangle::layout() {
+	bottom->width().set(width().get() - 2.f * radius);
+	bottom_right->position_x().set(width().get() - radius);
+	center->width().set(width().get());
+	center->height().set(height().get() - 2.f * radius);
+	top_left->position_y().set(height().get() - radius);
+	top->position_y().set(height().get() - radius);
+	top->width().set(width().get()-2.f*radius);
+	top_right->position_x().set(width().get() - radius);
+	top_right->position_y().set(height().get() - radius);
 }
 atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
 	return Property<Color> {this, [](RoundedRectangle* rectangle) {

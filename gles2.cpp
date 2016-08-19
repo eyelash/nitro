@@ -193,6 +193,7 @@ FramebufferObject::FramebufferObject (int width, int height): width(width), heig
 }
 FramebufferObject::~FramebufferObject () {
 	glDeleteFramebuffers (1, &identifier);
+	delete texture;
 }
 void FramebufferObject::use () {
 	bind ();

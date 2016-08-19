@@ -123,6 +123,9 @@ void atmosphere::Window::run () {
 		dispatch_events ();
 		set_time ();
 		Animation::apply_all ();
+		prepare_draw ();
+		glBindFramebuffer (GL_FRAMEBUFFER, 0);
+		glViewport (0, 0, width().get(), height().get());
 		glClear (GL_COLOR_BUFFER_BIT);
 		draw (draw_context);
 		//glFlush ();

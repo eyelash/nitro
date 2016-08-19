@@ -16,6 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "animation.hpp"
+#include <cmath>
 #include <algorithm>
 
 static atmosphere::LinearAnimation linear_animation;
