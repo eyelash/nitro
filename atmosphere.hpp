@@ -157,6 +157,16 @@ public:
 	Property<Color> color();
 };
 
+class ImageMask: public Node {
+	GLES2::Texture* texture;
+	Texcoord texcoord;
+	GLES2::Texture* mask;
+	Texcoord mask_texcoord;
+public:
+	ImageMask(float x, float y, float width, float height, GLES2::Texture* texture, const Texcoord& texcoord, GLES2::Texture* mask, const Texcoord& mask_texcoord);
+	void draw(const DrawContext& draw_context) override;
+};
+
 class RoundedRectangle: public Bin {
 	float radius;
 	Mask* bottom_left;
@@ -171,6 +181,21 @@ public:
 	Node* get_child(int index) override;
 	void layout() override;
 	Property<Color> color();
+};
+
+class RoundedImage: public Bin {
+	float radius;
+	ImageMask* bottom_left;
+	Image* bottom;
+	ImageMask* bottom_right;
+	Image* center;
+	ImageMask* top_left;
+	Image* top;
+	ImageMask* top_right;
+public:
+	RoundedImage(float x, float y, float width, float height, GLES2::Texture* texture, float radius);
+	static RoundedImage create_from_file(const char* file_name, float radius, float x = 0.f, float y = 0.f);
+	Node* get_child(int index) override;
 };
 
 class Text: public Node {

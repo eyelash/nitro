@@ -277,7 +277,7 @@ void atmosphere::Mask::draw(const DrawContext& draw_context) {
 	mask_program.use();
 	mask_program.set_uniform("projection", draw_context.projection);
 	mask_program.set_uniform("clipping", draw_context.clipping);
-	mask_program.set_uniform("texture", 0);
+	mask_program.set_uniform("mask", 0);
 	mask_program.set_attribute("color", _color.with_alpha(draw_context.alpha).unpremultiply());
 	VertexAttributeArray attr_vertex = mask_program.set_attribute_array("vertex", 2, vertices);
 	VertexAttributeArray attr_texcoord = mask_program.set_attribute_array("texcoord", 2, mask_texcoord.t);
@@ -294,6 +294,38 @@ atmosphere::Property<atmosphere::Color> atmosphere::Mask::color() {
 	}, [](Mask* mask, Color color) {
 		mask->_color = color;
 	}};
+}
+
+// ImageMask
+atmosphere::ImageMask::ImageMask(float x, float y, float width, float height, Texture* texture, const Texcoord& texcoord, Texture* mask, const Texcoord& mask_texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, mask{mask}, mask_texcoord{mask_texcoord} {
+
+}
+void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
+	static Program program{"shaders/texture_mask.vs.glsl", "shaders/texture_mask.fs.glsl"};
+
+	GLfloat vertices[] = {
+		0.f, 0.f,
+		width().get(), 0.f,
+		0.f, height().get(),
+		width().get(), height().get()
+	};
+
+	program.use();
+	program.set_uniform("projection", draw_context.projection);
+	program.set_uniform("clipping", draw_context.clipping);
+	program.set_uniform("texture", 0);
+	program.set_uniform("mask", 1);
+	VertexAttributeArray attr_vertex = program.set_attribute_array("vertex", 2, vertices);
+	VertexAttributeArray attr_texcoord = program.set_attribute_array("texcoord", 2, texcoord.t);
+	VertexAttributeArray attr_mask_texcoord = program.set_attribute_array("mask_texcoord", 2, mask_texcoord.t);
+
+	texture->bind(GL_TEXTURE0);
+	mask->bind(GL_TEXTURE1);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	mask->unbind(GL_TEXTURE1);
+	texture->unbind(GL_TEXTURE0);
 }
 
 // RoundedRectangle
@@ -384,4 +416,39 @@ atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
 		rectangle->top->color().set(color);
 		rectangle->top_right->color().set(color);
 	}};
+}
+
+// RoundedImage
+atmosphere::RoundedImage::RoundedImage(float x, float y, float width, float height, Texture* texture, float radius): Bin{x, y, width, height}, radius{radius} {
+	const Color color {1, 0, 0};
+	Texture* mask = create_rounded_corner_texture(radius);
+	Texcoord texcoord = Texcoord::create(0.f, 0.f, 1.f, 1.f);
+	top_right = new ImageMask{width-radius, height-radius, radius, radius, texture, Texcoord::create(1-radius/width, radius/height, 1, 0), mask, texcoord};
+	texcoord = texcoord.rotate();
+	top_left = new ImageMask{0.f, height-radius, radius, radius, texture, Texcoord::create(0, radius/height, radius/width, 0), mask, texcoord};
+	texcoord = texcoord.rotate();
+	bottom_left = new ImageMask{0.f, 0.f, radius, radius, texture, Texcoord::create(0, 1, radius/width, 1-radius/height), mask, texcoord};
+	texcoord = texcoord.rotate();
+	bottom_right = new ImageMask{width-radius, 0.f, radius, radius, texture, Texcoord::create(1-radius/width, 1, 1, 1-radius/height), mask, texcoord};
+
+	bottom = new Image{radius, 0.f, width-2.f*radius, radius, texture, Texcoord::create(radius/width, 1, 1-radius/width, 1-radius/height)};
+	center = new Image{0.f, radius, width, height-2.f*radius, texture, Texcoord::create(0, 1-radius/height, 1, radius/height)};
+	top = new Image{radius, height-radius, width-2.f*radius, radius, texture, Texcoord::create(radius/width, radius/height, 1-radius/width, 0)};
+}
+atmosphere::RoundedImage atmosphere::RoundedImage::create_from_file(const char* file_name, float radius, float x, float y) {
+	int width, height;
+	Texture* texture = create_texture_from_file(file_name, width, height);
+	return RoundedImage{x, y, (float)width, (float)height, texture, radius};
+}
+atmosphere::Node* atmosphere::RoundedImage::get_child(int index) {
+	switch (index) {
+		case 0: return bottom_left;
+		case 1: return bottom;
+		case 2: return bottom_right;
+		case 3: return center;
+		case 4: return top_left;
+		case 5: return top;
+		case 6: return top_right;
+		default: return Bin::get_child(index-7);
+	}
 }
