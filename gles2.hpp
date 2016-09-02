@@ -31,7 +31,7 @@ struct mat4 {
 	vec4& operator [] (int i) {
 		return values[i];
 	}
-	const vec4& operator [] (int i) const {
+	constexpr const vec4& operator [] (int i) const {
 		return values[i];
 	}
 	static constexpr mat4 id () {
@@ -44,7 +44,7 @@ struct mat4 {
 	}
 };
 
-inline vec4 operator * (const mat4& lhs, const vec4& rhs) {
+inline constexpr vec4 operator * (const mat4& lhs, const vec4& rhs) {
 	return vec4 {
 		lhs[0].x * rhs.x + lhs[1].x * rhs.y + lhs[2].x * rhs.z + lhs[3].x * rhs.w,
 		lhs[0].y * rhs.x + lhs[1].y * rhs.y + lhs[2].y * rhs.z + lhs[3].y * rhs.w,
@@ -53,7 +53,7 @@ inline vec4 operator * (const mat4& lhs, const vec4& rhs) {
 	};
 }
 
-inline mat4 operator * (const mat4& lhs, const mat4& rhs) {
+inline constexpr mat4 operator * (const mat4& lhs, const mat4& rhs) {
 	return mat4 {lhs * rhs[0], lhs * rhs[1], lhs * rhs[2], lhs * rhs[3]};
 }
 
@@ -149,6 +149,7 @@ public:
 	VertexAttributeArray set_attribute_array (const char* name, GLint size, const GLfloat* pointer);
 	void set_attribute (const char* name, const vec4& value);
 	void set_uniform (const char* name, int value);
+	void set_uniform (const char* name, float value);
 	void set_uniform (const char* name, const vec4& value);
 	void set_uniform (const char* name, const mat4& value);
 };

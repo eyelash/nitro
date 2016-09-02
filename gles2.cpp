@@ -145,6 +145,10 @@ void Program::set_uniform (const char* name, int value) {
 	GLint location = glGetUniformLocation (identifier, name);
 	glUniform1i (location, value);
 }
+void Program::set_uniform (const char* name, float value) {
+	GLint location = glGetUniformLocation (identifier, name);
+	glUniform1f (location, value);
+}
 void Program::set_uniform (const char* name, const vec4& value) {
 	GLint location = glGetUniformLocation (identifier, name);
 	glUniform4f (location, value.x, value.y, value.z, value.w);

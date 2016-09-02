@@ -23,23 +23,20 @@ namespace atmosphere {
 
 class Color {
 	float r, g, b, a;
+	constexpr Color(float r, float g, float b, float a): r{r}, g{g}, b{b}, a{a} {
+
+	}
 public:
-	Color() {
-
+	static constexpr Color create(float r, float g, float b, float a = 1.f) {
+		return Color{r*a, g*a, b*a, a};
 	}
-	constexpr Color(float r, float g, float b, float a = 1.f): r{r*a}, g{g*a}, b{b*a}, a{a} {
-
-	}
-	Color with_alpha(float alpha) const {
-		return Color{r, g, b, a*alpha};
-	}
-	GLES2::vec4 unpremultiply() const {
+	constexpr GLES2::vec4 unpremultiply() const {
 		return a == 0.f ? GLES2::vec4{0.f, 0.f, 0.f, 0.f} : GLES2::vec4{r/a, g/a, b/a, a};
 	}
-	Color operator+(const Color& c) const {
+	constexpr Color operator+(const Color& c) const {
 		return Color{r+c.r, g+c.g, b+c.b, a+c.a};
 	}
-	Color operator*(float x) const {
+	constexpr Color operator*(float x) const {
 		return Color{r*x, g*x, b*x, a*x};
 	}
 };
@@ -47,7 +44,7 @@ public:
 class Transformation {
 public:
 	float x, y;
-	float scale;
+	float scale_x, scale_y;
 	float rotation_x, rotation_y, rotation_z;
 	Transformation(float x, float y);
 	GLES2::mat4 get_matrix(float width, float height) const;
@@ -56,17 +53,13 @@ public:
 
 struct DrawContext {
 	GLES2::mat4 projection;
-	GLES2::mat4 clipping;
-	float alpha;
 };
 
 class Node {
 	Transformation transformation;
 	float _width, _height;
-	float _alpha;
-public:
-	bool clipping;
 	bool mouse_inside;
+public:
 	Node(float x, float y, float width, float height);
 	virtual Node* get_child(int index);
 	virtual void prepare_draw();
@@ -79,7 +72,6 @@ public:
 	Property<float> position_y();
 	Property<float> width();
 	Property<float> height();
-	Property<float> alpha();
 	Property<float> rotation_z();
 };
 
@@ -140,10 +132,13 @@ struct Texcoord {
 class Image: public Node {
 	GLES2::Texture* texture;
 	Texcoord texcoord;
+	float _alpha;
 public:
 	Image(float x, float y, float width, float height, GLES2::Texture* texture, const Texcoord& texcoord);
 	static Image create_from_file(const char* file_name, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
+	void set_texture(GLES2::Texture* texture);
+	Property<float> alpha();
 };
 
 class Mask: public Node {
@@ -165,6 +160,16 @@ class ImageMask: public Node {
 public:
 	ImageMask(float x, float y, float width, float height, GLES2::Texture* texture, const Texcoord& texcoord, GLES2::Texture* mask, const Texcoord& mask_texcoord);
 	void draw(const DrawContext& draw_context) override;
+};
+
+class Clip: public Bin {
+	GLES2::FramebufferObject* fbo;
+	Image image;
+public:
+	Clip(float x, float y, float width, float height);
+	void prepare_draw() override;
+	void draw(const DrawContext& draw_context) override;
+	void layout() override;
 };
 
 class RoundedRectangle: public Bin {

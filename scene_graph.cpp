@@ -24,18 +24,18 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 using namespace GLES2;
 
 // Transformation
-atmosphere::Transformation::Transformation(float x, float y): x(x), y(y), scale(1.f), rotation_x(0.f), rotation_y(0.f), rotation_z(0.f) {
+atmosphere::Transformation::Transformation(float x, float y): x{x}, y{y}, scale_x{1.f}, scale_y{1.f}, rotation_x{0.f}, rotation_y{0.f}, rotation_z{0.f} {
 
 }
 mat4 atmosphere::Transformation::get_matrix(float width, float height) const {
-	return translate(width/2.f+x, height/2.f+y) * GLES2::scale(scale, scale) * rotateX(rotation_x) * rotateY(rotation_y) * rotateZ(rotation_z) * translate(-width/2.f, -height/2.f);
+	return translate(width/2.f+x, height/2.f+y) * GLES2::scale(scale_x, scale_y) * rotateX(rotation_x) * rotateY(rotation_y) * rotateZ(rotation_z) * translate(-width/2.f, -height/2.f);
 }
 mat4 atmosphere::Transformation::get_inverse_matrix(float width, float height) const {
-	return translate(width/2.f, height/2.f) * rotateZ(-rotation_z) * GLES2::scale(1.f/scale, 1.f/scale) * translate(-width/2.f-x, -height/2.f-y);
+	return translate(width/2.f, height/2.f) * rotateZ(-rotation_z) * GLES2::scale(1.f/scale_x, 1.f/scale_y) * translate(-width/2.f-x, -height/2.f-y);
 }
 
 // Node
-atmosphere::Node::Node(float x, float y, float width, float height): transformation(x, y), _width(width), _height(height), _alpha(1.f), clipping(false), mouse_inside(false) {
+atmosphere::Node::Node(float x, float y, float width, float height): transformation{x, y}, _width{width}, _height{height}, mouse_inside{false} {
 
 }
 atmosphere::Node* atmosphere::Node::get_child(int index) {
@@ -50,11 +50,6 @@ void atmosphere::Node::draw(const DrawContext& draw_context) {
 	for (int i = 0; Node* node = get_child(i); ++i) {
 		DrawContext child_draw_context;
 		child_draw_context.projection = draw_context.projection * node->transformation.get_matrix(node->_width, node->_height);
-		if (node->clipping)
-			child_draw_context.clipping = scale(1.f/node->_width, 1.f/node->_height);
-		else
-			child_draw_context.clipping = draw_context.clipping * node->transformation.get_matrix(node->_width, node->_height);
-		child_draw_context.alpha = draw_context.alpha * node->_alpha;
 		node->draw(child_draw_context);
 	}
 }
@@ -117,13 +112,6 @@ atmosphere::Property<float> atmosphere::Node::height() {
 		node->layout();
 	}};
 }
-atmosphere::Property<float> atmosphere::Node::alpha() {
-	return Property<float> {this, [](Node* node) {
-		return node->_alpha;
-	}, [](Node* node, float value) {
-		node->_alpha = value;
-	}};
-}
 atmosphere::Property<float> atmosphere::Node::rotation_z() {
 	return Property<float> {this, [](Node* node) {
 		return node->transformation.rotation_z;
@@ -184,8 +172,7 @@ void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
 	program.use();
 	{
 		program.set_uniform("projection", draw_context.projection);
-		program.set_uniform("clipping", draw_context.clipping);
-		program.set_attribute("color", _color.with_alpha(draw_context.alpha).unpremultiply());
+		program.set_attribute("color", _color.unpremultiply());
 		VertexAttributeArray attr_vertex = program.set_attribute_array("vertex", 2, vertices);
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -223,7 +210,7 @@ static Texture* create_texture_from_file(const char* file_name, int& width, int&
 	}
 	return texture;
 }
-atmosphere::Image::Image(float x, float y, float width, float height, Texture* texture, const Texcoord& texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord} {
+atmosphere::Image::Image(float x, float y, float width, float height, Texture* texture, const Texcoord& texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, _alpha{1.f} {
 
 }
 atmosphere::Image atmosphere::Image::create_from_file(const char* file_name, float x, float y) {
@@ -243,8 +230,8 @@ void atmosphere::Image::draw(const DrawContext& draw_context) {
 
 	texture_program.use();
 	texture_program.set_uniform("projection", draw_context.projection);
-	texture_program.set_uniform("clipping", draw_context.clipping);
 	texture_program.set_uniform("texture", 0);
+	texture_program.set_uniform("alpha", _alpha);
 	VertexAttributeArray attr_vertex = texture_program.set_attribute_array("vertex", 2, vertices);
 	VertexAttributeArray attr_texcoord = texture_program.set_attribute_array("texcoord", 2, texcoord.t);
 
@@ -253,6 +240,16 @@ void atmosphere::Image::draw(const DrawContext& draw_context) {
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	texture->unbind();
+}
+void atmosphere::Image::set_texture(Texture* texture) {
+	this->texture = texture;
+}
+atmosphere::Property<float> atmosphere::Image::alpha() {
+	return Property<float> {this, [](Image* image) {
+		return image->_alpha;
+	}, [](Image* image, float value) {
+		image->_alpha = value;
+	}};
 }
 
 // Mask
@@ -276,9 +273,8 @@ void atmosphere::Mask::draw(const DrawContext& draw_context) {
 
 	mask_program.use();
 	mask_program.set_uniform("projection", draw_context.projection);
-	mask_program.set_uniform("clipping", draw_context.clipping);
 	mask_program.set_uniform("mask", 0);
-	mask_program.set_attribute("color", _color.with_alpha(draw_context.alpha).unpremultiply());
+	mask_program.set_attribute("color", _color.unpremultiply());
 	VertexAttributeArray attr_vertex = mask_program.set_attribute_array("vertex", 2, vertices);
 	VertexAttributeArray attr_texcoord = mask_program.set_attribute_array("texcoord", 2, mask_texcoord.t);
 
@@ -312,7 +308,6 @@ void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
 
 	program.use();
 	program.set_uniform("projection", draw_context.projection);
-	program.set_uniform("clipping", draw_context.clipping);
 	program.set_uniform("texture", 0);
 	program.set_uniform("mask", 1);
 	VertexAttributeArray attr_vertex = program.set_attribute_array("vertex", 2, vertices);
@@ -326,6 +321,31 @@ void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
 
 	mask->unbind(GL_TEXTURE1);
 	texture->unbind(GL_TEXTURE0);
+}
+
+// Clip
+atmosphere::Clip::Clip(float x, float y, float width, float height): Bin{x, y, width, height}, fbo{new FramebufferObject{(int)width, (int)height}}, image{0.f, 0.f, width, height, fbo->texture, Texcoord::create(0.f, 0.f, 1.f, 1.f)} {
+
+}
+void atmosphere::Clip::prepare_draw() {
+	if (Node* child = get_child(0)) {
+		child->prepare_draw();
+		fbo->use();
+		DrawContext draw_context;
+		draw_context.projection = GLES2::project(width().get(), height().get(), width().get()*2);
+		child->draw(draw_context);
+	}
+}
+void atmosphere::Clip::draw(const DrawContext& draw_context) {
+	image.draw(draw_context);
+}
+void atmosphere::Clip::layout() {
+	Bin::layout();
+	delete fbo;
+	fbo = new FramebufferObject{(int)width().get(), (int)height().get()};
+	image.set_texture(fbo->texture);
+	image.width().set(width().get());
+	image.height().set(height().get());
 }
 
 // RoundedRectangle
@@ -420,7 +440,6 @@ atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
 
 // RoundedImage
 atmosphere::RoundedImage::RoundedImage(float x, float y, float width, float height, Texture* texture, float radius): Bin{x, y, width, height}, radius{radius} {
-	const Color color {1, 0, 0};
 	Texture* mask = create_rounded_corner_texture(radius);
 	Texcoord texcoord = Texcoord::create(0.f, 0.f, 1.f, 1.f);
 	top_right = new ImageMask{width-radius, height-radius, radius, radius, texture, Texcoord::create(1-radius/width, radius/height, 1, 0), mask, texcoord};

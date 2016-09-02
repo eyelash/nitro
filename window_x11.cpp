@@ -85,7 +85,7 @@ atmosphere::Window::Window (int width, int height, const char* title): Bin{0, 0,
 	eglMakeCurrent (egl_display, surface, surface, context);
 	eglSwapInterval (egl_display, 1);
 	glViewport  (0, 0, width, height);
-	glClearColor (0, 0, 0, 1);
+	glClearColor (0, 0, 0, 0);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable (GL_BLEND);
 	//glEnable (0x809D); // GL_MULTISAMPLE
@@ -110,8 +110,6 @@ void atmosphere::Window::dispatch_events () {
 			height().set(event.xconfigure.height);
 			glViewport (0, 0, event.xconfigure.width, event.xconfigure.height);
 			draw_context.projection = GLES2::project (event.xconfigure.width, event.xconfigure.height, event.xconfigure.width*2);
-			draw_context.clipping = GLES2::scale (0.f, 0.f);
-			draw_context.alpha = 1.f;
 			break;
 		}
 	}
