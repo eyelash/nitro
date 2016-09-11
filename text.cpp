@@ -16,36 +16,61 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "atmosphere.hpp"
-#include <ft2build.h>
-#include FT_FREETYPE_H
 
-atmosphere::Text::Text(const char* text, const Color& color): Node{0, 0, 0, 0} {
-	static FT_Library library = nullptr;
-	static FT_Face face = nullptr;
-	static float descender;
-	static float font_height;
-	if (!face) {
-		FT_Init_FreeType(&library);
-		FT_New_Face(library, "/usr/share/fonts/truetype/roboto/hinted/Roboto-Regular.ttf", 0, &face);
-		FT_Set_Pixel_Sizes(face, 0, 16);
-		descender = -face->size->metrics.descender >> 6;
-		font_height = descender + (face->size->metrics.ascender >> 6);
+static int utf8_get_next(const char*& c) {
+	int result = 0;
+	if ((c[0] & 0x80) == 0x00) {
+		result = c[0];
+		c += 1;
 	}
+	else if ((c[0] & 0xE0) == 0xC0) {
+		result = (c[0] & 0x1F) << 6 | (c[1] & 0x3F);
+		c += 2;
+	}
+	else if ((c[0] & 0xF0) == 0xE0) {
+		result = (c[0] & 0x0F) << 12 | (c[1] & 0x3F) << 6 | (c[2] & 0x3F);
+		c += 3;
+	}
+	else if ((c[0] & 0xF8) == 0xF0) {
+		result = (c[0] & 0x07) << 18 | (c[1] & 0x3F) << 12 | (c[2] & 0x3F) << 6 | (c[3] & 0x3F);
+		c += 4;
+	}
+	return result;
+}
 
+// Font
+static FT_Library initialize_freetype() {
+	FT_Library library;
+	FT_Init_FreeType(&library);
+	return library;
+}
+atmosphere::Font::Font(const char* file_name, float size) {
+	static FT_Library library = initialize_freetype();
+	FT_New_Face(library, file_name, 0, &face);
+	FT_Set_Pixel_Sizes(face, 0, size);
+	descender = -face->size->metrics.descender >> 6;
+	font_height = descender + (face->size->metrics.ascender >> 6);
+}
+FT_GlyphSlot atmosphere::Font::load_char(int c) {
+	FT_Load_Char(face, c, FT_LOAD_RENDER|FT_LOAD_TARGET_LIGHT);
+	return face->glyph;
+}
+
+// Text
+atmosphere::Text::Text(Font* font, const char* text, const Color& color): Node{0, 0, 0, 0} {
 	float x = 0.f;
-	float y = descender;
-	while (*text != '\0') {
-		FT_Load_Char(face, *text, FT_LOAD_RENDER|FT_LOAD_TARGET_LIGHT);
-		const int width = face->glyph->bitmap.width;
-		const int height = face->glyph->bitmap.rows;
-		GLES2::Texture* texture = new GLES2::Texture{width, height, 1, face->glyph->bitmap.buffer};
-		glyphs.push_back(new Mask{x+face->glyph->bitmap_left, y+face->glyph->bitmap_top-height, (float)width, (float)height, color, texture, Texcoord::create(0.f, 1.f, 1.f, 0.f)});
-		x += face->glyph->advance.x >> 6;
-		y += face->glyph->advance.y >> 6;
-		++text;
+	float y = font->descender;
+	while (int c = utf8_get_next(text)) {
+		FT_GlyphSlot glyph = font->load_char(c);
+		const int width = glyph->bitmap.width;
+		const int height = glyph->bitmap.rows;
+		GLES2::Texture* texture = new GLES2::Texture{width, height, 1, glyph->bitmap.buffer};
+		glyphs.push_back(new Mask{x+glyph->bitmap_left, y+glyph->bitmap_top-height, (float)width, (float)height, color, texture, Texcoord::create(0.f, 1.f, 1.f, 0.f)});
+		x += glyph->advance.x >> 6;
+		y += glyph->advance.y >> 6;
 	}
 	width().set(x);
-	height().set(font_height);
+	height().set(font->font_height);
 }
 atmosphere::Node* atmosphere::Text::get_child(int index) {
 	return index < glyphs.size() ? glyphs[index] : nullptr;
@@ -60,7 +85,8 @@ atmosphere::Property<atmosphere::Color> atmosphere::Text::color() {
 	}};
 }
 
-atmosphere::TextContainer::TextContainer(const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): Node{0, 0, width, height}, text{text, color}, horizontal_alignment{horizontal_alignment}, vertical_alignment{vertical_alignment} {
+// TextContainer
+atmosphere::TextContainer::TextContainer(Font* font, const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): Node{0, 0, width, height}, text{font, text, color}, horizontal_alignment{horizontal_alignment}, vertical_alignment{vertical_alignment} {
 	layout();
 }
 atmosphere::Node* atmosphere::TextContainer::get_child(int index) {

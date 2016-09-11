@@ -18,6 +18,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "gles2.hpp"
 #include "animation.hpp"
 #include <vector>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 namespace atmosphere {
 
@@ -203,10 +205,19 @@ public:
 	Node* get_child(int index) override;
 };
 
+class Font {
+	FT_Face face;
+public:
+	float descender;
+	float font_height;
+	Font(const char* file_name, float size);
+	FT_GlyphSlot load_char(int c);
+};
+
 class Text: public Node {
 	std::vector<Mask*> glyphs;
 public:
-	Text(const char* text, const Color& color);
+	Text(Font* font, const char* text, const Color& color);
 	Node* get_child(int index) override;
 	Property<Color> color();
 };
@@ -226,7 +237,7 @@ class TextContainer: public Node {
 	HorizontalAlignment horizontal_alignment;
 	VerticalAlignment vertical_alignment;
 public:
-	TextContainer(const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment = HorizontalAlignment::CENTER, VerticalAlignment vertical_alignment = VerticalAlignment::CENTER);
+	TextContainer(Font* font, const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment = HorizontalAlignment::CENTER, VerticalAlignment vertical_alignment = VerticalAlignment::CENTER);
 	Node* get_child(int index) override;
 	void layout() override;
 	Property<Color> color();
