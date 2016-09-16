@@ -11,10 +11,10 @@ LDLIBS = -lX11 -lEGL -lGLESv2 -lfreetype
 all: demo
 
 libatmosphere.so: $(sources) $(headers)
-	$(CXX) -shared -olibatmosphere.so -fPIC $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(sources) $(LDLIBS)
+	$(CXX) -shared -o $@ -fPIC $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(sources) $(LDLIBS)
 
 demo: demo.cpp libatmosphere.so
-	$(CXX) -odemo $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) demo.cpp -latmosphere
+	$(CXX) -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) demo.cpp -latmosphere
 
 clean:
 	rm -f test libatmosphere.so

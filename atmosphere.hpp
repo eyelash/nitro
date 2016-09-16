@@ -159,9 +159,12 @@ class ImageMask: public Node {
 	Texcoord texcoord;
 	GLES2::Texture* mask;
 	Texcoord mask_texcoord;
+	float _alpha;
 public:
 	ImageMask(float x, float y, float width, float height, GLES2::Texture* texture, const Texcoord& texcoord, GLES2::Texture* mask, const Texcoord& mask_texcoord);
 	void draw(const DrawContext& draw_context) override;
+	void set_texture(GLES2::Texture* texture);
+	Property<float> alpha();
 };
 
 class Clip: public Bin {
@@ -172,6 +175,7 @@ public:
 	void prepare_draw() override;
 	void draw(const DrawContext& draw_context) override;
 	void layout() override;
+	Property<float> alpha();
 };
 
 class RoundedRectangle: public Bin {
@@ -203,6 +207,8 @@ public:
 	RoundedImage(float x, float y, float width, float height, GLES2::Texture* texture, float radius);
 	static RoundedImage create_from_file(const char* file_name, float radius, float x = 0.f, float y = 0.f);
 	Node* get_child(int index) override;
+	void layout() override;
+	Property<float> alpha();
 };
 
 class Font {

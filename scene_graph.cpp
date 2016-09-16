@@ -293,7 +293,7 @@ atmosphere::Property<atmosphere::Color> atmosphere::Mask::color() {
 }
 
 // ImageMask
-atmosphere::ImageMask::ImageMask(float x, float y, float width, float height, Texture* texture, const Texcoord& texcoord, Texture* mask, const Texcoord& mask_texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, mask{mask}, mask_texcoord{mask_texcoord} {
+atmosphere::ImageMask::ImageMask(float x, float y, float width, float height, Texture* texture, const Texcoord& texcoord, Texture* mask, const Texcoord& mask_texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, mask{mask}, mask_texcoord{mask_texcoord}, _alpha{1.f} {
 
 }
 void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
@@ -310,6 +310,7 @@ void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
 	program.set_uniform("projection", draw_context.projection);
 	program.set_uniform("texture", 0);
 	program.set_uniform("mask", 1);
+	program.set_uniform("alpha", _alpha);
 	VertexAttributeArray attr_vertex = program.set_attribute_array("vertex", 2, vertices);
 	VertexAttributeArray attr_texcoord = program.set_attribute_array("texcoord", 2, texcoord.t);
 	VertexAttributeArray attr_mask_texcoord = program.set_attribute_array("mask_texcoord", 2, mask_texcoord.t);
@@ -321,6 +322,16 @@ void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
 
 	mask->unbind(GL_TEXTURE1);
 	texture->unbind(GL_TEXTURE0);
+}
+void atmosphere::ImageMask::set_texture(Texture* texture) {
+	this->texture = texture;
+}
+atmosphere::Property<float> atmosphere::ImageMask::alpha() {
+	return Property<float> {this, [](ImageMask* image_mask) {
+		return image_mask->_alpha;
+	}, [](ImageMask* image_mask, float value) {
+		image_mask->_alpha = value;
+	}};
 }
 
 // Clip
@@ -346,6 +357,9 @@ void atmosphere::Clip::layout() {
 	image.set_texture(fbo->texture);
 	image.width().set(width().get());
 	image.height().set(height().get());
+}
+atmosphere::Property<float> atmosphere::Clip::alpha() {
+	return image.alpha();
 }
 
 // RoundedRectangle
@@ -470,4 +484,28 @@ atmosphere::Node* atmosphere::RoundedImage::get_child(int index) {
 		case 6: return top_right;
 		default: return Bin::get_child(index-7);
 	}
+}
+void atmosphere::RoundedImage::layout() {
+	bottom->width().set(width().get() - 2.f * radius);
+	bottom_right->position_x().set(width().get() - radius);
+	center->width().set(width().get());
+	center->height().set(height().get() - 2.f * radius);
+	top_left->position_y().set(height().get() - radius);
+	top->position_y().set(height().get() - radius);
+	top->width().set(width().get()-2.f*radius);
+	top_right->position_x().set(width().get() - radius);
+	top_right->position_y().set(height().get() - radius);
+}
+atmosphere::Property<float> atmosphere::RoundedImage::alpha() {
+	return Property<float> {this, [](RoundedImage* image) {
+		return image->center->alpha().get();
+	}, [](RoundedImage* image, float alpha) {
+		image->bottom_left->alpha().set(alpha);
+		image->bottom->alpha().set(alpha);
+		image->bottom_right->alpha().set(alpha);
+		image->center->alpha().set(alpha);
+		image->top_left->alpha().set(alpha);
+		image->top->alpha().set(alpha);
+		image->top_right->alpha().set(alpha);
+	}};
 }
