@@ -15,6 +15,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 */
 
+#pragma once
+
 #include "gles2.hpp"
 #include "animation.hpp"
 #include <vector>
@@ -29,8 +31,14 @@ class Color {
 
 	}
 public:
+	Color() {
+
+	}
 	static constexpr Color create(float r, float g, float b, float a = 1.f) {
 		return Color{r*a, g*a, b*a, a};
+	}
+	constexpr GLES2::vec4 get() const {
+		return GLES2::vec4{r, g, b, a};
 	}
 	constexpr GLES2::vec4 unpremultiply() const {
 		return a == 0.f ? GLES2::vec4{0.f, 0.f, 0.f, 0.f} : GLES2::vec4{r/a, g/a, b/a, a};
@@ -109,6 +117,16 @@ public:
 	Rectangle(float x, float y, float width, float height, const Color& color);
 	void draw(const DrawContext& draw_context) override;
 	Property<Color> color();
+};
+
+class Gradient: public Bin {
+	Color _top_color;
+	Color _bottom_color;
+public:
+	Gradient(float x, float y, float width, float height, const Color& top_color, const Color& bottom_color);
+	void draw(const DrawContext& draw_context) override;
+	Property<Color> top_color();
+	Property<Color> bottom_color();
 };
 
 struct Texcoord {
