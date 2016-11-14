@@ -229,6 +229,24 @@ public:
 	Property<float> alpha();
 };
 
+class RoundedBorder: public Bin {
+	float border_width;
+	float radius;
+	Mask* bottom_left;
+	Rectangle* bottom;
+	Mask* bottom_right;
+	Rectangle* left;
+	Rectangle* right;
+	Mask* top_left;
+	Rectangle* top;
+	Mask* top_right;
+public:
+	RoundedBorder(float x, float y, float width, float height, float border_width, const Color& color, float radius);
+	Node* get_child(int index) override;
+	void layout() override;
+	Property<Color> color();
+};
+
 class Font {
 	FT_Face face;
 public:

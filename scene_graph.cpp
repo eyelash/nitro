@@ -137,11 +137,11 @@ void atmosphere::Bin::layout() {
 }
 void atmosphere::Bin::set_child(Node* node) {
 	child = node;
-	layout();
+	Bin::layout();
 }
 void atmosphere::Bin::set_padding(float padding) {
 	this->padding = padding;
-	layout();
+	Bin::layout();
 }
 
 // SimpleContainer
@@ -419,42 +419,65 @@ atmosphere::Property<float> atmosphere::Clip::alpha() {
 }
 
 // RoundedRectangle
-static constexpr float curve(float x) {
-	return sqrtf(1.f - x * x);
-}
-static constexpr float int_curve(float x) {
-	return 0.5f * (sqrtf(1.f-x*x) * x + asinf(x));
-}
-static float corner(float x, float y, float w, float h) {
-	const float x1 = x + w;
-	const float y1 = y + h;
-
-	if (x1*x1+y1*y1 <= 1.f) return 1.f;
-	if (x*x+y*y >= 1.f) return 0.f;
-
-	float start = x;
-	float end = x1;
-	float result = 0.f;
-	if (curve(y1) > start) {
-		start = curve(y1);
-		result += (start-x) / w;
+namespace {
+	float circle(float x) {
+		return sqrtf(1.f - x * x);
 	}
-	if (curve(y) < end) {
-		end = curve(y);
+	float int_circle(float x) {
+		return 0.5f * (sqrtf(1.f-x*x) * x + asinf(x));
 	}
-	result += (int_curve(end)-int_curve(start) - (end-start)*y) / (w*h);
-	return result;
-}
-static Texture* create_rounded_corner_texture(int radius) {
-	unsigned char* data = (unsigned char*)malloc(radius*radius);
-	for (int y = 0; y < radius; ++y) {
-		for (int x = 0; x < radius; ++x) {
-			data[y*radius+x] = corner((float)x/radius, (float)y/radius, 1.f/radius, 1.f/radius) * 255.f + 0.5f;
+	// computes the area of a rounded corner with radius 1 inside the rectangle (x, y, w, h)
+	float rounded_corner_area(float x, float y, const float w, const float h) {
+		float x1 = x + w;
+		float y1 = y + h;
+		float result = 0.f;
+
+		// make sure all values are <= 1
+		if (x >= 1.f || y >= 1.f) return 0.f;
+		if (x1 > 1.f) x1 = 1.f;
+		if (y1 > 1.f) y1 = 1.f;
+
+		// make sure all values are >= 0
+		if (x1 <= 0.f || y1 <= 0.f) return (x1 - x) * (y1 - y);
+		if (x < 0.f) {
+			result += (0.f - x) * (y1 - y);
+			x = 0.f;
 		}
+		if (y < 0.f) {
+			result += (x1 - x) * (0.f - y);
+			y = 0.f;
+		}
+
+		const float cy1 = circle(y1);
+		if (cy1 >= x1) return result + (x1 - x) * (y1 - y);
+		if (cy1 > x) {
+			result += (cy1 - x) * (y1 - y);
+			x = cy1;
+		}
+
+		const float cy = circle(y);
+		if (cy <= x) return 0.f;
+		if (cy < x1) x1 = cy;
+
+		result += int_circle(x1) - int_circle(x) - (x1 - x) * y;
+		return result;
 	}
-	Texture* result = new Texture(radius, radius, 1, data);
-	free(data);
-	return result;
+	float rounded_corner(float radius, float x, float y, float w = 1.f, float h = 1.f) {
+		w = w / radius;
+		h = h / radius;
+		return rounded_corner_area(x/radius, y/radius, w, h) / (w * h);
+	}
+	Texture* create_rounded_corner_texture(int radius) {
+		unsigned char* data = new unsigned char[radius*radius];
+		for (int y = 0; y < radius; ++y) {
+			for (int x = 0; x < radius; ++x) {
+				data[y*radius+x] = rounded_corner((float)radius, (float)x, (float)y) * 255.f + 0.5f;
+			}
+		}
+		Texture* result = new Texture{radius, radius, 1, data};
+		delete[] data;
+		return result;
+	}
 }
 atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius): Bin{x, y, width, height}, radius{radius} {
 	Texture* texture = create_rounded_corner_texture(radius);
@@ -493,6 +516,7 @@ void atmosphere::RoundedRectangle::layout() {
 	top->width().set(width().get()-2.f*radius);
 	top_right->position_x().set(width().get() - radius);
 	top_right->position_y().set(height().get() - radius);
+	Bin::layout();
 }
 atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
 	return Property<Color> {this, [](RoundedRectangle* rectangle) {
@@ -551,6 +575,7 @@ void atmosphere::RoundedImage::layout() {
 	top->width().set(width().get()-2.f*radius);
 	top_right->position_x().set(width().get() - radius);
 	top_right->position_y().set(height().get() - radius);
+	Bin::layout();
 }
 atmosphere::Property<float> atmosphere::RoundedImage::alpha() {
 	return Property<float> {this, [](RoundedImage* image) {
@@ -563,5 +588,77 @@ atmosphere::Property<float> atmosphere::RoundedImage::alpha() {
 		image->top_left->alpha().set(alpha);
 		image->top->alpha().set(alpha);
 		image->top_right->alpha().set(alpha);
+	}};
+}
+
+// RoundedBorder
+namespace {
+	Texture* create_rounded_border_texture(int radius, int width) {
+		unsigned char* data = new unsigned char[radius*radius];
+		for (int y = 0; y < radius; ++y) {
+			for (int x = 0; x < radius; ++x) {
+				const float value = rounded_corner((float)radius, (float)x, (float)y) - rounded_corner((float)(radius-width), (float)x, (float)y);
+				data[y*radius+x] = value * 255.f + 0.5f;
+			}
+		}
+		Texture* result = new Texture{radius, radius, 1, data};
+		delete[] data;
+		return result;
+	}
+}
+atmosphere::RoundedBorder::RoundedBorder(float x, float y, float width, float height, float border_width, const Color& color, float radius): Bin{x, y, width, height, border_width}, border_width{border_width}, radius{radius} {
+	Texture* texture = create_rounded_border_texture(radius, border_width);
+	Texcoord texcoord = Texcoord::create(0.f, 0.f, 1.f, 1.f);
+
+	top_right = new Mask{width-radius, height-radius, radius, radius, color, texture, texcoord};
+	texcoord = texcoord.rotate();
+	top_left = new Mask{0, height-radius, radius, radius, color, texture, texcoord};
+	texcoord = texcoord.rotate();
+	bottom_left = new Mask{0, 0, radius, radius, color, texture, texcoord};
+	texcoord = texcoord.rotate();
+	bottom_right = new Mask{width-radius, 0, radius, radius, color, texture, texcoord};
+	bottom = new Rectangle{radius, 0, width-2.f*radius, border_width, color};
+	left = new Rectangle{0, radius, border_width, height-2.f*radius, color};
+	right = new Rectangle{width-border_width, radius, border_width, height-2.f*radius, color};
+	top = new Rectangle{radius, height-border_width, width-2.f*radius, border_width, color};
+}
+atmosphere::Node* atmosphere::RoundedBorder::get_child(int index) {
+	switch (index) {
+		case 0: return bottom_left;
+		case 1: return bottom;
+		case 2: return bottom_right;
+		case 3: return left;
+		case 4: return right;
+		case 5: return top_left;
+		case 6: return top;
+		case 7: return top_right;
+		default: return Bin::get_child(index-8);
+	}
+}
+void atmosphere::RoundedBorder::layout() {
+	bottom->width().set(width().get() - 2.f * radius);
+	bottom_right->position_x().set(width().get() - radius);
+	left->height().set(height().get() - 2.f * radius);
+	right->position_x().set(width().get() - border_width);
+	right->height().set(height().get() - 2.f * radius);
+	top_left->position_y().set(height().get() - radius);
+	top->position_y().set(height().get() - border_width);
+	top->width().set(width().get()-2.f*radius);
+	top_right->position_x().set(width().get() - radius);
+	top_right->position_y().set(height().get() - radius);
+	Bin::layout();
+}
+atmosphere::Property<atmosphere::Color> atmosphere::RoundedBorder::color() {
+	return Property<Color> {this, [](RoundedBorder* border) {
+		return border->bottom_left->color().get();
+	}, [](RoundedBorder* border, Color color) {
+		border->bottom_left->color().set(color);
+		border->bottom->color().set(color);
+		border->bottom_right->color().set(color);
+		border->left->color().set(color);
+		border->right->color().set(color);
+		border->top_left->color().set(color);
+		border->top->color().set(color);
+		border->top_right->color().set(color);
 	}};
 }
