@@ -42,6 +42,10 @@ public:
 	}
 };
 
+template <class T> constexpr T linear(const T& v1, const T& v2, float x) {
+	return v1 * (1.f - x) + v2 * x;
+}
+
 class AnimationType {
 public:
 	virtual float get_y (float x) const = 0;
@@ -111,7 +115,7 @@ public:
 			return true;
 		}
 		x = type->get_y(x);
-		property.set(start_value * (1.f-x) + end_value * x);
+		property.set(linear(start_value, end_value, x));
 		return false;
 	}
 };

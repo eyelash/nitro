@@ -80,6 +80,14 @@ void atmosphere::Node::mouse_enter() {
 void atmosphere::Node::mouse_leave() {
 
 }
+atmosphere::Property<atmosphere::Point> atmosphere::Node::position() {
+	return Property<Point> {this, [](Node* node) {
+		return Point{node->transformation.x, node->transformation.y};
+	}, [](Node* node, Point value) {
+		node->transformation.x = value.x;
+		node->transformation.y = value.y;
+	}};
+}
 atmosphere::Property<float> atmosphere::Node::position_x() {
 	return Property<float> {this, [](Node* node) {
 		return node->transformation.x;
@@ -171,18 +179,13 @@ atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, co
 void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
 	Program* program = get_color_program();
 
-	GLfloat vertices[] = {
-		0.f, 0.f,
-		width().get(), 0.f,
-		0.f, height().get(),
-		width().get(), height().get()
-	};
+	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
 
 	program->use();
 	{
 		program->set_uniform("projection", draw_context.projection);
 		program->set_attribute("color", _color.get());
-		VertexAttributeArray attr_vertex = program->set_attribute_array("vertex", 2, vertices);
+		VertexAttributeArray attr_vertex = program->set_attribute_array("vertex", 2, vertices.data);
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
@@ -203,12 +206,7 @@ atmosphere::Gradient::Gradient(float x, float y, float width, float height, cons
 void atmosphere::Gradient::draw(const DrawContext& draw_context) {
 	Program* program = get_color_program();
 
-	GLfloat vertices[] = {
-		0.f, 0.f,
-		width().get(), 0.f,
-		0.f, height().get(),
-		width().get(), height().get()
-	};
+	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
 	vec4 bottom = _bottom_color.get();
 	vec4 top = _top_color.get();
 	GLfloat vertex_color[] = {
@@ -221,7 +219,7 @@ void atmosphere::Gradient::draw(const DrawContext& draw_context) {
 	program->use();
 	{
 		program->set_uniform("projection", draw_context.projection);
-		VertexAttributeArray vertex = program->set_attribute_array("vertex", 2, vertices);
+		VertexAttributeArray vertex = program->set_attribute_array("vertex", 2, vertices.data);
 		VertexAttributeArray color = program->set_attribute_array("color", 4, vertex_color);
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -266,30 +264,25 @@ static Texture* create_texture_from_file(const char* file_name, int& width, int&
 	}
 	return texture;
 }
-atmosphere::Image::Image(float x, float y, float width, float height, Texture* texture, const Texcoord& texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, _alpha{1.f} {
+atmosphere::Image::Image(float x, float y, float width, float height, Texture* texture, const Quad& texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, _alpha{1.f} {
 
 }
 atmosphere::Image atmosphere::Image::create_from_file(const char* file_name, float x, float y) {
 	int width, height;
 	Texture* texture = create_texture_from_file(file_name, width, height);
-	return Image{x, y, (float)width, (float)height, texture, Texcoord::create(0.f, 1.f, 1.f, 0.f)};
+	return Image{x, y, (float)width, (float)height, texture, Quad::create(0.f, 1.f, 1.f, 0.f)};
 }
 void atmosphere::Image::draw(const DrawContext& draw_context) {
 	static Program texture_program{"shaders/texture.vs.glsl", "shaders/texture.fs.glsl"};
 
-	GLfloat vertices[] = {
-		0.f, 0.f,
-		width().get(), 0.f,
-		0.f, height().get(),
-		width().get(), height().get()
-	};
+	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
 
 	texture_program.use();
 	texture_program.set_uniform("projection", draw_context.projection);
 	texture_program.set_uniform("texture", 0);
 	texture_program.set_uniform("alpha", _alpha);
-	VertexAttributeArray attr_vertex = texture_program.set_attribute_array("vertex", 2, vertices);
-	VertexAttributeArray attr_texcoord = texture_program.set_attribute_array("texcoord", 2, texcoord.t);
+	VertexAttributeArray attr_vertex = texture_program.set_attribute_array("vertex", 2, vertices.data);
+	VertexAttributeArray attr_texcoord = texture_program.set_attribute_array("texcoord", 2, texcoord.data);
 
 	texture->bind();
 
@@ -309,30 +302,25 @@ atmosphere::Property<float> atmosphere::Image::alpha() {
 }
 
 // Mask
-atmosphere::Mask::Mask(float x, float y, float width, float height, const Color& color, Texture* mask, const Texcoord& texcoord): Node{x, y, width, height}, _color{color}, mask{mask}, mask_texcoord{texcoord} {
+atmosphere::Mask::Mask(float x, float y, float width, float height, const Color& color, Texture* mask, const Quad& texcoord): Node{x, y, width, height}, _color{color}, mask{mask}, mask_texcoord{texcoord} {
 
 }
 atmosphere::Mask atmosphere::Mask::create_from_file(const char* file_name, const Color& color, float x, float y) {
 	int width, height;
 	Texture* texture = create_texture_from_file(file_name, width, height);
-	return Mask{x, y, (float)width, (float)height, color, texture, Texcoord::create(0.f, 1.f, 1.f, 0.f)};
+	return Mask{x, y, (float)width, (float)height, color, texture, Quad::create(0.f, 1.f, 1.f, 0.f)};
 }
 void atmosphere::Mask::draw(const DrawContext& draw_context) {
 	static Program mask_program{"shaders/mask.vs.glsl", "shaders/mask.fs.glsl"};
 
-	GLfloat vertices[] = {
-		0.f, 0.f,
-		width().get(), 0.f,
-		0.f, height().get(),
-		width().get(), height().get()
-	};
+	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
 
 	mask_program.use();
 	mask_program.set_uniform("projection", draw_context.projection);
 	mask_program.set_uniform("mask", 0);
 	mask_program.set_attribute("color", _color.unpremultiply());
-	VertexAttributeArray attr_vertex = mask_program.set_attribute_array("vertex", 2, vertices);
-	VertexAttributeArray attr_texcoord = mask_program.set_attribute_array("texcoord", 2, mask_texcoord.t);
+	VertexAttributeArray attr_vertex = mask_program.set_attribute_array("vertex", 2, vertices.data);
+	VertexAttributeArray attr_texcoord = mask_program.set_attribute_array("texcoord", 2, mask_texcoord.data);
 
 	mask->bind();
 
@@ -349,27 +337,22 @@ atmosphere::Property<atmosphere::Color> atmosphere::Mask::color() {
 }
 
 // ImageMask
-atmosphere::ImageMask::ImageMask(float x, float y, float width, float height, Texture* texture, const Texcoord& texcoord, Texture* mask, const Texcoord& mask_texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, mask{mask}, mask_texcoord{mask_texcoord}, _alpha{1.f} {
+atmosphere::ImageMask::ImageMask(float x, float y, float width, float height, Texture* texture, const Quad& texcoord, Texture* mask, const Quad& mask_texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, mask{mask}, mask_texcoord{mask_texcoord}, _alpha{1.f} {
 
 }
 void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
 	static Program program{"shaders/texture_mask.vs.glsl", "shaders/texture_mask.fs.glsl"};
 
-	GLfloat vertices[] = {
-		0.f, 0.f,
-		width().get(), 0.f,
-		0.f, height().get(),
-		width().get(), height().get()
-	};
+	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
 
 	program.use();
 	program.set_uniform("projection", draw_context.projection);
 	program.set_uniform("texture", 0);
 	program.set_uniform("mask", 1);
 	program.set_uniform("alpha", _alpha);
-	VertexAttributeArray attr_vertex = program.set_attribute_array("vertex", 2, vertices);
-	VertexAttributeArray attr_texcoord = program.set_attribute_array("texcoord", 2, texcoord.t);
-	VertexAttributeArray attr_mask_texcoord = program.set_attribute_array("mask_texcoord", 2, mask_texcoord.t);
+	VertexAttributeArray attr_vertex = program.set_attribute_array("vertex", 2, vertices.data);
+	VertexAttributeArray attr_texcoord = program.set_attribute_array("texcoord", 2, texcoord.data);
+	VertexAttributeArray attr_mask_texcoord = program.set_attribute_array("mask_texcoord", 2, mask_texcoord.data);
 
 	texture->bind(GL_TEXTURE0);
 	mask->bind(GL_TEXTURE1);
@@ -391,7 +374,7 @@ atmosphere::Property<float> atmosphere::ImageMask::alpha() {
 }
 
 // Clip
-atmosphere::Clip::Clip(float x, float y, float width, float height): Bin{x, y, width, height}, fbo{new FramebufferObject{(int)width, (int)height}}, image{0.f, 0.f, width, height, fbo->texture, Texcoord::create(0.f, 0.f, 1.f, 1.f)} {
+atmosphere::Clip::Clip(float x, float y, float width, float height): Bin{x, y, width, height}, fbo{new FramebufferObject{(int)width, (int)height}}, image{0.f, 0.f, width, height, fbo->texture, Quad::create(0.f, 0.f, 1.f, 1.f)} {
 
 }
 void atmosphere::Clip::prepare_draw() {
@@ -481,7 +464,7 @@ namespace {
 }
 atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius): Bin{x, y, width, height}, radius{radius} {
 	Texture* texture = create_rounded_corner_texture(radius);
-	Texcoord texcoord = Texcoord::create(0.f, 0.f, 1.f, 1.f);
+	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
 	top_right = new Mask{width-radius, height-radius, radius, radius, color, texture, texcoord};
 	texcoord = texcoord.rotate();
 	top_left = new Mask{0.f, height-radius, radius, radius, color, texture, texcoord};
@@ -535,18 +518,18 @@ atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
 // RoundedImage
 atmosphere::RoundedImage::RoundedImage(float x, float y, float width, float height, Texture* texture, float radius): Bin{x, y, width, height}, radius{radius} {
 	Texture* mask = create_rounded_corner_texture(radius);
-	Texcoord texcoord = Texcoord::create(0.f, 0.f, 1.f, 1.f);
-	top_right = new ImageMask{width-radius, height-radius, radius, radius, texture, Texcoord::create(1-radius/width, radius/height, 1, 0), mask, texcoord};
+	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
+	top_right = new ImageMask{width-radius, height-radius, radius, radius, texture, Quad::create(1-radius/width, radius/height, 1, 0), mask, texcoord};
 	texcoord = texcoord.rotate();
-	top_left = new ImageMask{0.f, height-radius, radius, radius, texture, Texcoord::create(0, radius/height, radius/width, 0), mask, texcoord};
+	top_left = new ImageMask{0.f, height-radius, radius, radius, texture, Quad::create(0, radius/height, radius/width, 0), mask, texcoord};
 	texcoord = texcoord.rotate();
-	bottom_left = new ImageMask{0.f, 0.f, radius, radius, texture, Texcoord::create(0, 1, radius/width, 1-radius/height), mask, texcoord};
+	bottom_left = new ImageMask{0.f, 0.f, radius, radius, texture, Quad::create(0, 1, radius/width, 1-radius/height), mask, texcoord};
 	texcoord = texcoord.rotate();
-	bottom_right = new ImageMask{width-radius, 0.f, radius, radius, texture, Texcoord::create(1-radius/width, 1, 1, 1-radius/height), mask, texcoord};
+	bottom_right = new ImageMask{width-radius, 0.f, radius, radius, texture, Quad::create(1-radius/width, 1, 1, 1-radius/height), mask, texcoord};
 
-	bottom = new Image{radius, 0.f, width-2.f*radius, radius, texture, Texcoord::create(radius/width, 1, 1-radius/width, 1-radius/height)};
-	center = new Image{0.f, radius, width, height-2.f*radius, texture, Texcoord::create(0, 1-radius/height, 1, radius/height)};
-	top = new Image{radius, height-radius, width-2.f*radius, radius, texture, Texcoord::create(radius/width, radius/height, 1-radius/width, 0)};
+	bottom = new Image{radius, 0.f, width-2.f*radius, radius, texture, Quad::create(radius/width, 1, 1-radius/width, 1-radius/height)};
+	center = new Image{0.f, radius, width, height-2.f*radius, texture, Quad::create(0, 1-radius/height, 1, radius/height)};
+	top = new Image{radius, height-radius, width-2.f*radius, radius, texture, Quad::create(radius/width, radius/height, 1-radius/width, 0)};
 }
 atmosphere::RoundedImage atmosphere::RoundedImage::create_from_file(const char* file_name, float radius, float x, float y) {
 	int width, height;
@@ -608,7 +591,7 @@ namespace {
 }
 atmosphere::RoundedBorder::RoundedBorder(float x, float y, float width, float height, float border_width, const Color& color, float radius): Bin{x, y, width, height, border_width}, border_width{border_width}, radius{radius} {
 	Texture* texture = create_rounded_border_texture(radius, border_width);
-	Texcoord texcoord = Texcoord::create(0.f, 0.f, 1.f, 1.f);
+	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
 
 	top_right = new Mask{width-radius, height-radius, radius, radius, color, texture, texcoord};
 	texcoord = texcoord.rotate();

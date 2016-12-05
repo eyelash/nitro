@@ -25,6 +25,23 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 namespace atmosphere {
 
+class Point {
+public:
+	float x, y;
+	Point() {
+
+	}
+	constexpr Point(float x, float y): x{x}, y{y} {
+
+	}
+	constexpr Point operator+(const Point& p) const {
+		return Point{x + p.x, y + p.y};
+	}
+	constexpr Point operator*(float f) const {
+		return Point{x * f, y * f};
+	}
+};
+
 class Color {
 	float r, g, b, a;
 	constexpr Color(float r, float g, float b, float a): r{r}, g{g}, b{b}, a{a} {
@@ -78,6 +95,7 @@ public:
 	void handle_mouse_motion_event(const GLES2::vec4& parent_position);
 	virtual void mouse_enter();
 	virtual void mouse_leave();
+	Property<Point> position();
 	Property<float> position_x();
 	Property<float> position_y();
 	Property<float> width();
@@ -129,18 +147,18 @@ public:
 	Property<Color> bottom_color();
 };
 
-struct Texcoord {
-	GLfloat t[8];
-	constexpr Texcoord rotate() const {
-		return Texcoord{
-			t[4], t[5],
-			t[0], t[1],
-			t[6], t[7],
-			t[2], t[3]
+struct Quad {
+	GLfloat data[8];
+	constexpr Quad rotate() const {
+		return Quad{
+			data[4], data[5],
+			data[0], data[1],
+			data[6], data[7],
+			data[2], data[3]
 		};
 	}
-	static constexpr Texcoord create(float x0, float y0, float x1, float y1) {
-		return Texcoord{
+	static constexpr Quad create(float x0, float y0, float x1, float y1) {
+		return Quad{
 			x0, y0,
 			x1, y0,
 			x0, y1,
@@ -151,10 +169,10 @@ struct Texcoord {
 
 class Image: public Node {
 	GLES2::Texture* texture;
-	Texcoord texcoord;
+	Quad texcoord;
 	float _alpha;
 public:
-	Image(float x, float y, float width, float height, GLES2::Texture* texture, const Texcoord& texcoord);
+	Image(float x, float y, float width, float height, GLES2::Texture* texture, const Quad& texcoord);
 	static Image create_from_file(const char* file_name, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
 	void set_texture(GLES2::Texture* texture);
@@ -164,9 +182,9 @@ public:
 class Mask: public Node {
 	Color _color;
 	GLES2::Texture* mask;
-	Texcoord mask_texcoord;
+	Quad mask_texcoord;
 public:
-	Mask(float x, float y, float width, float height, const Color& color, GLES2::Texture* texture, const Texcoord& texcoord);
+	Mask(float x, float y, float width, float height, const Color& color, GLES2::Texture* texture, const Quad& texcoord);
 	static Mask create_from_file(const char* file_name, const Color& color, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
 	Property<Color> color();
@@ -174,12 +192,12 @@ public:
 
 class ImageMask: public Node {
 	GLES2::Texture* texture;
-	Texcoord texcoord;
+	Quad texcoord;
 	GLES2::Texture* mask;
-	Texcoord mask_texcoord;
+	Quad mask_texcoord;
 	float _alpha;
 public:
-	ImageMask(float x, float y, float width, float height, GLES2::Texture* texture, const Texcoord& texcoord, GLES2::Texture* mask, const Texcoord& mask_texcoord);
+	ImageMask(float x, float y, float width, float height, GLES2::Texture* texture, const Quad& texcoord, GLES2::Texture* mask, const Quad& mask_texcoord);
 	void draw(const DrawContext& draw_context) override;
 	void set_texture(GLES2::Texture* texture);
 	Property<float> alpha();
