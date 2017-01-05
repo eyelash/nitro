@@ -121,47 +121,47 @@ inline mat4 rotateZ (float a) {
 class Shader {
 public:
 	GLuint identifier;
-	Shader (const char* filename, GLenum type);
-	Shader (const Shader&) = delete;
-	~Shader ();
-	Shader& operator = (const Shader&) = delete;
+	Shader(const char* filename, GLenum type);
+	Shader(const Shader&) = delete;
+	~Shader();
+	Shader& operator =(const Shader&) = delete;
 };
 
 class VertexAttributeArray {
 	GLuint index;
 public:
-	VertexAttributeArray (GLuint index, GLint size, GLenum type, const GLvoid* pointer);
-	~VertexAttributeArray ();
+	VertexAttributeArray(GLuint index, GLint size, GLenum type, const GLvoid* pointer);
+	~VertexAttributeArray();
 };
 
 class Program {
 public:
 	GLuint identifier;
-	Program (Shader* vertex_shader, Shader* fragment_shader);
-	Program (const char* vertex_shader, const char* fragment_shader);
-	Program ();
-	~Program ();
-	void attach_shader (Shader* shader);
-	void detach_shader (Shader* shader);
-	void link ();
-	void use ();
-	GLint get_attribute_location (const char* name);
-	VertexAttributeArray set_attribute_array (const char* name, GLint size, const GLfloat* pointer);
-	void set_attribute (const char* name, const vec4& value);
-	void set_uniform (const char* name, int value);
-	void set_uniform (const char* name, float value);
-	void set_uniform (const char* name, const vec4& value);
-	void set_uniform (const char* name, const mat4& value);
+	Program(Shader* vertex_shader, Shader* fragment_shader);
+	Program(const char* vertex_shader, const char* fragment_shader);
+	Program();
+	~Program();
+	void attach_shader(Shader* shader);
+	void detach_shader(Shader* shader);
+	void link();
+	void use();
+	GLint get_attribute_location(const char* name);
+	VertexAttributeArray set_attribute_array(const char* name, GLint size, const GLfloat* pointer);
+	void set_attribute(const char* name, const vec4& value);
+	void set_uniform(const char* name, int value);
+	void set_uniform(const char* name, float value);
+	void set_uniform(const char* name, const vec4& value);
+	void set_uniform(const char* name, const mat4& value);
 };
 
 class Texture {
 public:
 	GLuint identifier;
 	int width, height;
-	Texture (int width, int height, int depth, const unsigned char* data);
-	~Texture ();
-	void bind (GLenum texture_unit = GL_TEXTURE0);
-	void unbind (GLenum texture_unit = GL_TEXTURE0);
+	Texture(int width, int height, int depth, const unsigned char* data);
+	~Texture();
+	void bind(GLenum texture_unit = GL_TEXTURE0);
+	void unbind(GLenum texture_unit = GL_TEXTURE0);
 };
 
 class FramebufferObject {
@@ -169,11 +169,11 @@ public:
 	GLuint identifier;
 	int width, height;
 	Texture* texture;
-	FramebufferObject (int width, int height);
-	~FramebufferObject ();
-	void use ();
-	void bind ();
-	void unbind ();
+	FramebufferObject(int width, int height);
+	~FramebufferObject();
+	void use();
+	void bind();
+	void unbind();
 };
 
 class State {

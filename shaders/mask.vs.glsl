@@ -6,7 +6,7 @@ attribute vec4 texcoord;
 varying vec4 v_color;
 varying vec4 v_texcoord;
 
-void main () {
+void main() {
 	gl_Position = projection * vertex;
 	v_color = color;
 	v_texcoord = texcoord;

@@ -4,7 +4,7 @@ attribute vec4 color;
 
 varying vec4 v_color;
 
-void main () {
+void main() {
 	gl_Position = projection * vertex;
 	v_color = color;
 }

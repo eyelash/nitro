@@ -4,7 +4,7 @@ attribute vec4 texcoord;
 
 varying vec4 v_texcoord;
 
-void main () {
+void main() {
 	gl_Position = projection * vertex;
 	v_texcoord = texcoord;
 }
