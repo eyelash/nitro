@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2017, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -94,34 +94,27 @@ VertexAttributeArray::~VertexAttributeArray() {
 }
 
 // Program
-Program::Program(Shader* vertex_shader, Shader* fragment_shader) {
-	identifier = glCreateProgram();
-	glAttachShader(identifier, vertex_shader->identifier);
-	glAttachShader(identifier, fragment_shader->identifier);
-	glLinkProgram(identifier);
-	// add error handling here
-}
-Program::Program(const char* vertex_shader, const char* fragment_shader) {
-	identifier = glCreateProgram();
-	Shader v (vertex_shader, GL_VERTEX_SHADER);
-	Shader f (fragment_shader, GL_FRAGMENT_SHADER);
-	glAttachShader(identifier, v.identifier);
-	glAttachShader(identifier, f.identifier);
-	link();
-	//glDetachShader (identifier, v.identifier);
-	//glDetachShader (identifier, f.identifier);
-}
 Program::Program() {
 	identifier = glCreateProgram();
+}
+Program::Program(const Shader& vertex_shader, const Shader& fragment_shader): Program() {
+	attach_shader(vertex_shader);
+	attach_shader(fragment_shader);
+	link();
+	detach_shader(vertex_shader);
+	detach_shader(fragment_shader);
+}
+Program::Program(const char* vertex_shader, const char* fragment_shader): Program(Shader(vertex_shader, GL_VERTEX_SHADER), Shader(fragment_shader, GL_FRAGMENT_SHADER)) {
+
 }
 Program::~Program() {
 	glDeleteProgram(identifier);
 }
-void Program::attach_shader(Shader* shader) {
-	glAttachShader(identifier, shader->identifier);
+void Program::attach_shader(const Shader& shader) {
+	glAttachShader(identifier, shader.identifier);
 }
-void Program::detach_shader(Shader* shader) {
-	glDetachShader(identifier, shader->identifier);
+void Program::detach_shader(const Shader& shader) {
+	glDetachShader(identifier, shader.identifier);
 }
 void Program::link() {
 	glLinkProgram(identifier);

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2017, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -137,12 +137,14 @@ public:
 class Program {
 public:
 	GLuint identifier;
-	Program(Shader* vertex_shader, Shader* fragment_shader);
-	Program(const char* vertex_shader, const char* fragment_shader);
 	Program();
+	Program(const Shader& vertex_shader, const Shader& fragment_shader);
+	Program(const char* vertex_shader, const char* fragment_shader);
+	Program(const Program&) = delete;
 	~Program();
-	void attach_shader(Shader* shader);
-	void detach_shader(Shader* shader);
+	Program& operator =(const Program&) = delete;
+	void attach_shader(const Shader& shader);
+	void detach_shader(const Shader& shader);
 	void link();
 	void use();
 	GLint get_attribute_location(const char* name);

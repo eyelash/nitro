@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2017, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -171,6 +171,14 @@ static Program* get_texture_program() {
 	static Program program {"shaders/texture.vs.glsl", "shaders/texture.fs.glsl"};
 	return &program;
 }
+static Program* get_mask_program() {
+	static Program program {"shaders/mask.vs.glsl", "shaders/mask.fs.glsl"};
+	return &program;
+}
+static Program* get_texture_mask_program() {
+	static Program program {"shaders/texture_mask.vs.glsl", "shaders/texture_mask.fs.glsl"};
+	return &program;
+}
 
 // Rectangle
 atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const Color& color): Bin{x, y, width, height}, _color{color} {
@@ -273,16 +281,16 @@ atmosphere::Image atmosphere::Image::create_from_file(const char* file_name, flo
 	return Image{x, y, (float)width, (float)height, texture, Quad::create(0.f, 1.f, 1.f, 0.f)};
 }
 void atmosphere::Image::draw(const DrawContext& draw_context) {
-	static Program texture_program{"shaders/texture.vs.glsl", "shaders/texture.fs.glsl"};
+	Program* program = get_texture_program();
 
 	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
 
-	texture_program.use();
-	texture_program.set_uniform("projection", draw_context.projection);
-	texture_program.set_uniform("texture", 0);
-	texture_program.set_uniform("alpha", _alpha);
-	VertexAttributeArray attr_vertex = texture_program.set_attribute_array("vertex", 2, vertices.data);
-	VertexAttributeArray attr_texcoord = texture_program.set_attribute_array("texcoord", 2, texcoord.data);
+	program->use();
+	program->set_uniform("projection", draw_context.projection);
+	program->set_uniform("texture", 0);
+	program->set_uniform("alpha", _alpha);
+	VertexAttributeArray attr_vertex = program->set_attribute_array("vertex", 2, vertices.data);
+	VertexAttributeArray attr_texcoord = program->set_attribute_array("texcoord", 2, texcoord.data);
 
 	texture->bind();
 
@@ -311,16 +319,16 @@ atmosphere::Mask atmosphere::Mask::create_from_file(const char* file_name, const
 	return Mask{x, y, (float)width, (float)height, color, texture, Quad::create(0.f, 1.f, 1.f, 0.f)};
 }
 void atmosphere::Mask::draw(const DrawContext& draw_context) {
-	static Program mask_program{"shaders/mask.vs.glsl", "shaders/mask.fs.glsl"};
+	Program* program = get_mask_program();
 
 	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
 
-	mask_program.use();
-	mask_program.set_uniform("projection", draw_context.projection);
-	mask_program.set_uniform("mask", 0);
-	mask_program.set_attribute("color", _color.unpremultiply());
-	VertexAttributeArray attr_vertex = mask_program.set_attribute_array("vertex", 2, vertices.data);
-	VertexAttributeArray attr_texcoord = mask_program.set_attribute_array("texcoord", 2, mask_texcoord.data);
+	program->use();
+	program->set_uniform("projection", draw_context.projection);
+	program->set_uniform("mask", 0);
+	program->set_attribute("color", _color.unpremultiply());
+	VertexAttributeArray attr_vertex = program->set_attribute_array("vertex", 2, vertices.data);
+	VertexAttributeArray attr_texcoord = program->set_attribute_array("texcoord", 2, mask_texcoord.data);
 
 	mask->bind();
 
@@ -341,18 +349,18 @@ atmosphere::ImageMask::ImageMask(float x, float y, float width, float height, Te
 
 }
 void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
-	static Program program{"shaders/texture_mask.vs.glsl", "shaders/texture_mask.fs.glsl"};
+	Program* program = get_texture_mask_program();
 
 	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
 
-	program.use();
-	program.set_uniform("projection", draw_context.projection);
-	program.set_uniform("texture", 0);
-	program.set_uniform("mask", 1);
-	program.set_uniform("alpha", _alpha);
-	VertexAttributeArray attr_vertex = program.set_attribute_array("vertex", 2, vertices.data);
-	VertexAttributeArray attr_texcoord = program.set_attribute_array("texcoord", 2, texcoord.data);
-	VertexAttributeArray attr_mask_texcoord = program.set_attribute_array("mask_texcoord", 2, mask_texcoord.data);
+	program->use();
+	program->set_uniform("projection", draw_context.projection);
+	program->set_uniform("texture", 0);
+	program->set_uniform("mask", 1);
+	program->set_uniform("alpha", _alpha);
+	VertexAttributeArray attr_vertex = program->set_attribute_array("vertex", 2, vertices.data);
+	VertexAttributeArray attr_texcoord = program->set_attribute_array("texcoord", 2, texcoord.data);
+	VertexAttributeArray attr_mask_texcoord = program->set_attribute_array("mask_texcoord", 2, mask_texcoord.data);
 
 	texture->bind(GL_TEXTURE0);
 	mask->bind(GL_TEXTURE1);
