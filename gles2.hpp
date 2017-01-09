@@ -121,7 +121,7 @@ inline mat4 rotateZ (float a) {
 class Shader {
 public:
 	GLuint identifier;
-	Shader(const char* filename, GLenum type);
+	Shader(const char* source, GLenum type);
 	Shader(const Shader&) = delete;
 	~Shader();
 	Shader& operator =(const Shader&) = delete;

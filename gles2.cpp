@@ -16,6 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "gles2.hpp"
+#include <cstring>
 
 namespace GLES2 {
 
@@ -52,15 +53,9 @@ static char* read_file (const char* file_name, int* length) {
 }
 
 // Shader
-Shader::Shader(const char* file_name, GLenum type) {
-	int length;
-	GLchar* source = read_file(file_name, &length);
-	if (source == nullptr) {
-		fprintf(stderr, "Shader::Shader(): could not open the file %s\n", file_name);
-		return;
-	}
-
+Shader::Shader(const char* source, GLenum type) {
 	identifier = glCreateShader(type);
+	int length = strlen(source);
 	glShaderSource(identifier, 1, &source, &length);
 	glCompileShader(identifier);
 
@@ -69,16 +64,11 @@ Shader::Shader(const char* file_name, GLenum type) {
 	if (compile_status == GL_FALSE) {
 		GLint log_length;
 		glGetShaderiv(identifier, GL_INFO_LOG_LENGTH, &log_length);
-		char* log = (char*) malloc(log_length);
+		char* log = new char[log_length];
 		glGetShaderInfoLog(identifier, log_length, NULL, log);
-		printf("the following errors occurred during the compilation of %s:\n%s\n", file_name, log);
-		free(log);
+		printf("shader compilation error:\n%s\n", log);
+		delete[] log;
 	}
-	else {
-		printf("%s successfully compiled\n", file_name);
-	}
-
-	free(source);
 }
 Shader::~Shader() {
 	glDeleteShader(identifier);

@@ -21,6 +21,15 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <nanosvgrast.h>
 #include <cstring>
 
+#include <color.fs.glsl.h>
+#include <color.vs.glsl.h>
+#include <texture.fs.glsl.h>
+#include <texture.vs.glsl.h>
+#include <mask.fs.glsl.h>
+#include <mask.vs.glsl.h>
+#include <texture_mask.fs.glsl.h>
+#include <texture_mask.vs.glsl.h>
+
 using namespace GLES2;
 
 // Transformation
@@ -164,19 +173,19 @@ void atmosphere::SimpleContainer::add_child(Node* node) {
 }
 
 static Program* get_color_program() {
-	static Program program {"shaders/color.vs.glsl", "shaders/color.fs.glsl"};
+	static Program program {color_vs_glsl, color_fs_glsl};
 	return &program;
 }
 static Program* get_texture_program() {
-	static Program program {"shaders/texture.vs.glsl", "shaders/texture.fs.glsl"};
+	static Program program {texture_vs_glsl, texture_fs_glsl};
 	return &program;
 }
 static Program* get_mask_program() {
-	static Program program {"shaders/mask.vs.glsl", "shaders/mask.fs.glsl"};
+	static Program program {mask_vs_glsl, mask_fs_glsl};
 	return &program;
 }
 static Program* get_texture_mask_program() {
-	static Program program {"shaders/texture_mask.vs.glsl", "shaders/texture_mask.fs.glsl"};
+	static Program program {texture_mask_vs_glsl, texture_mask_fs_glsl};
 	return &program;
 }
 
