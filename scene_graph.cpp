@@ -89,6 +89,46 @@ void atmosphere::Node::mouse_enter() {
 void atmosphere::Node::mouse_leave() {
 
 }
+float atmosphere::Node::get_location_x() const {
+	return transformation.x;
+}
+void atmosphere::Node::set_location_x(float x) {
+	transformation.x = x;
+}
+float atmosphere::Node::get_location_y() const {
+	return transformation.y;
+}
+void atmosphere::Node::set_location_y(float y) {
+	transformation.y = y;
+}
+float atmosphere::Node::get_width() const {
+	return _width;
+}
+void atmosphere::Node::set_width(float width) {
+	_width = width;
+	layout();
+}
+float atmosphere::Node::get_height() const {
+	return _height;
+}
+void atmosphere::Node::set_height(float height) {
+	_height = height;
+	layout();
+}
+float atmosphere::Node::get_rotation_z() const {
+	return transformation.rotation_z;
+}
+void atmosphere::Node::set_rotation_z(float rotation_z) {
+	transformation.rotation_z = rotation_z;
+}
+void atmosphere::Node::set_location(float x, float y) {
+	set_location_x(x);
+	set_location_y(y);
+}
+void atmosphere::Node::set_size(float width, float height) {
+	set_width(width);
+	set_height(height);
+}
 atmosphere::Property<atmosphere::Point> atmosphere::Node::position() {
 	return Property<Point> {this, [](Node* node) {
 		return Point{node->transformation.x, node->transformation.y};
@@ -98,43 +138,19 @@ atmosphere::Property<atmosphere::Point> atmosphere::Node::position() {
 	}};
 }
 atmosphere::Property<float> atmosphere::Node::position_x() {
-	return Property<float> {this, [](Node* node) {
-		return node->transformation.x;
-	}, [](Node* node, float value) {
-		node->transformation.x = value;
-	}};
+	return create_property<float, Node, &Node::get_location_x, &Node::set_location_x>(this);
 }
 atmosphere::Property<float> atmosphere::Node::position_y() {
-	return Property<float> {this, [](Node* node) {
-		return node->transformation.y;
-	}, [](Node* node, float value) {
-		node->transformation.y = value;
-	}};
+	return create_property<float, Node, &Node::get_location_y, &Node::set_location_y>(this);
 }
 atmosphere::Property<float> atmosphere::Node::width() {
-	return Property<float> {this, [](Node* node) {
-		return node->_width;
-	}, [](Node* node, float value) {
-		if (node->_width == value) return;
-		node->_width = value;
-		node->layout();
-	}};
+	return create_property<float, Node, &Node::get_width, &Node::set_width>(this);
 }
 atmosphere::Property<float> atmosphere::Node::height() {
-	return Property<float> {this, [](Node* node) {
-		return node->_height;
-	}, [](Node* node, float value) {
-		if (node->_height == value) return;
-		node->_height = value;
-		node->layout();
-	}};
+	return create_property<float, Node, &Node::get_height, &Node::set_height>(this);
 }
 atmosphere::Property<float> atmosphere::Node::rotation_z() {
-	return Property<float> {this, [](Node* node) {
-		return node->transformation.rotation_z;
-	}, [](Node* node, float value) {
-		node->transformation.rotation_z = value;
-	}};
+	return create_property<float, Node, &Node::get_rotation_z, &Node::set_rotation_z>(this);
 }
 
 // Bin
@@ -190,6 +206,9 @@ static Program* get_texture_mask_program() {
 }
 
 // Rectangle
+atmosphere::Rectangle::Rectangle(): Bin{0, 0, 0, 0} {
+
+}
 atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const Color& color): Bin{x, y, width, height}, _color{color} {
 
 }
@@ -310,6 +329,9 @@ void atmosphere::Image::draw(const DrawContext& draw_context) {
 void atmosphere::Image::set_texture(Texture* texture) {
 	this->texture = texture;
 }
+void atmosphere::Image::set_texcoord(const Quad& texcoord) {
+	this->texcoord = texcoord;
+}
 atmosphere::Property<float> atmosphere::Image::alpha() {
 	return Property<float> {this, [](Image* image) {
 		return image->_alpha;
@@ -319,6 +341,9 @@ atmosphere::Property<float> atmosphere::Image::alpha() {
 }
 
 // Mask
+atmosphere::Mask::Mask(): Node{0, 0, 0, 0} {
+
+}
 atmosphere::Mask::Mask(float x, float y, float width, float height, const Color& color, Texture* mask, const Quad& texcoord): Node{x, y, width, height}, _color{color}, mask{mask}, mask_texcoord{texcoord} {
 
 }
@@ -351,6 +376,12 @@ atmosphere::Property<atmosphere::Color> atmosphere::Mask::color() {
 	}, [](Mask* mask, Color color) {
 		mask->_color = color;
 	}};
+}
+void atmosphere::Mask::set_texture(Texture* texture) {
+	this->mask = texture;
+}
+void atmosphere::Mask::set_texcoord(const Quad& texcoord) {
+	this->mask_texcoord = texcoord;
 }
 
 // ImageMask
@@ -482,53 +513,70 @@ namespace {
 atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius): Bin{x, y, width, height}, radius{radius} {
 	Texture* texture = create_rounded_corner_texture(radius);
 	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
-	top_right = new Mask{width-radius, height-radius, radius, radius, color, texture, texcoord};
+	top_right.set_texture(texture);
+	top_right.set_texcoord(texcoord);
+	top_right.color().set(color);
 	texcoord = texcoord.rotate();
-	top_left = new Mask{0.f, height-radius, radius, radius, color, texture, texcoord};
+	top_left.set_texture(texture);
+	top_left.set_texcoord(texcoord);
+	top_left.color().set(color);
 	texcoord = texcoord.rotate();
-	bottom_left = new Mask{0.f, 0.f, radius, radius, color, texture, texcoord};
+	bottom_left.set_texture(texture);
+	bottom_left.set_texcoord(texcoord);
+	bottom_left.color().set(color);
 	texcoord = texcoord.rotate();
-	bottom_right = new Mask{width-radius, 0.f, radius, radius, color, texture, texcoord};
+	bottom_right.set_texture(texture);
+	bottom_right.set_texcoord(texcoord);
+	bottom_right.color().set(color);
 
-	bottom = new Rectangle{radius, 0.f, width-2.f*radius, radius, color};
-	center = new Rectangle{0.f, radius, width, height-2.f*radius, color};
-	top = new Rectangle{radius, height-radius, width-2.f*radius, radius, color};
+	bottom.color().set(color);
+	center.color().set(color);
+	top.color().set(color);
+
+	layout();
 }
 atmosphere::Node* atmosphere::RoundedRectangle::get_child(int index) {
 	switch (index) {
-		case 0: return bottom_left;
-		case 1: return bottom;
-		case 2: return bottom_right;
-		case 3: return center;
-		case 4: return top_left;
-		case 5: return top;
-		case 6: return top_right;
+		case 0: return &bottom_left;
+		case 1: return &bottom_right;
+		case 2: return &top_left;
+		case 3: return &top_right;
+		case 4: return &bottom;
+		case 5: return &center;
+		case 6: return &top;
 		default: return Bin::get_child(index-7);
 	}
 }
 void atmosphere::RoundedRectangle::layout() {
-	bottom->width().set(width().get() - 2.f * radius);
-	bottom_right->position_x().set(width().get() - radius);
-	center->width().set(width().get());
-	center->height().set(height().get() - 2.f * radius);
-	top_left->position_y().set(height().get() - radius);
-	top->position_y().set(height().get() - radius);
-	top->width().set(width().get()-2.f*radius);
-	top_right->position_x().set(width().get() - radius);
-	top_right->position_y().set(height().get() - radius);
+	bottom_left.set_location(0.f, 0.f);
+	bottom_left.set_size(radius, radius);
+	bottom_right.set_location(get_width() - radius, 0.f);
+	bottom_right.set_size(radius, radius);
+	top_left.set_location(0.f, get_height() - radius);
+	top_left.set_size(radius, radius);
+	top_right.set_location(get_width() - radius, get_height() - radius);
+	top_right.set_size(radius, radius);
+
+	bottom.set_location(radius, 0.f);
+	bottom.set_size(get_width() - 2.f * radius, radius);
+	center.set_location(0.f, radius);
+	center.set_size(get_width(), get_height() - 2.f * radius);
+	top.set_location(radius, get_height() - radius);
+	top.set_size(get_width() - 2.f * radius, radius);
+
 	Bin::layout();
 }
 atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
 	return Property<Color> {this, [](RoundedRectangle* rectangle) {
-		return rectangle->center->color().get();
+		return rectangle->center.color().get();
 	}, [](RoundedRectangle* rectangle, Color color) {
-		rectangle->bottom_left->color().set(color);
-		rectangle->bottom->color().set(color);
-		rectangle->bottom_right->color().set(color);
-		rectangle->center->color().set(color);
-		rectangle->top_left->color().set(color);
-		rectangle->top->color().set(color);
-		rectangle->top_right->color().set(color);
+		rectangle->bottom_left.color().set(color);
+		rectangle->bottom.color().set(color);
+		rectangle->bottom_right.color().set(color);
+		rectangle->center.color().set(color);
+		rectangle->top_left.color().set(color);
+		rectangle->top.color().set(color);
+		rectangle->top_right.color().set(color);
 	}};
 }
 

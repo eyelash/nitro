@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2017, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -41,6 +41,17 @@ public:
 		setter(object, value);
 	}
 };
+
+// create properties from getter and setter methods
+template <class T, class C, T (C::*Get)() const> T _get(C* object) {
+	return (object->*Get)();
+}
+template <class T, class C, void (C::*Set)(T)> void _set(C* object, T value) {
+	(object->*Set)(value);
+}
+template <class T, class C, T (C::*Get)() const, void (C::*Set)(T)> Property<T> create_property(C* object) {
+	return Property<T>(object, &_get<T, C, Get>, &_set<T, C, Set>);
+}
 
 template <class T> constexpr T linear(const T& v1, const T& v2, float x) {
 	return v1 * (1.f - x) + v2 * x;

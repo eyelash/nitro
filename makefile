@@ -1,16 +1,23 @@
 sources = scene_graph.cpp gles2.cpp animation.cpp text.cpp window_x11.cpp 3rdparty/3rdparty.o
 headers = atmosphere.hpp animation.hpp gles2.hpp
+shaders = $(wildcard shaders/*.glsl)
 CC = gcc
 CXX = g++
-CPPFLAGS = -I. -I3rdparty -I/usr/include/freetype2
-CFLAGS = -O2 -fPIC
+CPPFLAGS = -I. -Ishaders -I3rdparty -I/usr/include/freetype2
+CFLAGS = -O2
 CXXFLAGS = -std=c++11 -O2
 LDFLAGS = -L.
 LDLIBS = -lX11 -lEGL -lGLESv2 -lfreetype
 
 all: demo
 
-libatmosphere.so: $(sources) $(headers)
+glsl2h: glsl2h.c
+	$(CC) -o $@ glsl2h.c
+
+%.glsl.h: %.glsl glsl2h
+	./glsl2h $< $@
+
+libatmosphere.so: $(sources) $(headers) $(shaders:.glsl=.glsl.h)
 	$(CXX) -shared -o $@ -fPIC $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(sources) $(LDLIBS)
 
 demo: demo.cpp libatmosphere.so

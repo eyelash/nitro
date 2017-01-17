@@ -161,7 +161,9 @@ public:
 	GLuint identifier;
 	int width, height;
 	Texture(int width, int height, int depth, const unsigned char* data);
+	Texture(const Texture&) = delete;
 	~Texture();
+	Texture& operator =(const Texture&) = delete;
 	void bind(GLenum texture_unit = GL_TEXTURE0);
 	void unbind(GLenum texture_unit = GL_TEXTURE0);
 };

@@ -1,4 +1,4 @@
-project('atmosphere', 'cpp', 'c')
+project('atmosphere', 'cpp', 'c', default_options: ['cpp_std=c++11'])
 
 sources = [
 	'scene_graph.cpp',

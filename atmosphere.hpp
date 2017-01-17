@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2017, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -95,6 +95,18 @@ public:
 	void handle_mouse_motion_event(const GLES2::vec4& parent_position);
 	virtual void mouse_enter();
 	virtual void mouse_leave();
+	float get_location_x() const;
+	void set_location_x(float x);
+	float get_location_y() const;
+	void set_location_y(float y);
+	float get_width() const;
+	void set_width(float width);
+	float get_height() const;
+	void set_height(float height);
+	float get_rotation_z() const;
+	void set_rotation_z(float rotation_z);
+	void set_location(float x, float y);
+	void set_size(float width, float height);
 	Property<Point> position();
 	Property<float> position_x();
 	Property<float> position_y();
@@ -132,6 +144,7 @@ public:
 class Rectangle: public Bin {
 	Color _color;
 public:
+	Rectangle();
 	Rectangle(float x, float y, float width, float height, const Color& color);
 	void draw(const DrawContext& draw_context) override;
 	Property<Color> color();
@@ -176,6 +189,7 @@ public:
 	static Image create_from_file(const char* file_name, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
 	void set_texture(GLES2::Texture* texture);
+	void set_texcoord(const Quad& texcoord);
 	Property<float> alpha();
 };
 
@@ -184,10 +198,13 @@ class Mask: public Node {
 	GLES2::Texture* mask;
 	Quad mask_texcoord;
 public:
+	Mask();
 	Mask(float x, float y, float width, float height, const Color& color, GLES2::Texture* texture, const Quad& texcoord);
 	static Mask create_from_file(const char* file_name, const Color& color, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
 	Property<Color> color();
+	void set_texture(GLES2::Texture* texture);
+	void set_texcoord(const Quad& texcoord);
 };
 
 class ImageMask: public Node {
@@ -216,13 +233,13 @@ public:
 
 class RoundedRectangle: public Bin {
 	float radius;
-	Mask* bottom_left;
-	Rectangle* bottom;
-	Mask* bottom_right;
-	Rectangle* center;
-	Mask* top_left;
-	Rectangle* top;
-	Mask* top_right;
+	Mask bottom_left;
+	Mask bottom_right;
+	Mask top_left;
+	Mask top_right;
+	Rectangle bottom;
+	Rectangle center;
+	Rectangle top;
 public:
 	RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius);
 	Node* get_child(int index) override;
