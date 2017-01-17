@@ -19,10 +19,5 @@ int main() {
 	TextContainer rounded_rectangle_text {&font, "RoundedRectangle", Color::create(1, 1, 1, 0.9), 250, 150};
 	rounded_rectangle.set_child(&rounded_rectangle_text);
 
-	Gradient gradient {100, 350, 250, 150, Color::create(0.4, 0.4, 0.6), Color::create(0.2, 0.2, 0.4)};
-	container.add_child(&gradient);
-	TextContainer gradient_text {&font, "Gradient", Color::create(1, 1, 1, 0.9), 250, 150};
-	gradient.set_child(&gradient_text);
-
 	window.run();
 }

@@ -150,16 +150,6 @@ public:
 	Property<Color> color();
 };
 
-class Gradient: public Bin {
-	Color _top_color;
-	Color _bottom_color;
-public:
-	Gradient(float x, float y, float width, float height, const Color& top_color, const Color& bottom_color);
-	void draw(const DrawContext& draw_context) override;
-	Property<Color> top_color();
-	Property<Color> bottom_color();
-};
-
 struct Quad {
 	GLfloat data[8];
 	constexpr Quad rotate() const {

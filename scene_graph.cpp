@@ -220,7 +220,7 @@ void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
 	program->use();
 	{
 		program->set_uniform("projection", draw_context.projection);
-		program->set_attribute("color", _color.get());
+		program->set_attribute("color", _color.unpremultiply());
 		VertexAttributeArray attr_vertex = program->set_attribute_array("vertex", 2, vertices.data);
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -232,48 +232,6 @@ atmosphere::Property<atmosphere::Color> atmosphere::Rectangle::color() {
 		return rectangle->_color;
 	}, [](Rectangle* rectangle, Color color) {
 		rectangle->_color = color;
-	}};
-}
-
-// Gradient
-atmosphere::Gradient::Gradient(float x, float y, float width, float height, const Color& top_color, const Color& bottom_color): Bin{x, y, width, height}, _top_color{top_color}, _bottom_color{bottom_color} {
-
-}
-void atmosphere::Gradient::draw(const DrawContext& draw_context) {
-	Program* program = get_color_program();
-
-	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
-	vec4 bottom = _bottom_color.get();
-	vec4 top = _top_color.get();
-	GLfloat vertex_color[] = {
-		bottom.x, bottom.y, bottom.z, bottom.w,
-		bottom.x, bottom.y, bottom.z, bottom.w,
-		top.x, top.y, top.z, top.w,
-		top.x, top.y, top.z, top.w
-	};
-
-	program->use();
-	{
-		program->set_uniform("projection", draw_context.projection);
-		VertexAttributeArray vertex = program->set_attribute_array("vertex", 2, vertices.data);
-		VertexAttributeArray color = program->set_attribute_array("color", 4, vertex_color);
-
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	}
-	Bin::draw(draw_context);
-}
-atmosphere::Property<atmosphere::Color> atmosphere::Gradient::top_color() {
-	return Property<Color> {this, [](Gradient* gradient) {
-		return gradient->_top_color;
-	}, [](Gradient* gradient, Color color) {
-		gradient->_top_color = color;
-	}};
-}
-atmosphere::Property<atmosphere::Color> atmosphere::Gradient::bottom_color() {
-	return Property<Color> {this, [](Gradient* gradient) {
-		return gradient->_bottom_color;
-	}, [](Gradient* gradient, Color color) {
-		gradient->_bottom_color = color;
 	}};
 }
 
