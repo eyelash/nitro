@@ -162,10 +162,8 @@ atmosphere::Node* atmosphere::Bin::get_child(int index) {
 }
 void atmosphere::Bin::layout() {
 	if (child) {
-		child->position_x().set(padding);
-		child->position_y().set(padding);
-		child->width().set(width().get() - 2.f * padding);
-		child->height().set(height().get() - 2.f * padding);
+		child->set_location(padding, padding);
+		child->set_size(get_width() - 2.f * padding, get_height() - 2.f * padding);
 	}
 }
 void atmosphere::Bin::set_child(Node* node) {
@@ -215,7 +213,7 @@ atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, co
 void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
 	Program* program = get_color_program();
 
-	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
+	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
 	program->use();
 	{
@@ -226,6 +224,12 @@ void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 	Bin::draw(draw_context);
+}
+const atmosphere::Color& atmosphere::Rectangle::get_color() const {
+	return _color;
+}
+void atmosphere::Rectangle::set_color(const Color& color) {
+	_color = color;
 }
 atmosphere::Property<atmosphere::Color> atmosphere::Rectangle::color() {
 	return Property<Color> {this, [](Rectangle* rectangle) {
@@ -258,6 +262,9 @@ static Texture* create_texture_from_file(const char* file_name, int& width, int&
 	}
 	return texture;
 }
+atmosphere::Image::Image(): Node{0, 0, 0, 0}, texture{nullptr}, _alpha{1.f} {
+
+}
 atmosphere::Image::Image(float x, float y, float width, float height, Texture* texture, const Quad& texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, _alpha{1.f} {
 
 }
@@ -269,7 +276,7 @@ atmosphere::Image atmosphere::Image::create_from_file(const char* file_name, flo
 void atmosphere::Image::draw(const DrawContext& draw_context) {
 	Program* program = get_texture_program();
 
-	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
+	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
 	program->use();
 	program->set_uniform("projection", draw_context.projection);
@@ -284,18 +291,18 @@ void atmosphere::Image::draw(const DrawContext& draw_context) {
 
 	texture->unbind();
 }
-void atmosphere::Image::set_texture(Texture* texture) {
+void atmosphere::Image::set_texture(Texture* texture, const Quad& texcoord) {
 	this->texture = texture;
-}
-void atmosphere::Image::set_texcoord(const Quad& texcoord) {
 	this->texcoord = texcoord;
 }
+float atmosphere::Image::get_alpha() const {
+	return _alpha;
+}
+void atmosphere::Image::set_alpha(float alpha) {
+	_alpha = alpha;
+}
 atmosphere::Property<float> atmosphere::Image::alpha() {
-	return Property<float> {this, [](Image* image) {
-		return image->_alpha;
-	}, [](Image* image, float value) {
-		image->_alpha = value;
-	}};
+	return create_property<float, Image, &Image::get_alpha, &Image::set_alpha>(this);
 }
 
 // Mask
@@ -313,7 +320,7 @@ atmosphere::Mask atmosphere::Mask::create_from_file(const char* file_name, const
 void atmosphere::Mask::draw(const DrawContext& draw_context) {
 	Program* program = get_mask_program();
 
-	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
+	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
 	program->use();
 	program->set_uniform("projection", draw_context.projection);
@@ -328,28 +335,35 @@ void atmosphere::Mask::draw(const DrawContext& draw_context) {
 
 	mask->unbind();
 }
+const atmosphere::Color& atmosphere::Mask::get_color() const {
+	return _color;
+}
+void atmosphere::Mask::set_color(const Color& color) {
+	_color = color;
+}
 atmosphere::Property<atmosphere::Color> atmosphere::Mask::color() {
 	return Property<Color> {this, [](Mask* mask) {
-		return mask->_color;
+		return mask->get_color();
 	}, [](Mask* mask, Color color) {
-		mask->_color = color;
+		mask->set_color(color);
 	}};
 }
-void atmosphere::Mask::set_texture(Texture* texture) {
-	this->mask = texture;
-}
-void atmosphere::Mask::set_texcoord(const Quad& texcoord) {
-	this->mask_texcoord = texcoord;
+void atmosphere::Mask::set_mask(Texture* mask, const Quad& mask_texcoord) {
+	this->mask = mask;
+	this->mask_texcoord = mask_texcoord;
 }
 
 // ImageMask
+atmosphere::ImageMask::ImageMask(): Node{0, 0, 0, 0}, _alpha{1.f} {
+
+}
 atmosphere::ImageMask::ImageMask(float x, float y, float width, float height, Texture* texture, const Quad& texcoord, Texture* mask, const Quad& mask_texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, mask{mask}, mask_texcoord{mask_texcoord}, _alpha{1.f} {
 
 }
 void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
 	Program* program = get_texture_mask_program();
 
-	Quad vertices = Quad::create(0.f, 0.f, width().get(), height().get());
+	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
 	program->use();
 	program->set_uniform("projection", draw_context.projection);
@@ -368,15 +382,22 @@ void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
 	mask->unbind(GL_TEXTURE1);
 	texture->unbind(GL_TEXTURE0);
 }
-void atmosphere::ImageMask::set_texture(Texture* texture) {
+void atmosphere::ImageMask::set_texture(Texture* texture, const Quad& texcoord) {
 	this->texture = texture;
+	this->texcoord = texcoord;
+}
+void atmosphere::ImageMask::set_mask(Texture* mask, const Quad& mask_texcoord) {
+	this->mask = mask;
+	this->mask_texcoord = mask_texcoord;
+}
+float atmosphere::ImageMask::get_alpha() const {
+	return _alpha;
+}
+void atmosphere::ImageMask::set_alpha(float alpha) {
+	_alpha = alpha;
 }
 atmosphere::Property<float> atmosphere::ImageMask::alpha() {
-	return Property<float> {this, [](ImageMask* image_mask) {
-		return image_mask->_alpha;
-	}, [](ImageMask* image_mask, float value) {
-		image_mask->_alpha = value;
-	}};
+	return create_property<float, ImageMask, &ImageMask::get_alpha, &ImageMask::set_alpha>(this);
 }
 
 // Clip
@@ -398,10 +419,10 @@ void atmosphere::Clip::draw(const DrawContext& draw_context) {
 void atmosphere::Clip::layout() {
 	Bin::layout();
 	delete fbo;
-	fbo = new FramebufferObject{(int)width().get(), (int)height().get()};
-	image.set_texture(fbo->texture);
-	image.width().set(width().get());
-	image.height().set(height().get());
+	fbo = new FramebufferObject{(int)get_width(), (int)get_height()};
+	image.set_texture(fbo->texture, Quad::create(0.f, 0.f, 1.f, 1.f));
+	image.set_width(get_width());
+	image.set_height(get_height());
 }
 atmosphere::Property<float> atmosphere::Clip::alpha() {
 	return image.alpha();
@@ -471,25 +492,15 @@ namespace {
 atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius): Bin{x, y, width, height}, radius{radius} {
 	Texture* texture = create_rounded_corner_texture(radius);
 	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
-	top_right.set_texture(texture);
-	top_right.set_texcoord(texcoord);
-	top_right.color().set(color);
+	top_right.set_mask(texture, texcoord);
 	texcoord = texcoord.rotate();
-	top_left.set_texture(texture);
-	top_left.set_texcoord(texcoord);
-	top_left.color().set(color);
+	top_left.set_mask(texture, texcoord);
 	texcoord = texcoord.rotate();
-	bottom_left.set_texture(texture);
-	bottom_left.set_texcoord(texcoord);
-	bottom_left.color().set(color);
+	bottom_left.set_mask(texture, texcoord);
 	texcoord = texcoord.rotate();
-	bottom_right.set_texture(texture);
-	bottom_right.set_texcoord(texcoord);
-	bottom_right.color().set(color);
+	bottom_right.set_mask(texture, texcoord);
 
-	bottom.color().set(color);
-	center.color().set(color);
-	top.color().set(color);
+	set_color(color);
 
 	layout();
 }
@@ -524,17 +535,23 @@ void atmosphere::RoundedRectangle::layout() {
 
 	Bin::layout();
 }
+const atmosphere::Color& atmosphere::RoundedRectangle::get_color() const {
+	return center.get_color();
+}
+void atmosphere::RoundedRectangle::set_color(const Color& color) {
+	bottom_left.set_color(color);
+	bottom_right.set_color(color);
+	top_left.set_color(color);
+	top_right.set_color(color);
+	bottom.set_color(color);
+	center.set_color(color);
+	top.set_color(color);
+}
 atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
 	return Property<Color> {this, [](RoundedRectangle* rectangle) {
-		return rectangle->center.color().get();
+		return rectangle->get_color();
 	}, [](RoundedRectangle* rectangle, Color color) {
-		rectangle->bottom_left.color().set(color);
-		rectangle->bottom.color().set(color);
-		rectangle->bottom_right.color().set(color);
-		rectangle->center.color().set(color);
-		rectangle->top_left.color().set(color);
-		rectangle->top.color().set(color);
-		rectangle->top_right.color().set(color);
+		rectangle->set_color(color);
 	}};
 }
 
@@ -542,17 +559,17 @@ atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
 atmosphere::RoundedImage::RoundedImage(float x, float y, float width, float height, Texture* texture, float radius): Bin{x, y, width, height}, radius{radius} {
 	Texture* mask = create_rounded_corner_texture(radius);
 	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
-	top_right = new ImageMask{width-radius, height-radius, radius, radius, texture, Quad::create(1-radius/width, radius/height, 1, 0), mask, texcoord};
+	top_right.set_mask(mask, texcoord);
 	texcoord = texcoord.rotate();
-	top_left = new ImageMask{0.f, height-radius, radius, radius, texture, Quad::create(0, radius/height, radius/width, 0), mask, texcoord};
+	top_left.set_mask(mask, texcoord);
 	texcoord = texcoord.rotate();
-	bottom_left = new ImageMask{0.f, 0.f, radius, radius, texture, Quad::create(0, 1, radius/width, 1-radius/height), mask, texcoord};
+	bottom_left.set_mask(mask, texcoord);
 	texcoord = texcoord.rotate();
-	bottom_right = new ImageMask{width-radius, 0.f, radius, radius, texture, Quad::create(1-radius/width, 1, 1, 1-radius/height), mask, texcoord};
+	bottom_right.set_mask(mask, texcoord);
 
-	bottom = new Image{radius, 0.f, width-2.f*radius, radius, texture, Quad::create(radius/width, 1, 1-radius/width, 1-radius/height)};
-	center = new Image{0.f, radius, width, height-2.f*radius, texture, Quad::create(0, 1-radius/height, 1, radius/height)};
-	top = new Image{radius, height-radius, width-2.f*radius, radius, texture, Quad::create(radius/width, radius/height, 1-radius/width, 0)};
+	set_texture(texture, Quad::create(0.f, 0.f, 1.f, 1.f));
+
+	layout();
 }
 atmosphere::RoundedImage atmosphere::RoundedImage::create_from_file(const char* file_name, float radius, float x, float y) {
 	int width, height;
@@ -561,40 +578,60 @@ atmosphere::RoundedImage atmosphere::RoundedImage::create_from_file(const char* 
 }
 atmosphere::Node* atmosphere::RoundedImage::get_child(int index) {
 	switch (index) {
-		case 0: return bottom_left;
-		case 1: return bottom;
-		case 2: return bottom_right;
-		case 3: return center;
-		case 4: return top_left;
-		case 5: return top;
-		case 6: return top_right;
+		case 0: return &bottom_left;
+		case 1: return &bottom_right;
+		case 2: return &top_left;
+		case 3: return &top_right;
+		case 4: return &bottom;
+		case 5: return &center;
+		case 6: return &top;
 		default: return Bin::get_child(index-7);
 	}
 }
 void atmosphere::RoundedImage::layout() {
-	bottom->width().set(width().get() - 2.f * radius);
-	bottom_right->position_x().set(width().get() - radius);
-	center->width().set(width().get());
-	center->height().set(height().get() - 2.f * radius);
-	top_left->position_y().set(height().get() - radius);
-	top->position_y().set(height().get() - radius);
-	top->width().set(width().get()-2.f*radius);
-	top_right->position_x().set(width().get() - radius);
-	top_right->position_y().set(height().get() - radius);
+	bottom_left.set_location(0.f, 0.f);
+	bottom_left.set_size(radius, radius);
+	bottom_right.set_location(get_width() - radius, 0.f);
+	bottom_right.set_size(radius, radius);
+	top_left.set_location(0.f, get_height() - radius);
+	top_left.set_size(radius, radius);
+	top_right.set_location(get_width() - radius, get_height() - radius);
+	top_right.set_size(radius, radius);
+
+	bottom.set_location(radius, 0.f);
+	bottom.set_size(get_width() - 2.f * radius, radius);
+	center.set_location(0.f, radius);
+	center.set_size(get_width(), get_height() - 2.f * radius);
+	top.set_location(radius, get_height() - radius);
+	top.set_size(get_width() - 2.f * radius, radius);
+
 	Bin::layout();
 }
+void atmosphere::RoundedImage::set_texture(Texture* texture, const Quad& texcoord) {
+	const float width = get_width();
+	const float height = get_height();
+	bottom_left.set_texture(texture, Quad::create(0, 1, radius/width, 1-radius/height));
+	bottom_right.set_texture(texture, Quad::create(1-radius/width, 1, 1, 1-radius/height));
+	top_left.set_texture(texture, Quad::create(0, radius/height, radius/width, 0));
+	top_right.set_texture(texture, Quad::create(1-radius/width, radius/height, 1, 0));
+	bottom.set_texture(texture, Quad::create(radius/width, 1, 1-radius/width, 1-radius/height));
+	center.set_texture(texture, Quad::create(0, 1-radius/height, 1, radius/height));
+	top.set_texture(texture, Quad::create(radius/width, radius/height, 1-radius/width, 0));
+}
+float atmosphere::RoundedImage::get_alpha() const {
+	return center.get_alpha();
+}
+void atmosphere::RoundedImage::set_alpha(float alpha) {
+	bottom_left.set_alpha(alpha);
+	bottom_right.set_alpha(alpha);
+	top_left.set_alpha(alpha);
+	top_right.set_alpha(alpha);
+	bottom.set_alpha(alpha);
+	center.set_alpha(alpha);
+	top.set_alpha(alpha);
+}
 atmosphere::Property<float> atmosphere::RoundedImage::alpha() {
-	return Property<float> {this, [](RoundedImage* image) {
-		return image->center->alpha().get();
-	}, [](RoundedImage* image, float alpha) {
-		image->bottom_left->alpha().set(alpha);
-		image->bottom->alpha().set(alpha);
-		image->bottom_right->alpha().set(alpha);
-		image->center->alpha().set(alpha);
-		image->top_left->alpha().set(alpha);
-		image->top->alpha().set(alpha);
-		image->top_right->alpha().set(alpha);
-	}};
+	return create_property<float, RoundedImage, &RoundedImage::get_alpha, &RoundedImage::set_alpha>(this);
 }
 
 // RoundedBorder
@@ -613,58 +650,69 @@ namespace {
 	}
 }
 atmosphere::RoundedBorder::RoundedBorder(float x, float y, float width, float height, float border_width, const Color& color, float radius): Bin{x, y, width, height, border_width}, border_width{border_width}, radius{radius} {
-	Texture* texture = create_rounded_border_texture(radius, border_width);
+	Texture* mask = create_rounded_border_texture(radius, border_width);
 	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
+	top_right.set_mask(mask, texcoord);
+	texcoord = texcoord.rotate();
+	top_left.set_mask(mask, texcoord);
+	texcoord = texcoord.rotate();
+	bottom_left.set_mask(mask, texcoord);
+	texcoord = texcoord.rotate();
+	bottom_right.set_mask(mask, texcoord);
 
-	top_right = new Mask{width-radius, height-radius, radius, radius, color, texture, texcoord};
-	texcoord = texcoord.rotate();
-	top_left = new Mask{0, height-radius, radius, radius, color, texture, texcoord};
-	texcoord = texcoord.rotate();
-	bottom_left = new Mask{0, 0, radius, radius, color, texture, texcoord};
-	texcoord = texcoord.rotate();
-	bottom_right = new Mask{width-radius, 0, radius, radius, color, texture, texcoord};
-	bottom = new Rectangle{radius, 0, width-2.f*radius, border_width, color};
-	left = new Rectangle{0, radius, border_width, height-2.f*radius, color};
-	right = new Rectangle{width-border_width, radius, border_width, height-2.f*radius, color};
-	top = new Rectangle{radius, height-border_width, width-2.f*radius, border_width, color};
+	set_color(color);
+
+	layout();
 }
 atmosphere::Node* atmosphere::RoundedBorder::get_child(int index) {
 	switch (index) {
-		case 0: return bottom_left;
-		case 1: return bottom;
-		case 2: return bottom_right;
-		case 3: return left;
-		case 4: return right;
-		case 5: return top_left;
-		case 6: return top;
-		case 7: return top_right;
+		case 0: return &bottom_left;
+		case 1: return &bottom_right;
+		case 2: return &top_left;
+		case 3: return &top_right;
+		case 4: return &bottom;
+		case 5: return &left;
+		case 6: return &right;
+		case 7: return &top;
 		default: return Bin::get_child(index-8);
 	}
 }
 void atmosphere::RoundedBorder::layout() {
-	bottom->width().set(width().get() - 2.f * radius);
-	bottom_right->position_x().set(width().get() - radius);
-	left->height().set(height().get() - 2.f * radius);
-	right->position_x().set(width().get() - border_width);
-	right->height().set(height().get() - 2.f * radius);
-	top_left->position_y().set(height().get() - radius);
-	top->position_y().set(height().get() - border_width);
-	top->width().set(width().get()-2.f*radius);
-	top_right->position_x().set(width().get() - radius);
-	top_right->position_y().set(height().get() - radius);
+	bottom_left.set_location(0.f, 0.f);
+	bottom_left.set_size(radius, radius);
+	bottom_right.set_location(get_width() - radius, 0.f);
+	bottom_right.set_size(radius, radius);
+	top_left.set_location(0.f, get_height() - radius);
+	top_left.set_size(radius, radius);
+	top_right.set_location(get_width() - radius, get_height() - radius);
+	top_right.set_size(radius, radius);
+	bottom.set_location(radius, 0.f);
+	bottom.set_size(get_width() - 2.f * radius, border_width);
+	left.set_location(0.f, radius);
+	left.set_size(border_width, get_height() - 2.f * radius);
+	right.set_location(get_width() - border_width, radius);
+	right.set_size(border_width, get_height() - 2.f * radius);
+	top.set_location(radius, get_height() - border_width);
+	top.set_size(get_width() - 2.f * radius, border_width);
 	Bin::layout();
+}
+const atmosphere::Color& atmosphere::RoundedBorder::get_color() const {
+	return bottom.get_color();
+}
+void atmosphere::RoundedBorder::set_color(const Color& color) {
+	bottom_left.set_color(color);
+	bottom_right.set_color(color);
+	top_left.set_color(color);
+	top_right.set_color(color);
+	bottom.set_color(color);
+	left.set_color(color);
+	right.set_color(color);
+	top.set_color(color);
 }
 atmosphere::Property<atmosphere::Color> atmosphere::RoundedBorder::color() {
 	return Property<Color> {this, [](RoundedBorder* border) {
-		return border->bottom_left->color().get();
+		return border->get_color();
 	}, [](RoundedBorder* border, Color color) {
-		border->bottom_left->color().set(color);
-		border->bottom->color().set(color);
-		border->bottom_right->color().set(color);
-		border->left->color().set(color);
-		border->right->color().set(color);
-		border->top_left->color().set(color);
-		border->top->color().set(color);
-		border->top_right->color().set(color);
+		border->set_color(color);
 	}};
 }

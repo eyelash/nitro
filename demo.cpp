@@ -14,10 +14,12 @@ int main() {
 	TextContainer rectangle_text {&font, "Rectangle", Color::create(1, 1, 1, 0.9), 250, 150};
 	rectangle.set_child(&rectangle_text);
 
-	RoundedRectangle rounded_rectangle {450, 100, 250, 150, Color::create(0.3, 0.3, 0.5), 10};
+	RoundedRectangle rounded_rectangle {450, 100, 250, 150, Color::create(0.5, 0.5, 1), 10};
 	container.add_child(&rounded_rectangle);
-	TextContainer rounded_rectangle_text {&font, "RoundedRectangle", Color::create(1, 1, 1, 0.9), 250, 150};
-	rounded_rectangle.set_child(&rounded_rectangle_text);
+	RoundedBorder border {0, 0, 0, 0, 2, Color::create(0, 0, 0, 0.2), 10};
+	rounded_rectangle.set_child(&border);
+	TextContainer rounded_rectangle_text {&font, "RoundedRectangle", Color::create(0, 0, 0, 0.8), 250, 150};
+	border.set_child(&rounded_rectangle_text);
 
 	window.run();
 }

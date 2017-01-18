@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2017, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -69,8 +69,7 @@ atmosphere::Text::Text(Font* font, const char* text, const Color& color): Node{0
 		x += glyph->advance.x >> 6;
 		y += glyph->advance.y >> 6;
 	}
-	width().set(x);
-	height().set(font->font_height);
+	set_size(x, font->font_height);
 }
 atmosphere::Node* atmosphere::Text::get_child(int index) {
 	return index < glyphs.size() ? glyphs[index] : nullptr;
@@ -94,13 +93,13 @@ atmosphere::Node* atmosphere::TextContainer::get_child(int index) {
 }
 void atmosphere::TextContainer::layout() {
 	if (horizontal_alignment == HorizontalAlignment::CENTER)
-		text.position_x().set(roundf((width().get() - text.width().get()) / 2.f));
+		text.set_location_x(roundf((get_width() - text.get_width()) / 2.f));
 	else if (horizontal_alignment == HorizontalAlignment::RIGHT)
-		text.position_x().set(roundf(width().get() - text.width().get()));
+		text.set_location_x(roundf(get_width() - text.get_width()));
 	if (vertical_alignment == VerticalAlignment::TOP)
-		text.position_y().set(roundf(height().get() - text.height().get()));
+		text.set_location_y(roundf(get_height() - text.get_height()));
 	else if (vertical_alignment == VerticalAlignment::CENTER)
-		text.position_y().set(roundf((height().get() - text.height().get()) / 2.f));
+		text.set_location_y(roundf((get_height() - text.get_height()) / 2.f));
 }
 atmosphere::Property<atmosphere::Color> atmosphere::TextContainer::color() {
 	return text.color();
