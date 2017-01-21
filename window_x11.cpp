@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2017, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -103,13 +103,26 @@ void atmosphere::Window::dispatch_events () {
 		XNextEvent (display, &event);
 		switch (event.type) {
 		case MotionNotify:
-			handle_mouse_motion_event (GLES2::vec4 {(float)event.xmotion.x, height().get() - event.xmotion.y, 0.f, 1.f});
+			mouse_motion(GLES2::vec4 {(float)event.xmotion.x, get_height() - event.xmotion.y, 0.f, 1.f});
+			break;
+		case ButtonPress:
+			mouse_button_press(GLES2::vec4{(float)event.xbutton.x, get_height() - event.xbutton.y, 0.f, 1.f}, event.xbutton.button);
+			break;
+		case ButtonRelease:
+			mouse_button_release(GLES2::vec4{(float)event.xbutton.x, get_height() - event.xbutton.y, 0.f, 1.f}, event.xbutton.button);
+			break;
+		case EnterNotify:
+			mouse_enter();
+			break;
+		case LeaveNotify:
+			mouse_leave();
 			break;
 		case ConfigureNotify:
-			width().set(event.xconfigure.width);
-			height().set(event.xconfigure.height);
+			set_size(event.xconfigure.width, event.xconfigure.height);
 			glViewport (0, 0, event.xconfigure.width, event.xconfigure.height);
 			draw_context.projection = GLES2::project (event.xconfigure.width, event.xconfigure.height, event.xconfigure.width*2);
+			break;
+		case ClientMessage:
 			break;
 		}
 	}
@@ -123,7 +136,7 @@ void atmosphere::Window::run () {
 		Animation::apply_all ();
 		prepare_draw ();
 		glBindFramebuffer (GL_FRAMEBUFFER, 0);
-		glViewport (0, 0, width().get(), height().get());
+		glViewport (0, 0, get_width(), get_height());
 		glClear (GL_COLOR_BUFFER_BIT);
 		draw (draw_context);
 		//glFlush ();

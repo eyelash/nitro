@@ -92,9 +92,11 @@ public:
 	virtual void prepare_draw();
 	virtual void draw(const DrawContext& draw_context);
 	virtual void layout();
-	void handle_mouse_motion_event(const GLES2::vec4& parent_position);
 	virtual void mouse_enter();
 	virtual void mouse_leave();
+	virtual void mouse_motion(const GLES2::vec4& position);
+	virtual void mouse_button_press(const GLES2::vec4& position, int button);
+	virtual void mouse_button_release(const GLES2::vec4& position, int button);
 	float get_location_x() const;
 	void set_location_x(float x);
 	float get_location_y() const;
@@ -107,6 +109,7 @@ public:
 	void set_rotation_z(float rotation_z);
 	void set_location(float x, float y);
 	void set_size(float width, float height);
+	bool is_mouse_inside() const;
 	Property<Point> position();
 	Property<float> position_x();
 	Property<float> position_y();

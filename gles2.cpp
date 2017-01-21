@@ -65,8 +65,8 @@ Shader::Shader(const char* source, GLenum type) {
 		GLint log_length;
 		glGetShaderiv(identifier, GL_INFO_LOG_LENGTH, &log_length);
 		char* log = new char[log_length];
-		glGetShaderInfoLog(identifier, log_length, NULL, log);
-		printf("shader compilation error:\n%s\n", log);
+		glGetShaderInfoLog(identifier, log_length, &log_length, log);
+		fprintf(stderr, "shader compilation error:\n%s\n", log);
 		delete[] log;
 	}
 }
@@ -108,7 +108,17 @@ void Program::detach_shader(const Shader& shader) {
 }
 void Program::link() {
 	glLinkProgram(identifier);
-	// add error handling here
+
+	GLint link_status;
+	glGetProgramiv(identifier, GL_LINK_STATUS, &link_status);
+	if (link_status == GL_FALSE) {
+		GLint log_length;
+		glGetProgramiv(identifier, GL_INFO_LOG_LENGTH, &log_length);
+		char* log = new char[log_length];
+		glGetProgramInfoLog(identifier, log_length, &log_length, log);
+		fprintf(stderr, "program link error:\n%s\n", log);
+		delete[] log;
+	}
 }
 void Program::use() {
 	glUseProgram(identifier);

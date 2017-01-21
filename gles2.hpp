@@ -15,6 +15,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 */
 
+#pragma once
+
 #include <GLES2/gl2.h>
 #include <cmath>
 #include <cstdlib>
@@ -174,7 +176,9 @@ public:
 	int width, height;
 	Texture* texture;
 	FramebufferObject(int width, int height);
+	FramebufferObject(const FramebufferObject&) = delete;
 	~FramebufferObject();
+	FramebufferObject& operator =(const FramebufferObject&) = delete;
 	void use();
 	void bind();
 	void unbind();

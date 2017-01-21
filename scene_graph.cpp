@@ -65,29 +65,40 @@ void atmosphere::Node::draw(const DrawContext& draw_context) {
 void atmosphere::Node::layout() {
 
 }
-void atmosphere::Node::handle_mouse_motion_event(const vec4& parent_position) {
-	vec4 p = transformation.get_inverse_matrix(_width, _height) * parent_position;
-	if (p.x >= 0.f && p.x < _width && p.y >= 0.f && p.y < _height) {
-		if (!mouse_inside) {
-			mouse_enter();
-			mouse_inside = true;
-		}
-	}
-	else {
-		if (mouse_inside) {
-			mouse_leave();
-			mouse_inside = false;
-		}
-	}
-	for (int i = 0; Node* node = get_child(i); ++i) {
-		node->handle_mouse_motion_event(p);
-	}
-}
 void atmosphere::Node::mouse_enter() {
-
+	mouse_inside = true;
 }
 void atmosphere::Node::mouse_leave() {
-
+	mouse_inside = false;
+	for (int i = 0; Node* child = get_child(i); ++i) {
+		if (child->is_mouse_inside()) child->mouse_leave();
+	}
+}
+void atmosphere::Node::mouse_motion(const vec4& position) {
+	for (int i = 0; Node* child = get_child(i); ++i) {
+		const vec4 child_position = child->transformation.get_inverse_matrix(child->get_width(), child->get_height()) * position;
+		if (mouse_inside) {
+			if (child_position.x >= 0.f && child_position.x < child->get_width() && child_position.y >= 0.f && child_position.y < child->get_height()) {
+				if (!child->is_mouse_inside()) child->mouse_enter();
+			}
+			else {
+				if (child->is_mouse_inside()) child->mouse_leave();
+			}
+		}
+		child->mouse_motion(child_position);
+	}
+}
+void atmosphere::Node::mouse_button_press(const vec4& position, int button) {
+	for (int i = 0; Node* child = get_child(i); ++i) {
+		const vec4 child_position = child->transformation.get_inverse_matrix(child->get_width(), child->get_height()) * position;
+		child->mouse_button_press(child_position, button);
+	}
+}
+void atmosphere::Node::mouse_button_release(const vec4& position, int button) {
+	for (int i = 0; Node* child = get_child(i); ++i) {
+		const vec4 child_position = child->transformation.get_inverse_matrix(child->get_width(), child->get_height()) * position;
+		child->mouse_button_release(child_position, button);
+	}
 }
 float atmosphere::Node::get_location_x() const {
 	return transformation.x;
@@ -128,6 +139,9 @@ void atmosphere::Node::set_location(float x, float y) {
 void atmosphere::Node::set_size(float width, float height) {
 	set_width(width);
 	set_height(height);
+}
+bool atmosphere::Node::is_mouse_inside() const {
+	return mouse_inside;
 }
 atmosphere::Property<atmosphere::Point> atmosphere::Node::position() {
 	return Property<Point> {this, [](Node* node) {
