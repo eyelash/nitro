@@ -88,6 +88,7 @@ class Node {
 	bool mouse_inside;
 public:
 	Node(float x, float y, float width, float height);
+	virtual ~Node();
 	virtual Node* get_child(int index);
 	virtual void prepare_draw();
 	virtual void draw(const DrawContext& draw_context);
@@ -289,6 +290,26 @@ public:
 	const Color& get_color() const;
 	void set_color(const Color& color);
 	Property<Color> color();
+};
+
+class BlurredRectangle: public Bin {
+	float radius;
+	float blur_radius;
+	Mask bottom_left;
+	Mask bottom_right;
+	Mask top_left;
+	Mask top_right;
+	Mask bottom;
+	Mask left;
+	Mask right;
+	Mask top;
+	Rectangle center;
+public:
+	BlurredRectangle(const Color& color, float radius, float blur_radius);
+	Node* get_child(int index) override;
+	void layout() override;
+	const Color& get_color() const;
+	void set_color(const Color& color);
 };
 
 class Font {

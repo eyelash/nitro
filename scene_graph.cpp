@@ -16,6 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "atmosphere.hpp"
+#include "utilities.hpp"
 #include <stb_image.h>
 #include <nanosvg.h>
 #include <nanosvgrast.h>
@@ -45,6 +46,9 @@ mat4 atmosphere::Transformation::get_inverse_matrix(float width, float height) c
 
 // Node
 atmosphere::Node::Node(float x, float y, float width, float height): transformation{x, y}, _width{width}, _height{height}, mouse_inside{false} {
+
+}
+atmosphere::Node::~Node() {
 
 }
 atmosphere::Node* atmosphere::Node::get_child(int index) {
@@ -137,8 +141,9 @@ void atmosphere::Node::set_location(float x, float y) {
 	set_location_y(y);
 }
 void atmosphere::Node::set_size(float width, float height) {
-	set_width(width);
-	set_height(height);
+	_width = width;
+	_height = height;
+	layout();
 }
 bool atmosphere::Node::is_mouse_inside() const {
 	return mouse_inside;
@@ -450,37 +455,24 @@ namespace {
 	float int_circle(float x) {
 		return 0.5f * (sqrtf(1.f-x*x) * x + asinf(x));
 	}
-	// computes the area of a rounded corner with radius 1 inside the rectangle (x, y, w, h)
+	// computes (the area of) the intersection of the unit circle with the given rectangle (x, y, w, h)
+	// x, y, w and h are all assumed to be non-negative
 	float rounded_corner_area(float x, float y, const float w, const float h) {
-		float x1 = x + w;
-		float y1 = y + h;
+		if (x*x+y*y >= 1.f) return 0.f;
+		// assert(x < 1.f && y < 1.f);
+
+		float x1 = std::min(x + w, 1.f);
+		float y1 = std::min(y + h, 1.f);
 		float result = 0.f;
 
-		// make sure all values are <= 1
-		if (x >= 1.f || y >= 1.f) return 0.f;
-		if (x1 > 1.f) x1 = 1.f;
-		if (y1 > 1.f) y1 = 1.f;
-
-		// make sure all values are >= 0
-		if (x1 <= 0.f || y1 <= 0.f) return (x1 - x) * (y1 - y);
-		if (x < 0.f) {
-			result += (0.f - x) * (y1 - y);
-			x = 0.f;
-		}
-		if (y < 0.f) {
-			result += (x1 - x) * (0.f - y);
-			y = 0.f;
-		}
-
 		const float cy1 = circle(y1);
-		if (cy1 >= x1) return result + (x1 - x) * (y1 - y);
+		if (cy1 >= x1) return w * h; // completely inside
 		if (cy1 > x) {
-			result += (cy1 - x) * (y1 - y);
+			result += (cy1 - x) * h;
 			x = cy1;
 		}
 
 		const float cy = circle(y);
-		if (cy <= x) return 0.f;
 		if (cy < x1) x1 = cy;
 
 		result += int_circle(x1) - int_circle(x) - (x1 - x) * y;
@@ -492,15 +484,13 @@ namespace {
 		return rounded_corner_area(x/radius, y/radius, w, h) / (w * h);
 	}
 	Texture* create_rounded_corner_texture(int radius) {
-		unsigned char* data = new unsigned char[radius*radius];
+		Buffer<unsigned char> data {radius * radius};
 		for (int y = 0; y < radius; ++y) {
 			for (int x = 0; x < radius; ++x) {
 				data[y*radius+x] = rounded_corner((float)radius, (float)x, (float)y) * 255.f + 0.5f;
 			}
 		}
-		Texture* result = new Texture{radius, radius, 1, data};
-		delete[] data;
-		return result;
+		return new Texture{radius, radius, 1, data};
 	}
 }
 atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius): Bin{x, y, width, height}, radius{radius} {
@@ -651,16 +641,14 @@ atmosphere::Property<float> atmosphere::RoundedImage::alpha() {
 // RoundedBorder
 namespace {
 	Texture* create_rounded_border_texture(int radius, int width) {
-		unsigned char* data = new unsigned char[radius*radius];
+		Buffer<unsigned char> data {radius * radius};
 		for (int y = 0; y < radius; ++y) {
 			for (int x = 0; x < radius; ++x) {
 				const float value = rounded_corner((float)radius, (float)x, (float)y) - rounded_corner((float)(radius-width), (float)x, (float)y);
 				data[y*radius+x] = value * 255.f + 0.5f;
 			}
 		}
-		Texture* result = new Texture{radius, radius, 1, data};
-		delete[] data;
-		return result;
+		return new Texture{radius, radius, 1, data};
 	}
 }
 atmosphere::RoundedBorder::RoundedBorder(float x, float y, float width, float height, float border_width, const Color& color, float radius): Bin{x, y, width, height, border_width}, border_width{border_width}, radius{radius} {
@@ -729,4 +717,140 @@ atmosphere::Property<atmosphere::Color> atmosphere::RoundedBorder::color() {
 	}, [](RoundedBorder* border, Color color) {
 		border->set_color(color);
 	}};
+}
+
+// BlurredRectangle
+namespace {
+	Buffer<float> create_gaussian_kernel(int radius) {
+		Buffer<float> kernel {radius * 2 + 1};
+		const float sigma = radius / 3.f;
+		const float factor = 1.f / sqrtf(2.f * M_PI * sigma*sigma);
+		for (int i = 0; i < kernel.get_length(); ++i) {
+			const float x = i - radius;
+			kernel[i] = factor * expf(-x*x/(2.f*sigma*sigma));
+		}
+		return kernel;
+	}
+	void blur(const Buffer<float>& kernel, const Buffer<unsigned char>& buffer, float w, float h) {
+		const int center = kernel.get_length() / 2;
+		Buffer<unsigned char> tmp {buffer.get_length()};
+		for (int y = 0; y < h; ++y) {
+			for (int x = 0; x < w; ++x) {
+				float sum = 0.f;
+				for (int k = 0; k < kernel.get_length(); ++k) {
+					int kx = x + k - center;
+					if (kx < 0) kx = 0;
+					else if (kx >= w) kx = w - 1;
+					sum += buffer[y * w + kx] * kernel[k];
+				}
+				tmp[y * w + x] = sum + .5f;
+			}
+		}
+		for (int y = 0; y < h; ++y) {
+			for (int x = 0; x < w; ++x) {
+				float sum = 0.f;
+				for (int k = 0; k < kernel.get_length(); ++k) {
+					int ky = y + k - center;
+					if (ky < 0) ky = 0;
+					else if (ky >= h) ky = h - 1;
+					sum += tmp[ky * w + x] * kernel[k];
+				}
+				buffer[y * w + x] = sum + .5f;
+			}
+		}
+	}
+	Texture* create_blurred_corner_texture(int radius, int blur_radius) {
+		int size = radius + blur_radius * 2;
+		Buffer<unsigned char> buffer {size * size};
+		for (int y = 0; y < size; ++y) {
+			for (int x = 0; x < size; ++x) {
+				const int i = y * size + x;
+				const bool inside = x - blur_radius < radius && y - blur_radius < radius;
+				buffer[i] = inside ? 255 : 0;
+			}
+		}
+		for (int y = 0; y < radius; ++y) {
+			for (int x = 0; x < radius; ++x) {
+				const int i = (y + blur_radius) * size + (x + blur_radius);
+				buffer[i] = rounded_corner(radius, x, y) * 255.f + .5f;
+			}
+		}
+		blur(create_gaussian_kernel(blur_radius), buffer, size, size);
+		return new Texture{size, size, 1, buffer};
+	}
+}
+atmosphere::BlurredRectangle::BlurredRectangle(const Color& color, float radius, float blur_radius): Bin{0, 0, 0, 0}, radius{radius}, blur_radius{blur_radius} {
+	Texture* mask = create_blurred_corner_texture(radius, blur_radius);
+
+	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
+	top_right.set_mask(mask, texcoord);
+	texcoord = texcoord.rotate();
+	top_left.set_mask(mask, texcoord);
+	texcoord = texcoord.rotate();
+	bottom_left.set_mask(mask, texcoord);
+	texcoord = texcoord.rotate();
+	bottom_right.set_mask(mask, texcoord);
+
+	texcoord = Quad::create(0.f, 0.f, 0.f, 1.f);
+	top.set_mask(mask, texcoord);
+	texcoord = texcoord.rotate();
+	left.set_mask(mask, texcoord);
+	texcoord = texcoord.rotate();
+	bottom.set_mask(mask, texcoord);
+	texcoord = texcoord.rotate();
+	right.set_mask(mask, texcoord);
+
+	set_color(color);
+}
+atmosphere::Node* atmosphere::BlurredRectangle::get_child(int index) {
+	switch (index) {
+		case 0: return &bottom_left;
+		case 1: return &bottom_right;
+		case 2: return &top_left;
+		case 3: return &top_right;
+		case 4: return &bottom;
+		case 5: return &left;
+		case 6: return &right;
+		case 7: return &top;
+		case 8: return &center;
+		default: return Bin::get_child(index-9);
+	}
+}
+void atmosphere::BlurredRectangle::layout() {
+	const float x = -blur_radius;
+	const float y = -blur_radius;
+	const float size = radius + 2.f * blur_radius;
+	bottom_left.set_location(-blur_radius, -blur_radius);
+	bottom_left.set_size(size, size);
+	bottom_right.set_location(get_width() - radius - blur_radius, -blur_radius);
+	bottom_right.set_size(size, size);
+	top_left.set_location(-blur_radius, get_height() - radius - blur_radius);
+	top_left.set_size(size, size);
+	top_right.set_location(get_width() - radius - blur_radius, get_height() - radius - blur_radius);
+	top_right.set_size(size, size);
+	bottom.set_location(radius + blur_radius, -blur_radius);
+	bottom.set_size(get_width() - 2.f * (radius + blur_radius), size);
+	left.set_location(-blur_radius, radius + blur_radius);
+	left.set_size(size, get_height() - 2.f * (radius + blur_radius));
+	right.set_location(get_width() - radius - blur_radius, radius + blur_radius);
+	right.set_size(size, get_height() - 2.f * (radius + blur_radius));
+	top.set_location(radius + blur_radius, get_height() - radius - blur_radius);
+	top.set_size(get_width() - 2.f * (radius + blur_radius), size);
+	center.set_location(radius + blur_radius, radius + blur_radius);
+	center.set_size(get_width() - 2.f * (radius + blur_radius),  get_height() - 2.f * (radius + blur_radius));
+	Bin::layout();
+}
+const atmosphere::Color& atmosphere::BlurredRectangle::get_color() const {
+	return center.get_color();
+}
+void atmosphere::BlurredRectangle::set_color(const Color& color) {
+	bottom_left.set_color(color);
+	bottom_right.set_color(color);
+	top_left.set_color(color);
+	top_right.set_color(color);
+	bottom.set_color(color);
+	left.set_color(color);
+	right.set_color(color);
+	top.set_color(color);
+	center.set_color(color);
 }
