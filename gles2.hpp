@@ -129,13 +129,6 @@ public:
 	Shader& operator =(const Shader&) = delete;
 };
 
-class VertexAttributeArray {
-	GLuint index;
-public:
-	VertexAttributeArray(GLuint index, GLint size, GLenum type, const GLvoid* pointer);
-	~VertexAttributeArray();
-};
-
 class Program {
 public:
 	GLuint identifier;
@@ -150,8 +143,8 @@ public:
 	void link();
 	void use();
 	GLint get_attribute_location(const char* name);
-	VertexAttributeArray set_attribute_array(const char* name, GLint size, const GLfloat* pointer);
 	void set_attribute(const char* name, const vec4& value);
+	GLint get_uniform_location(const char* name);
 	void set_uniform(const char* name, int value);
 	void set_uniform(const char* name, float value);
 	void set_uniform(const char* name, const vec4& value);
@@ -184,8 +177,123 @@ public:
 	void unbind();
 };
 
-class State {
+class TextureState {
+	GLuint identifier;
+	GLenum unit;
+	GLint location;
+public:
+	TextureState(Texture* texture, GLenum unit, GLint location): identifier(texture->identifier), unit(unit), location(location) {
 
+	}
+	void enable() const {
+		glActiveTexture(unit);
+		glBindTexture(GL_TEXTURE_2D, identifier);
+		glUniform1i(location, unit - GL_TEXTURE0);
+	}
+	void disable() const {
+		glActiveTexture(unit);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
 };
+
+class UniformFloat {
+	GLint location;
+	float value;
+public:
+	UniformFloat(GLint location, float value): location(location), value(value) {
+
+	}
+	void enable() const {
+		glUniform1f(location, value);
+	}
+	void disable() const {
+
+	}
+};
+
+class UniformVec4 {
+	GLint location;
+	vec4 value;
+public:
+	UniformVec4(GLint location, const vec4& value): location(location), value(value) {
+
+	}
+	void enable() const {
+		glUniform4f(location, value.x, value.y, value.z, value.w);
+	}
+	void disable() const {
+
+	}
+};
+
+class UniformMat4 {
+	GLint location;
+	mat4 value;
+public:
+	UniformMat4(GLint location, const mat4& value): location(location), value(value) {
+
+	}
+	void enable() const {
+		glUniformMatrix4fv(location, 1, GL_FALSE, &value[0].x);
+	}
+	void disable() const {
+
+	}
+};
+
+class AttributeVec4 {
+	GLint location;
+	vec4 value;
+public:
+	AttributeVec4(GLint location, const vec4& value): location(location), value(value) {
+
+	}
+	void enable() const {
+		glVertexAttrib4f(location, value.x, value.y, value.z, value.w);
+	}
+	void disable() const {
+
+	}
+};
+
+class AttributeArray {
+	GLuint index;
+	GLint size;
+	GLenum type;
+	const GLvoid* pointer;
+public:
+	AttributeArray(GLuint index, GLint size, GLenum type, const GLvoid* pointer): index(index), size(size), type(type), pointer(pointer) {
+
+	}
+	void enable() const {
+		glVertexAttribPointer(index, size, type, GL_FALSE, 0, pointer);
+		glEnableVertexAttribArray(index);
+	}
+	void disable() const {
+		glDisableVertexAttribArray(index);
+	}
+};
+
+inline void enable_state() {
+
+}
+template <class T0, class... T> void enable_state(const T0& state0, const T&... state) {
+	state0.enable();
+	enable_state(state...);
+}
+inline void disable_state() {
+
+}
+template <class T0, class... T> void disable_state(const T0& state0, const T&... state) {
+	disable_state(state...);
+	state0.disable();
+}
+
+template <class... T> void draw(Program* program, GLenum mode, GLsizei count, const T&... state) {
+	glUseProgram(program->identifier);
+	enable_state(state...);
+	glDrawArrays(mode, 0, count);
+	disable_state(state...);
+}
 
 }

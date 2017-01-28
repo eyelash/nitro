@@ -234,14 +234,15 @@ void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
-	program->use();
-	{
-		program->set_uniform("projection", draw_context.projection);
-		program->set_attribute("color", _color.unpremultiply());
-		VertexAttributeArray attr_vertex = program->set_attribute_array("vertex", 2, vertices.data);
+	GLES2::draw(
+		program,
+		GL_TRIANGLE_STRIP,
+		4,
+		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
+		AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
+		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.data)
+	);
 
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	}
 	Bin::draw(draw_context);
 }
 const atmosphere::Color& atmosphere::Rectangle::get_color() const {
@@ -297,18 +298,16 @@ void atmosphere::Image::draw(const DrawContext& draw_context) {
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
-	program->use();
-	program->set_uniform("projection", draw_context.projection);
-	program->set_uniform("texture", 0);
-	program->set_uniform("alpha", _alpha);
-	VertexAttributeArray attr_vertex = program->set_attribute_array("vertex", 2, vertices.data);
-	VertexAttributeArray attr_texcoord = program->set_attribute_array("texcoord", 2, texcoord.data);
-
-	texture->bind();
-
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-	texture->unbind();
+	GLES2::draw(
+		program,
+		GL_TRIANGLE_STRIP,
+		4,
+		TextureState(texture, GL_TEXTURE0, program->get_uniform_location("texture")),
+		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
+		UniformFloat(program->get_uniform_location("alpha"), _alpha),
+		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.data),
+		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.data)
+	);
 }
 void atmosphere::Image::set_texture(Texture* texture, const Quad& texcoord) {
 	this->texture = texture;
@@ -341,18 +340,16 @@ void atmosphere::Mask::draw(const DrawContext& draw_context) {
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
-	program->use();
-	program->set_uniform("projection", draw_context.projection);
-	program->set_uniform("mask", 0);
-	program->set_attribute("color", _color.unpremultiply());
-	VertexAttributeArray attr_vertex = program->set_attribute_array("vertex", 2, vertices.data);
-	VertexAttributeArray attr_texcoord = program->set_attribute_array("texcoord", 2, mask_texcoord.data);
-
-	mask->bind();
-
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-	mask->unbind();
+	GLES2::draw(
+		program,
+		GL_TRIANGLE_STRIP,
+		4,
+		TextureState(mask, GL_TEXTURE0, program->get_uniform_location("mask")),
+		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
+		AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
+		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.data),
+		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, mask_texcoord.data)
+	);
 }
 const atmosphere::Color& atmosphere::Mask::get_color() const {
 	return _color;
@@ -384,22 +381,18 @@ void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
-	program->use();
-	program->set_uniform("projection", draw_context.projection);
-	program->set_uniform("texture", 0);
-	program->set_uniform("mask", 1);
-	program->set_uniform("alpha", _alpha);
-	VertexAttributeArray attr_vertex = program->set_attribute_array("vertex", 2, vertices.data);
-	VertexAttributeArray attr_texcoord = program->set_attribute_array("texcoord", 2, texcoord.data);
-	VertexAttributeArray attr_mask_texcoord = program->set_attribute_array("mask_texcoord", 2, mask_texcoord.data);
-
-	texture->bind(GL_TEXTURE0);
-	mask->bind(GL_TEXTURE1);
-
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-	mask->unbind(GL_TEXTURE1);
-	texture->unbind(GL_TEXTURE0);
+	GLES2::draw(
+		program,
+		GL_TRIANGLE_STRIP,
+		4,
+		TextureState(texture, GL_TEXTURE0, program->get_uniform_location("texture")),
+		TextureState(mask, GL_TEXTURE1, program->get_uniform_location("mask")),
+		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
+		UniformFloat(program->get_uniform_location("alpha"), _alpha),
+		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.data),
+		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.data),
+		AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.data)
+	);
 }
 void atmosphere::ImageMask::set_texture(Texture* texture, const Quad& texcoord) {
 	this->texture = texture;
