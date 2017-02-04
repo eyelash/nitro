@@ -117,10 +117,6 @@ void Program::use() {
 GLint Program::get_attribute_location(const char* name) {
 	return glGetAttribLocation(identifier, name);
 }
-void Program::set_attribute(const char* name, const vec4& value) {
-	GLint location = glGetAttribLocation(identifier, name);
-	glVertexAttrib4f(location, value.x, value.y, value.z, value.w);
-}
 GLint Program::get_uniform_location(const char* name) {
 	return glGetUniformLocation(identifier, name);
 }

@@ -13,8 +13,8 @@ shaders = [
 	'shaders/color.vs.glsl',
 	'shaders/texture.fs.glsl',
 	'shaders/texture.vs.glsl',
-	'shaders/mask.fs.glsl',
-	'shaders/mask.vs.glsl',
+	'shaders/color_mask.fs.glsl',
+	'shaders/color_mask.vs.glsl',
 	'shaders/texture_mask.fs.glsl',
 	'shaders/texture_mask.vs.glsl',
 ]

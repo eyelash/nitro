@@ -145,11 +145,11 @@ public:
 	//TextureAtlas(): Texture(512, 512, 4, nullptr) {}
 };
 
-class Rectangle: public Bin {
+class ColorNode: public Node {
 	Color _color;
 public:
-	Rectangle();
-	Rectangle(float x, float y, float width, float height, const Color& color);
+	ColorNode();
+	ColorNode(float x, float y, float width, float height, const Color& color);
 	void draw(const DrawContext& draw_context) override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
@@ -176,14 +176,14 @@ struct Quad {
 	}
 };
 
-class Image: public Node {
+class TextureNode: public Node {
 	GLES2::Texture* texture;
 	Quad texcoord;
 	float _alpha;
 public:
-	Image();
-	Image(float x, float y, float width, float height, GLES2::Texture* texture, const Quad& texcoord);
-	static Image create_from_file(const char* file_name, float x = 0.f, float y = 0.f);
+	TextureNode();
+	TextureNode(float x, float y, float width, float height, GLES2::Texture* texture, const Quad& texcoord);
+	static TextureNode create_from_file(const char* file_name, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
 	void set_texture(GLES2::Texture* texture, const Quad& texcoord);
 	float get_alpha() const;
@@ -191,14 +191,14 @@ public:
 	Property<float> alpha();
 };
 
-class Mask: public Node {
+class ColorMaskNode: public Node {
 	Color _color;
 	GLES2::Texture* mask;
 	Quad mask_texcoord;
 public:
-	Mask();
-	Mask(float x, float y, float width, float height, const Color& color, GLES2::Texture* texture, const Quad& texcoord);
-	static Mask create_from_file(const char* file_name, const Color& color, float x = 0.f, float y = 0.f);
+	ColorMaskNode();
+	ColorMaskNode(float x, float y, float width, float height, const Color& color, GLES2::Texture* texture, const Quad& texcoord);
+	static ColorMaskNode create_from_file(const char* file_name, const Color& color, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
@@ -206,15 +206,15 @@ public:
 	void set_mask(GLES2::Texture* mask, const Quad& mask_texcoord);
 };
 
-class ImageMask: public Node {
+class TextureMaskNode: public Node {
 	GLES2::Texture* texture;
 	Quad texcoord;
 	GLES2::Texture* mask;
 	Quad mask_texcoord;
 	float _alpha;
 public:
-	ImageMask();
-	ImageMask(float x, float y, float width, float height, GLES2::Texture* texture, const Quad& texcoord, GLES2::Texture* mask, const Quad& mask_texcoord);
+	TextureMaskNode();
+	TextureMaskNode(float x, float y, float width, float height, GLES2::Texture* texture, const Quad& texcoord, GLES2::Texture* mask, const Quad& mask_texcoord);
 	void draw(const DrawContext& draw_context) override;
 	void set_texture(GLES2::Texture* texture, const Quad& texcoord);
 	void set_mask(GLES2::Texture* mask, const Quad& mask_texcoord);
@@ -223,9 +223,20 @@ public:
 	Property<float> alpha();
 };
 
+class Rectangle: public Bin {
+	ColorNode node;
+public:
+	Rectangle(float x, float y, float width, float height, const Color& color);
+	Node* get_child(int index) override;
+	void layout() override;
+	const Color& get_color() const;
+	void set_color(const Color& color);
+	Property<Color> color();
+};
+
 class Clip: public Bin {
 	GLES2::FramebufferObject* fbo;
-	Image image;
+	TextureNode image;
 public:
 	Clip(float x, float y, float width, float height);
 	void prepare_draw() override;
@@ -236,13 +247,13 @@ public:
 
 class RoundedRectangle: public Bin {
 	float radius;
-	Mask bottom_left;
-	Mask bottom_right;
-	Mask top_left;
-	Mask top_right;
-	Rectangle bottom;
-	Rectangle center;
-	Rectangle top;
+	ColorMaskNode bottom_left;
+	ColorMaskNode bottom_right;
+	ColorMaskNode top_left;
+	ColorMaskNode top_right;
+	ColorNode bottom;
+	ColorNode center;
+	ColorNode top;
 public:
 	RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius);
 	Node* get_child(int index) override;
@@ -254,13 +265,13 @@ public:
 
 class RoundedImage: public Bin {
 	float radius;
-	ImageMask bottom_left;
-	ImageMask bottom_right;
-	ImageMask top_left;
-	ImageMask top_right;
-	Image bottom;
-	Image center;
-	Image top;
+	TextureMaskNode bottom_left;
+	TextureMaskNode bottom_right;
+	TextureMaskNode top_left;
+	TextureMaskNode top_right;
+	TextureNode bottom;
+	TextureNode center;
+	TextureNode top;
 public:
 	RoundedImage(float x, float y, float width, float height, GLES2::Texture* texture, float radius);
 	static RoundedImage create_from_file(const char* file_name, float radius, float x = 0.f, float y = 0.f);
@@ -275,14 +286,14 @@ public:
 class RoundedBorder: public Bin {
 	float border_width;
 	float radius;
-	Mask bottom_left;
-	Mask bottom_right;
-	Mask top_left;
-	Mask top_right;
-	Rectangle bottom;
-	Rectangle left;
-	Rectangle right;
-	Rectangle top;
+	ColorMaskNode bottom_left;
+	ColorMaskNode bottom_right;
+	ColorMaskNode top_left;
+	ColorMaskNode top_right;
+	ColorNode bottom;
+	ColorNode left;
+	ColorNode right;
+	ColorNode top;
 public:
 	RoundedBorder(float x, float y, float width, float height, float border_width, const Color& color, float radius);
 	Node* get_child(int index) override;
@@ -295,15 +306,15 @@ public:
 class BlurredRectangle: public Bin {
 	float radius;
 	float blur_radius;
-	Mask bottom_left;
-	Mask bottom_right;
-	Mask top_left;
-	Mask top_right;
-	Mask bottom;
-	Mask left;
-	Mask right;
-	Mask top;
-	Rectangle center;
+	ColorMaskNode bottom_left;
+	ColorMaskNode bottom_right;
+	ColorMaskNode top_left;
+	ColorMaskNode top_right;
+	ColorMaskNode bottom;
+	ColorMaskNode left;
+	ColorMaskNode right;
+	ColorMaskNode top;
+	ColorNode center;
 public:
 	BlurredRectangle(const Color& color, float radius, float blur_radius);
 	Node* get_child(int index) override;
@@ -322,7 +333,7 @@ public:
 };
 
 class Text: public Node {
-	std::vector<Mask*> glyphs;
+	std::vector<ColorMaskNode*> glyphs;
 public:
 	Text(Font* font, const char* text, const Color& color);
 	Node* get_child(int index) override;

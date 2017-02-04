@@ -143,7 +143,6 @@ public:
 	void link();
 	void use();
 	GLint get_attribute_location(const char* name);
-	void set_attribute(const char* name, const vec4& value);
 	GLint get_uniform_location(const char* name);
 	void set_uniform(const char* name, int value);
 	void set_uniform(const char* name, float value);

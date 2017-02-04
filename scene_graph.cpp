@@ -26,8 +26,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <color.vs.glsl.h>
 #include <texture.fs.glsl.h>
 #include <texture.vs.glsl.h>
-#include <mask.fs.glsl.h>
-#include <mask.vs.glsl.h>
+#include <color_mask.fs.glsl.h>
+#include <color_mask.vs.glsl.h>
 #include <texture_mask.fs.glsl.h>
 #include <texture_mask.vs.glsl.h>
 
@@ -213,8 +213,8 @@ static Program* get_texture_program() {
 	static Program program {texture_vs_glsl, texture_fs_glsl};
 	return &program;
 }
-static Program* get_mask_program() {
-	static Program program {mask_vs_glsl, mask_fs_glsl};
+static Program* get_color_mask_program() {
+	static Program program {color_mask_vs_glsl, color_mask_fs_glsl};
 	return &program;
 }
 static Program* get_texture_mask_program() {
@@ -222,14 +222,16 @@ static Program* get_texture_mask_program() {
 	return &program;
 }
 
-// Rectangle
-atmosphere::Rectangle::Rectangle(): Bin{0, 0, 0, 0} {
+// ColorNode
+atmosphere::ColorNode::ColorNode(): Node{0, 0, 0, 0} {
 
 }
-atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const Color& color): Bin{x, y, width, height}, _color{color} {
+atmosphere::ColorNode::ColorNode(float x, float y, float width, float height, const Color& color): Node{x, y, width, height}, _color{color} {
 
 }
-void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
+void atmosphere::ColorNode::draw(const DrawContext& draw_context) {
+	if (get_width() <= 0.f || get_height() <= 0.f) return;
+
 	Program* program = get_color_program();
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
@@ -242,24 +244,22 @@ void atmosphere::Rectangle::draw(const DrawContext& draw_context) {
 		AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
 		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.data)
 	);
-
-	Bin::draw(draw_context);
 }
-const atmosphere::Color& atmosphere::Rectangle::get_color() const {
+const atmosphere::Color& atmosphere::ColorNode::get_color() const {
 	return _color;
 }
-void atmosphere::Rectangle::set_color(const Color& color) {
+void atmosphere::ColorNode::set_color(const Color& color) {
 	_color = color;
 }
-atmosphere::Property<atmosphere::Color> atmosphere::Rectangle::color() {
-	return Property<Color> {this, [](Rectangle* rectangle) {
+atmosphere::Property<atmosphere::Color> atmosphere::ColorNode::color() {
+	return Property<Color> {this, [](ColorNode* rectangle) {
 		return rectangle->_color;
-	}, [](Rectangle* rectangle, Color color) {
+	}, [](ColorNode* rectangle, Color color) {
 		rectangle->_color = color;
 	}};
 }
 
-// Image
+// TextureNode
 static Texture* create_texture_from_file(const char* file_name, int& width, int& height) {
 	Texture* texture;
 	if (!strcmp(file_name+strlen(file_name)-4, ".svg")) {
@@ -282,18 +282,18 @@ static Texture* create_texture_from_file(const char* file_name, int& width, int&
 	}
 	return texture;
 }
-atmosphere::Image::Image(): Node{0, 0, 0, 0}, texture{nullptr}, _alpha{1.f} {
+atmosphere::TextureNode::TextureNode(): Node{0, 0, 0, 0}, texture{nullptr}, _alpha{1.f} {
 
 }
-atmosphere::Image::Image(float x, float y, float width, float height, Texture* texture, const Quad& texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, _alpha{1.f} {
+atmosphere::TextureNode::TextureNode(float x, float y, float width, float height, Texture* texture, const Quad& texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, _alpha{1.f} {
 
 }
-atmosphere::Image atmosphere::Image::create_from_file(const char* file_name, float x, float y) {
+atmosphere::TextureNode atmosphere::TextureNode::create_from_file(const char* file_name, float x, float y) {
 	int width, height;
 	Texture* texture = create_texture_from_file(file_name, width, height);
-	return Image{x, y, (float)width, (float)height, texture, Quad::create(0.f, 1.f, 1.f, 0.f)};
+	return TextureNode{x, y, (float)width, (float)height, texture, Quad::create(0.f, 1.f, 1.f, 0.f)};
 }
-void atmosphere::Image::draw(const DrawContext& draw_context) {
+void atmosphere::TextureNode::draw(const DrawContext& draw_context) {
 	Program* program = get_texture_program();
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
@@ -309,34 +309,34 @@ void atmosphere::Image::draw(const DrawContext& draw_context) {
 		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.data)
 	);
 }
-void atmosphere::Image::set_texture(Texture* texture, const Quad& texcoord) {
+void atmosphere::TextureNode::set_texture(Texture* texture, const Quad& texcoord) {
 	this->texture = texture;
 	this->texcoord = texcoord;
 }
-float atmosphere::Image::get_alpha() const {
+float atmosphere::TextureNode::get_alpha() const {
 	return _alpha;
 }
-void atmosphere::Image::set_alpha(float alpha) {
+void atmosphere::TextureNode::set_alpha(float alpha) {
 	_alpha = alpha;
 }
-atmosphere::Property<float> atmosphere::Image::alpha() {
-	return create_property<float, Image, &Image::get_alpha, &Image::set_alpha>(this);
+atmosphere::Property<float> atmosphere::TextureNode::alpha() {
+	return create_property<float, TextureNode, &TextureNode::get_alpha, &TextureNode::set_alpha>(this);
 }
 
-// Mask
-atmosphere::Mask::Mask(): Node{0, 0, 0, 0} {
+// ColorMaskNode
+atmosphere::ColorMaskNode::ColorMaskNode(): Node{0, 0, 0, 0} {
 
 }
-atmosphere::Mask::Mask(float x, float y, float width, float height, const Color& color, Texture* mask, const Quad& texcoord): Node{x, y, width, height}, _color{color}, mask{mask}, mask_texcoord{texcoord} {
+atmosphere::ColorMaskNode::ColorMaskNode(float x, float y, float width, float height, const Color& color, Texture* mask, const Quad& texcoord): Node{x, y, width, height}, _color{color}, mask{mask}, mask_texcoord{texcoord} {
 
 }
-atmosphere::Mask atmosphere::Mask::create_from_file(const char* file_name, const Color& color, float x, float y) {
+atmosphere::ColorMaskNode atmosphere::ColorMaskNode::create_from_file(const char* file_name, const Color& color, float x, float y) {
 	int width, height;
 	Texture* texture = create_texture_from_file(file_name, width, height);
-	return Mask{x, y, (float)width, (float)height, color, texture, Quad::create(0.f, 1.f, 1.f, 0.f)};
+	return ColorMaskNode{x, y, (float)width, (float)height, color, texture, Quad::create(0.f, 1.f, 1.f, 0.f)};
 }
-void atmosphere::Mask::draw(const DrawContext& draw_context) {
-	Program* program = get_mask_program();
+void atmosphere::ColorMaskNode::draw(const DrawContext& draw_context) {
+	Program* program = get_color_mask_program();
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
@@ -348,35 +348,35 @@ void atmosphere::Mask::draw(const DrawContext& draw_context) {
 		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
 		AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
 		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.data),
-		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, mask_texcoord.data)
+		AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.data)
 	);
 }
-const atmosphere::Color& atmosphere::Mask::get_color() const {
+const atmosphere::Color& atmosphere::ColorMaskNode::get_color() const {
 	return _color;
 }
-void atmosphere::Mask::set_color(const Color& color) {
+void atmosphere::ColorMaskNode::set_color(const Color& color) {
 	_color = color;
 }
-atmosphere::Property<atmosphere::Color> atmosphere::Mask::color() {
-	return Property<Color> {this, [](Mask* mask) {
+atmosphere::Property<atmosphere::Color> atmosphere::ColorMaskNode::color() {
+	return Property<Color> {this, [](ColorMaskNode* mask) {
 		return mask->get_color();
-	}, [](Mask* mask, Color color) {
+	}, [](ColorMaskNode* mask, Color color) {
 		mask->set_color(color);
 	}};
 }
-void atmosphere::Mask::set_mask(Texture* mask, const Quad& mask_texcoord) {
+void atmosphere::ColorMaskNode::set_mask(Texture* mask, const Quad& mask_texcoord) {
 	this->mask = mask;
 	this->mask_texcoord = mask_texcoord;
 }
 
-// ImageMask
-atmosphere::ImageMask::ImageMask(): Node{0, 0, 0, 0}, _alpha{1.f} {
+// TextureMaskNode
+atmosphere::TextureMaskNode::TextureMaskNode(): Node{0, 0, 0, 0}, _alpha{1.f} {
 
 }
-atmosphere::ImageMask::ImageMask(float x, float y, float width, float height, Texture* texture, const Quad& texcoord, Texture* mask, const Quad& mask_texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, mask{mask}, mask_texcoord{mask_texcoord}, _alpha{1.f} {
+atmosphere::TextureMaskNode::TextureMaskNode(float x, float y, float width, float height, Texture* texture, const Quad& texcoord, Texture* mask, const Quad& mask_texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, mask{mask}, mask_texcoord{mask_texcoord}, _alpha{1.f} {
 
 }
-void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
+void atmosphere::TextureMaskNode::draw(const DrawContext& draw_context) {
 	Program* program = get_texture_mask_program();
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
@@ -394,22 +394,47 @@ void atmosphere::ImageMask::draw(const DrawContext& draw_context) {
 		AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.data)
 	);
 }
-void atmosphere::ImageMask::set_texture(Texture* texture, const Quad& texcoord) {
+void atmosphere::TextureMaskNode::set_texture(Texture* texture, const Quad& texcoord) {
 	this->texture = texture;
 	this->texcoord = texcoord;
 }
-void atmosphere::ImageMask::set_mask(Texture* mask, const Quad& mask_texcoord) {
+void atmosphere::TextureMaskNode::set_mask(Texture* mask, const Quad& mask_texcoord) {
 	this->mask = mask;
 	this->mask_texcoord = mask_texcoord;
 }
-float atmosphere::ImageMask::get_alpha() const {
+float atmosphere::TextureMaskNode::get_alpha() const {
 	return _alpha;
 }
-void atmosphere::ImageMask::set_alpha(float alpha) {
+void atmosphere::TextureMaskNode::set_alpha(float alpha) {
 	_alpha = alpha;
 }
-atmosphere::Property<float> atmosphere::ImageMask::alpha() {
-	return create_property<float, ImageMask, &ImageMask::get_alpha, &ImageMask::set_alpha>(this);
+atmosphere::Property<float> atmosphere::TextureMaskNode::alpha() {
+	return create_property<float, TextureMaskNode, &TextureMaskNode::get_alpha, &TextureMaskNode::set_alpha>(this);
+}
+
+// Rectangle
+atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const Color& color): Bin{x, y, width, height}, node{x, y, width, height, color} {
+
+}
+atmosphere::Node* atmosphere::Rectangle::get_child(int index) {
+	return index == 0 ? &node : Bin::get_child(index-1);
+}
+void atmosphere::Rectangle::layout() {
+	node.set_size(get_width(), get_height());
+	Bin::layout();
+}
+const atmosphere::Color& atmosphere::Rectangle::get_color() const {
+	return node.get_color();
+}
+void atmosphere::Rectangle::set_color(const Color& color) {
+	node.set_color(color);
+}
+atmosphere::Property<atmosphere::Color> atmosphere::Rectangle::color() {
+	return Property<Color> {this, [](Rectangle* rectangle) {
+		return rectangle->get_color();
+	}, [](Rectangle* rectangle, Color color) {
+		rectangle->set_color(color);
+	}};
 }
 
 // Clip

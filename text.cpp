@@ -65,7 +65,7 @@ atmosphere::Text::Text(Font* font, const char* text, const Color& color): Node{0
 		const int width = glyph->bitmap.width;
 		const int height = glyph->bitmap.rows;
 		GLES2::Texture* texture = new GLES2::Texture{width, height, 1, glyph->bitmap.buffer};
-		glyphs.push_back(new Mask{x+glyph->bitmap_left, y+glyph->bitmap_top-height, (float)width, (float)height, color, texture, Quad::create(0.f, 1.f, 1.f, 0.f)});
+		glyphs.push_back(new ColorMaskNode{x+glyph->bitmap_left, y+glyph->bitmap_top-height, (float)width, (float)height, color, texture, Quad::create(0.f, 1.f, 1.f, 0.f)});
 		x += glyph->advance.x >> 6;
 		y += glyph->advance.y >> 6;
 	}
@@ -78,7 +78,7 @@ atmosphere::Property<atmosphere::Color> atmosphere::Text::color() {
 	return Property<Color> {this, [](Text* text) {
 		return text->glyphs[0]->color().get();
 	}, [](Text* text, Color color) {
-		for (Mask* mask: text->glyphs) {
+		for (ColorMaskNode* mask: text->glyphs) {
 			mask->color().set(color);
 		}
 	}};
