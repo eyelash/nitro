@@ -26,6 +26,8 @@ static Display *display;
 static Window window;
 static EGLDisplay egl_display;
 static EGLSurface surface;
+static bool running;
+static Atom XA_WM_DELETE_WINDOW;
 
 static void set_time () {
 	struct timespec ts;
@@ -93,6 +95,8 @@ atmosphere::Window::Window (int width, int height, const char* title): Bin{0, 0,
 	XFree (visual);
 
 	XStoreName (display, window, title);
+	XA_WM_DELETE_WINDOW = XInternAtom (display, "WM_DELETE_WINDOW", False);
+	XSetWMProtocols (display, window, &XA_WM_DELETE_WINDOW, 1);
 
 	set_time ();
 }
@@ -103,13 +107,13 @@ void atmosphere::Window::dispatch_events () {
 		XNextEvent (display, &event);
 		switch (event.type) {
 		case MotionNotify:
-			mouse_motion(GLES2::vec4 {(float)event.xmotion.x, get_height() - event.xmotion.y, 0.f, 1.f});
+			mouse_motion(gles2::vec4 {(float)event.xmotion.x, get_height() - event.xmotion.y, 0.f, 1.f});
 			break;
 		case ButtonPress:
-			mouse_button_press(GLES2::vec4{(float)event.xbutton.x, get_height() - event.xbutton.y, 0.f, 1.f}, event.xbutton.button);
+			mouse_button_press(gles2::vec4{(float)event.xbutton.x, get_height() - event.xbutton.y, 0.f, 1.f}, event.xbutton.button);
 			break;
 		case ButtonRelease:
-			mouse_button_release(GLES2::vec4{(float)event.xbutton.x, get_height() - event.xbutton.y, 0.f, 1.f}, event.xbutton.button);
+			mouse_button_release(gles2::vec4{(float)event.xbutton.x, get_height() - event.xbutton.y, 0.f, 1.f}, event.xbutton.button);
 			break;
 		case EnterNotify:
 			mouse_enter();
@@ -120,9 +124,12 @@ void atmosphere::Window::dispatch_events () {
 		case ConfigureNotify:
 			set_size(event.xconfigure.width, event.xconfigure.height);
 			glViewport (0, 0, event.xconfigure.width, event.xconfigure.height);
-			draw_context.projection = GLES2::project (event.xconfigure.width, event.xconfigure.height, event.xconfigure.width*2);
+			draw_context.projection = gles2::project (event.xconfigure.width, event.xconfigure.height, event.xconfigure.width*2);
 			break;
 		case ClientMessage:
+			if (event.xclient.data.l[0] == XA_WM_DELETE_WINDOW) {
+				running = false;
+			}
 			break;
 		}
 	}
@@ -130,7 +137,8 @@ void atmosphere::Window::dispatch_events () {
 
 void atmosphere::Window::run () {
 	XMapWindow (display, window);
-	while (true) {
+	running = true;
+	while (running) {
 		dispatch_events ();
 		set_time ();
 		Animation::apply_all ();

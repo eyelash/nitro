@@ -31,20 +31,23 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <texture_mask.fs.glsl.h>
 #include <texture_mask.vs.glsl.h>
 
-using namespace GLES2;
+using namespace gles2;
 
 // Transformation
 atmosphere::Transformation::Transformation(float x, float y): x{x}, y{y}, scale_x{1.f}, scale_y{1.f}, rotation_x{0.f}, rotation_y{0.f}, rotation_z{0.f} {
 
 }
 mat4 atmosphere::Transformation::get_matrix(float width, float height) const {
-	return translate(width/2.f+x, height/2.f+y) * GLES2::scale(scale_x, scale_y) * rotateX(rotation_x) * rotateY(rotation_y) * rotateZ(rotation_z) * translate(-width/2.f, -height/2.f);
+	return translate(width/2.f+x, height/2.f+y) * gles2::scale(scale_x, scale_y) * rotateX(rotation_x) * rotateY(rotation_y) * rotateZ(rotation_z) * translate(-width/2.f, -height/2.f);
 }
 mat4 atmosphere::Transformation::get_inverse_matrix(float width, float height) const {
-	return translate(width/2.f, height/2.f) * rotateZ(-rotation_z) * GLES2::scale(1.f/scale_x, 1.f/scale_y) * translate(-width/2.f-x, -height/2.f-y);
+	return translate(width/2.f, height/2.f) * rotateZ(-rotation_z) * gles2::scale(1.f/scale_x, 1.f/scale_y) * translate(-width/2.f-x, -height/2.f-y);
 }
 
 // Node
+atmosphere::Node::Node(): transformation{0.f, 0.f}, _width{0.f}, _height{0.f}, mouse_inside{false} {
+
+}
 atmosphere::Node::Node(float x, float y, float width, float height): transformation{x, y}, _width{width}, _height{height}, mouse_inside{false} {
 
 }
@@ -223,7 +226,7 @@ static Program* get_texture_mask_program() {
 }
 
 // ColorNode
-atmosphere::ColorNode::ColorNode(): Node{0, 0, 0, 0} {
+atmosphere::ColorNode::ColorNode() {
 
 }
 atmosphere::ColorNode::ColorNode(float x, float y, float width, float height, const Color& color): Node{x, y, width, height}, _color{color} {
@@ -236,7 +239,7 @@ void atmosphere::ColorNode::draw(const DrawContext& draw_context) {
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
-	GLES2::draw(
+	gles2::draw(
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
@@ -282,7 +285,7 @@ static Texture* create_texture_from_file(const char* file_name, int& width, int&
 	}
 	return texture;
 }
-atmosphere::TextureNode::TextureNode(): Node{0, 0, 0, 0}, texture{nullptr}, _alpha{1.f} {
+atmosphere::TextureNode::TextureNode(): texture{nullptr}, _alpha{1.f} {
 
 }
 atmosphere::TextureNode::TextureNode(float x, float y, float width, float height, Texture* texture, const Quad& texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, _alpha{1.f} {
@@ -294,11 +297,13 @@ atmosphere::TextureNode atmosphere::TextureNode::create_from_file(const char* fi
 	return TextureNode{x, y, (float)width, (float)height, texture, Quad::create(0.f, 1.f, 1.f, 0.f)};
 }
 void atmosphere::TextureNode::draw(const DrawContext& draw_context) {
+	if (texture == nullptr) return;
+
 	Program* program = get_texture_program();
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
-	GLES2::draw(
+	gles2::draw(
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
@@ -324,7 +329,7 @@ atmosphere::Property<float> atmosphere::TextureNode::alpha() {
 }
 
 // ColorMaskNode
-atmosphere::ColorMaskNode::ColorMaskNode(): Node{0, 0, 0, 0} {
+atmosphere::ColorMaskNode::ColorMaskNode(): Node{0, 0, 0, 0}, mask{nullptr} {
 
 }
 atmosphere::ColorMaskNode::ColorMaskNode(float x, float y, float width, float height, const Color& color, Texture* mask, const Quad& texcoord): Node{x, y, width, height}, _color{color}, mask{mask}, mask_texcoord{texcoord} {
@@ -336,11 +341,13 @@ atmosphere::ColorMaskNode atmosphere::ColorMaskNode::create_from_file(const char
 	return ColorMaskNode{x, y, (float)width, (float)height, color, texture, Quad::create(0.f, 1.f, 1.f, 0.f)};
 }
 void atmosphere::ColorMaskNode::draw(const DrawContext& draw_context) {
+	if (mask == nullptr) return;
+
 	Program* program = get_color_mask_program();
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
-	GLES2::draw(
+	gles2::draw(
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
@@ -370,18 +377,20 @@ void atmosphere::ColorMaskNode::set_mask(Texture* mask, const Quad& mask_texcoor
 }
 
 // TextureMaskNode
-atmosphere::TextureMaskNode::TextureMaskNode(): Node{0, 0, 0, 0}, _alpha{1.f} {
+atmosphere::TextureMaskNode::TextureMaskNode(): texture{nullptr}, mask{nullptr}, _alpha{1.f} {
 
 }
 atmosphere::TextureMaskNode::TextureMaskNode(float x, float y, float width, float height, Texture* texture, const Quad& texcoord, Texture* mask, const Quad& mask_texcoord): Node{x, y, width, height}, texture{texture}, texcoord{texcoord}, mask{mask}, mask_texcoord{mask_texcoord}, _alpha{1.f} {
 
 }
 void atmosphere::TextureMaskNode::draw(const DrawContext& draw_context) {
+	if (texture == nullptr || mask == nullptr) return;
+
 	Program* program = get_texture_mask_program();
 
 	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
 
-	GLES2::draw(
+	gles2::draw(
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
@@ -446,7 +455,7 @@ void atmosphere::Clip::prepare_draw() {
 		child->prepare_draw();
 		fbo->use();
 		DrawContext draw_context;
-		draw_context.projection = GLES2::project(width().get(), height().get(), width().get()*2);
+		draw_context.projection = gles2::project(width().get(), height().get(), width().get()*2);
 		child->draw(draw_context);
 	}
 }

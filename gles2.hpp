@@ -22,7 +22,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <cstdlib>
 #include <cstdio>
 
-namespace GLES2 {
+namespace gles2 {
 
 struct vec4 {
 	GLfloat x, y, z, w;
@@ -144,10 +144,6 @@ public:
 	void use();
 	GLint get_attribute_location(const char* name);
 	GLint get_uniform_location(const char* name);
-	void set_uniform(const char* name, int value);
-	void set_uniform(const char* name, float value);
-	void set_uniform(const char* name, const vec4& value);
-	void set_uniform(const char* name, const mat4& value);
 };
 
 class Texture {

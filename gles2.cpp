@@ -18,7 +18,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "gles2.hpp"
 #include <cstring>
 
-namespace GLES2 {
+namespace gles2 {
 
 static void print_error (const char* origin) {
 	GLenum error = glGetError ();
@@ -120,27 +120,11 @@ GLint Program::get_attribute_location(const char* name) {
 GLint Program::get_uniform_location(const char* name) {
 	return glGetUniformLocation(identifier, name);
 }
-void Program::set_uniform(const char* name, int value) {
-	GLint location = glGetUniformLocation(identifier, name);
-	glUniform1i(location, value);
-}
-void Program::set_uniform(const char* name, float value) {
-	GLint location = glGetUniformLocation(identifier, name);
-	glUniform1f(location, value);
-}
-void Program::set_uniform(const char* name, const vec4& value) {
-	GLint location = glGetUniformLocation(identifier, name);
-	glUniform4f(location, value.x, value.y, value.z, value.w);
-}
-void Program::set_uniform(const char* name, const mat4& value) {
-	GLint location = glGetUniformLocation(identifier, name);
-	glUniformMatrix4fv(location, 1, GL_FALSE, &value[0].x);
-}
 
 // Texture
 Texture::Texture(int width, int height, int depth, const unsigned char* data): width(width), height(height) {
 	glGenTextures(1, &identifier);
-	bind();
+	glBindTexture(GL_TEXTURE_2D, identifier);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -152,7 +136,7 @@ Texture::Texture(int width, int height, int depth, const unsigned char* data): w
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 	else if (depth == 4)
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-	unbind();
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 Texture::~Texture() {
 	glDeleteTextures(1, &identifier);

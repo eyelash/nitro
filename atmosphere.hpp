@@ -54,11 +54,8 @@ public:
 	static constexpr Color create(float r, float g, float b, float a = 1.f) {
 		return Color{r*a, g*a, b*a, a};
 	}
-	constexpr GLES2::vec4 get() const {
-		return GLES2::vec4{r, g, b, a};
-	}
-	constexpr GLES2::vec4 unpremultiply() const {
-		return a == 0.f ? GLES2::vec4{0.f, 0.f, 0.f, 0.f} : GLES2::vec4{r/a, g/a, b/a, a};
+	constexpr gles2::vec4 unpremultiply() const {
+		return a == 0.f ? gles2::vec4{0.f, 0.f, 0.f, 0.f} : gles2::vec4{r/a, g/a, b/a, a};
 	}
 	constexpr Color operator+(const Color& c) const {
 		return Color{r+c.r, g+c.g, b+c.b, a+c.a};
@@ -74,12 +71,12 @@ public:
 	float scale_x, scale_y;
 	float rotation_x, rotation_y, rotation_z;
 	Transformation(float x, float y);
-	GLES2::mat4 get_matrix(float width, float height) const;
-	GLES2::mat4 get_inverse_matrix(float width, float height) const;
+	gles2::mat4 get_matrix(float width, float height) const;
+	gles2::mat4 get_inverse_matrix(float width, float height) const;
 };
 
 struct DrawContext {
-	GLES2::mat4 projection;
+	gles2::mat4 projection;
 };
 
 class Node {
@@ -87,6 +84,7 @@ class Node {
 	float _width, _height;
 	bool mouse_inside;
 public:
+	Node();
 	Node(float x, float y, float width, float height);
 	virtual ~Node();
 	virtual Node* get_child(int index);
@@ -95,9 +93,9 @@ public:
 	virtual void layout();
 	virtual void mouse_enter();
 	virtual void mouse_leave();
-	virtual void mouse_motion(const GLES2::vec4& position);
-	virtual void mouse_button_press(const GLES2::vec4& position, int button);
-	virtual void mouse_button_release(const GLES2::vec4& position, int button);
+	virtual void mouse_motion(const gles2::vec4& position);
+	virtual void mouse_button_press(const gles2::vec4& position, int button);
+	virtual void mouse_button_release(const gles2::vec4& position, int button);
 	float get_location_x() const;
 	void set_location_x(float x);
 	float get_location_y() const;
@@ -177,15 +175,15 @@ struct Quad {
 };
 
 class TextureNode: public Node {
-	GLES2::Texture* texture;
+	gles2::Texture* texture;
 	Quad texcoord;
 	float _alpha;
 public:
 	TextureNode();
-	TextureNode(float x, float y, float width, float height, GLES2::Texture* texture, const Quad& texcoord);
+	TextureNode(float x, float y, float width, float height, gles2::Texture* texture, const Quad& texcoord);
 	static TextureNode create_from_file(const char* file_name, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
-	void set_texture(GLES2::Texture* texture, const Quad& texcoord);
+	void set_texture(gles2::Texture* texture, const Quad& texcoord);
 	float get_alpha() const;
 	void set_alpha(float alpha);
 	Property<float> alpha();
@@ -193,31 +191,31 @@ public:
 
 class ColorMaskNode: public Node {
 	Color _color;
-	GLES2::Texture* mask;
+	gles2::Texture* mask;
 	Quad mask_texcoord;
 public:
 	ColorMaskNode();
-	ColorMaskNode(float x, float y, float width, float height, const Color& color, GLES2::Texture* texture, const Quad& texcoord);
+	ColorMaskNode(float x, float y, float width, float height, const Color& color, gles2::Texture* texture, const Quad& texcoord);
 	static ColorMaskNode create_from_file(const char* file_name, const Color& color, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
 	Property<Color> color();
-	void set_mask(GLES2::Texture* mask, const Quad& mask_texcoord);
+	void set_mask(gles2::Texture* mask, const Quad& mask_texcoord);
 };
 
 class TextureMaskNode: public Node {
-	GLES2::Texture* texture;
+	gles2::Texture* texture;
 	Quad texcoord;
-	GLES2::Texture* mask;
+	gles2::Texture* mask;
 	Quad mask_texcoord;
 	float _alpha;
 public:
 	TextureMaskNode();
-	TextureMaskNode(float x, float y, float width, float height, GLES2::Texture* texture, const Quad& texcoord, GLES2::Texture* mask, const Quad& mask_texcoord);
+	TextureMaskNode(float x, float y, float width, float height, gles2::Texture* texture, const Quad& texcoord, gles2::Texture* mask, const Quad& mask_texcoord);
 	void draw(const DrawContext& draw_context) override;
-	void set_texture(GLES2::Texture* texture, const Quad& texcoord);
-	void set_mask(GLES2::Texture* mask, const Quad& mask_texcoord);
+	void set_texture(gles2::Texture* texture, const Quad& texcoord);
+	void set_mask(gles2::Texture* mask, const Quad& mask_texcoord);
 	float get_alpha() const;
 	void set_alpha(float alpha);
 	Property<float> alpha();
@@ -235,7 +233,7 @@ public:
 };
 
 class Clip: public Bin {
-	GLES2::FramebufferObject* fbo;
+	gles2::FramebufferObject* fbo;
 	TextureNode image;
 public:
 	Clip(float x, float y, float width, float height);
@@ -273,11 +271,11 @@ class RoundedImage: public Bin {
 	TextureNode center;
 	TextureNode top;
 public:
-	RoundedImage(float x, float y, float width, float height, GLES2::Texture* texture, float radius);
+	RoundedImage(float x, float y, float width, float height, gles2::Texture* texture, float radius);
 	static RoundedImage create_from_file(const char* file_name, float radius, float x = 0.f, float y = 0.f);
 	Node* get_child(int index) override;
 	void layout() override;
-	void set_texture(GLES2::Texture* texture, const Quad& texcoord);
+	void set_texture(gles2::Texture* texture, const Quad& texcoord);
 	float get_alpha() const;
 	void set_alpha(float alpha);
 	Property<float> alpha();
