@@ -33,22 +33,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 using namespace gles2;
 
-// Transformation
-atmosphere::Transformation::Transformation(float x, float y): x{x}, y{y}, scale_x{1.f}, scale_y{1.f}, rotation_x{0.f}, rotation_y{0.f}, rotation_z{0.f} {
-
-}
-mat4 atmosphere::Transformation::get_matrix(float width, float height) const {
-	return translate(width/2.f+x, height/2.f+y) * gles2::scale(scale_x, scale_y) * rotateX(rotation_x) * rotateY(rotation_y) * rotateZ(rotation_z) * translate(-width/2.f, -height/2.f);
-}
-mat4 atmosphere::Transformation::get_inverse_matrix(float width, float height) const {
-	return translate(width/2.f, height/2.f) * rotateZ(-rotation_z) * gles2::scale(1.f/scale_x, 1.f/scale_y) * translate(-width/2.f-x, -height/2.f-y);
-}
-
 // Node
-atmosphere::Node::Node(): transformation{0.f, 0.f}, _width{0.f}, _height{0.f}, mouse_inside{false} {
+atmosphere::Node::Node(): x{0.f}, y{0.f}, width{0.f}, height{0.f}, scale_x{1.f}, scale_y{1.f}, mouse_inside{false} {
 
 }
-atmosphere::Node::Node(float x, float y, float width, float height): transformation{x, y}, _width{width}, _height{height}, mouse_inside{false} {
+atmosphere::Node::Node(float x, float y, float width, float height): x{x}, y{y}, width{width}, height{height}, scale_x{1.f}, scale_y{1.f}, mouse_inside{false} {
 
 }
 atmosphere::Node::~Node() {
@@ -65,7 +54,7 @@ void atmosphere::Node::prepare_draw() {
 void atmosphere::Node::draw(const DrawContext& draw_context) {
 	for (int i = 0; Node* node = get_child(i); ++i) {
 		DrawContext child_draw_context;
-		child_draw_context.projection = draw_context.projection * node->transformation.get_matrix(node->_width, node->_height);
+		child_draw_context.projection = draw_context.projection * node->get_transformation().get_matrix();
 		node->draw(child_draw_context);
 	}
 }
@@ -83,7 +72,7 @@ void atmosphere::Node::mouse_leave() {
 }
 void atmosphere::Node::mouse_motion(const vec4& position) {
 	for (int i = 0; Node* child = get_child(i); ++i) {
-		const vec4 child_position = child->transformation.get_inverse_matrix(child->get_width(), child->get_height()) * position;
+		const vec4 child_position = child->get_transformation().get_inverse().get_matrix() * position;
 		if (mouse_inside) {
 			if (child_position.x >= 0.f && child_position.x < child->get_width() && child_position.y >= 0.f && child_position.y < child->get_height()) {
 				if (!child->is_mouse_inside()) child->mouse_enter();
@@ -97,82 +86,62 @@ void atmosphere::Node::mouse_motion(const vec4& position) {
 }
 void atmosphere::Node::mouse_button_press(const vec4& position, int button) {
 	for (int i = 0; Node* child = get_child(i); ++i) {
-		const vec4 child_position = child->transformation.get_inverse_matrix(child->get_width(), child->get_height()) * position;
+		const vec4 child_position = child->get_transformation().get_inverse().get_matrix() * position;
 		child->mouse_button_press(child_position, button);
 	}
 }
 void atmosphere::Node::mouse_button_release(const vec4& position, int button) {
 	for (int i = 0; Node* child = get_child(i); ++i) {
-		const vec4 child_position = child->transformation.get_inverse_matrix(child->get_width(), child->get_height()) * position;
+		const vec4 child_position = child->get_transformation().get_inverse().get_matrix() * position;
 		child->mouse_button_release(child_position, button);
 	}
 }
+atmosphere::Transformation atmosphere::Node::get_transformation() const {
+	return Transformation {-width/2.f*scale_x+width/2.f+x, -height/2.f*scale_y+height/2.f+y, scale_x, scale_y};
+}
 float atmosphere::Node::get_location_x() const {
-	return transformation.x;
+	return x;
 }
 void atmosphere::Node::set_location_x(float x) {
-	transformation.x = x;
+	this->x = x;
 }
 float atmosphere::Node::get_location_y() const {
-	return transformation.y;
+	return y;
 }
 void atmosphere::Node::set_location_y(float y) {
-	transformation.y = y;
+	this->y = y;
 }
 float atmosphere::Node::get_width() const {
-	return _width;
+	return width;
 }
 void atmosphere::Node::set_width(float width) {
-	_width = width;
+	this->width = width;
 	layout();
 }
 float atmosphere::Node::get_height() const {
-	return _height;
+	return height;
 }
 void atmosphere::Node::set_height(float height) {
-	_height = height;
+	this->height = height;
 	layout();
-}
-float atmosphere::Node::get_rotation_z() const {
-	return transformation.rotation_z;
-}
-void atmosphere::Node::set_rotation_z(float rotation_z) {
-	transformation.rotation_z = rotation_z;
 }
 void atmosphere::Node::set_location(float x, float y) {
 	set_location_x(x);
 	set_location_y(y);
 }
 void atmosphere::Node::set_size(float width, float height) {
-	_width = width;
-	_height = height;
+	this->width = width;
+	this->height = height;
 	layout();
 }
 bool atmosphere::Node::is_mouse_inside() const {
 	return mouse_inside;
-}
-atmosphere::Property<atmosphere::Point> atmosphere::Node::position() {
-	return Property<Point> {this, [](Node* node) {
-		return Point{node->transformation.x, node->transformation.y};
-	}, [](Node* node, Point value) {
-		node->transformation.x = value.x;
-		node->transformation.y = value.y;
-	}};
 }
 atmosphere::Property<float> atmosphere::Node::position_x() {
 	return create_property<float, Node, &Node::get_location_x, &Node::set_location_x>(this);
 }
 atmosphere::Property<float> atmosphere::Node::position_y() {
 	return create_property<float, Node, &Node::get_location_y, &Node::set_location_y>(this);
-}
-atmosphere::Property<float> atmosphere::Node::width() {
-	return create_property<float, Node, &Node::get_width, &Node::set_width>(this);
-}
-atmosphere::Property<float> atmosphere::Node::height() {
-	return create_property<float, Node, &Node::get_height, &Node::set_height>(this);
-}
-atmosphere::Property<float> atmosphere::Node::rotation_z() {
-	return create_property<float, Node, &Node::get_rotation_z, &Node::set_rotation_z>(this);
 }
 
 // Bin
@@ -455,7 +424,7 @@ void atmosphere::Clip::prepare_draw() {
 		child->prepare_draw();
 		fbo->use();
 		DrawContext draw_context;
-		draw_context.projection = gles2::project(width().get(), height().get(), width().get()*2);
+		draw_context.projection = gles2::project(get_width(), get_height(), get_width() * 2.f);
 		child->draw(draw_context);
 	}
 }
@@ -469,6 +438,12 @@ void atmosphere::Clip::layout() {
 	image.set_texture(fbo->texture, Quad::create(0.f, 0.f, 1.f, 1.f));
 	image.set_width(get_width());
 	image.set_height(get_height());
+}
+float atmosphere::Clip::get_alpha() const {
+	return image.get_alpha();
+}
+void atmosphere::Clip::set_alpha(float alpha) {
+	image.set_alpha(alpha);
 }
 atmosphere::Property<float> atmosphere::Clip::alpha() {
 	return image.alpha();
@@ -844,8 +819,6 @@ atmosphere::Node* atmosphere::BlurredRectangle::get_child(int index) {
 	}
 }
 void atmosphere::BlurredRectangle::layout() {
-	const float x = -blur_radius;
-	const float y = -blur_radius;
 	const float size = radius + 2.f * blur_radius;
 	bottom_left.set_location(-blur_radius, -blur_radius);
 	bottom_left.set_size(size, size);

@@ -34,11 +34,11 @@ public:
 	constexpr Point(float x, float y): x{x}, y{y} {
 
 	}
-	constexpr Point operator+(const Point& p) const {
-		return Point{x + p.x, y + p.y};
+	constexpr Point operator +(const Point& p) const {
+		return Point {x + p.x, y + p.y};
 	}
-	constexpr Point operator*(float f) const {
-		return Point{x * f, y * f};
+	constexpr Point operator *(float f) const {
+		return Point {x * f, y * f};
 	}
 };
 
@@ -52,27 +52,43 @@ public:
 
 	}
 	static constexpr Color create(float r, float g, float b, float a = 1.f) {
-		return Color{r*a, g*a, b*a, a};
+		return Color {r*a, g*a, b*a, a};
 	}
 	constexpr gles2::vec4 unpremultiply() const {
-		return a == 0.f ? gles2::vec4{0.f, 0.f, 0.f, 0.f} : gles2::vec4{r/a, g/a, b/a, a};
+		return a == 0.f ? gles2::vec4 {0.f, 0.f, 0.f, 0.f} : gles2::vec4 {r/a, g/a, b/a, a};
 	}
-	constexpr Color operator+(const Color& c) const {
-		return Color{r+c.r, g+c.g, b+c.b, a+c.a};
+	constexpr Color operator +(const Color& c) const {
+		return Color {r+c.r, g+c.g, b+c.b, a+c.a};
 	}
-	constexpr Color operator*(float x) const {
-		return Color{r*x, g*x, b*x, a*x};
+	constexpr Color operator *(float x) const {
+		return Color {r*x, g*x, b*x, a*x};
 	}
 };
 
 class Transformation {
-public:
 	float x, y;
 	float scale_x, scale_y;
-	float rotation_x, rotation_y, rotation_z;
-	Transformation(float x, float y);
-	gles2::mat4 get_matrix(float width, float height) const;
-	gles2::mat4 get_inverse_matrix(float width, float height) const;
+public:
+	constexpr Transformation(float x, float y, float scale_x = 1.f, float scale_y = 1.f): x{x}, y{y}, scale_x{scale_x}, scale_y{scale_y} {
+
+	}
+	constexpr Transformation get_inverse() const {
+		return Transformation {-x/scale_x, -y/scale_y, 1.f/scale_x, 1.f/scale_y};
+	}
+	constexpr gles2::mat4 get_matrix() const {
+		return gles2::mat4 {
+			gles2::vec4 {scale_x, 0.f, 0.f, 0.f},
+			gles2::vec4 {0.f, scale_y, 0.f, 0.f},
+			gles2::vec4 {0.f, 0.f, 1.f, 0.f},
+			gles2::vec4 {x, y, 0.f, 1.f}
+		};
+	}
+	constexpr Point operator *(const Point& p) const {
+		return Point {scale_x * p.x + x, scale_y * p.y + y};
+	}
+	constexpr Transformation operator *(const Transformation& t) const {
+		return Transformation {scale_x * t.x + x, scale_y * t.y + y, scale_x * t.scale_x, scale_y * t.scale_y};
+	}
 };
 
 struct DrawContext {
@@ -80,8 +96,9 @@ struct DrawContext {
 };
 
 class Node {
-	Transformation transformation;
-	float _width, _height;
+	float x, y;
+	float width, height;
+	float scale_x, scale_y;
 	bool mouse_inside;
 public:
 	Node();
@@ -96,6 +113,7 @@ public:
 	virtual void mouse_motion(const gles2::vec4& position);
 	virtual void mouse_button_press(const gles2::vec4& position, int button);
 	virtual void mouse_button_release(const gles2::vec4& position, int button);
+	Transformation get_transformation() const;
 	float get_location_x() const;
 	void set_location_x(float x);
 	float get_location_y() const;
@@ -104,17 +122,11 @@ public:
 	void set_width(float width);
 	float get_height() const;
 	void set_height(float height);
-	float get_rotation_z() const;
-	void set_rotation_z(float rotation_z);
 	void set_location(float x, float y);
 	void set_size(float width, float height);
 	bool is_mouse_inside() const;
-	Property<Point> position();
 	Property<float> position_x();
 	Property<float> position_y();
-	Property<float> width();
-	Property<float> height();
-	Property<float> rotation_z();
 };
 
 class Bin: public Node {
@@ -240,6 +252,8 @@ public:
 	void prepare_draw() override;
 	void draw(const DrawContext& draw_context) override;
 	void layout() override;
+	float get_alpha() const;
+	void set_alpha(float alpha);
 	Property<float> alpha();
 };
 
@@ -335,6 +349,8 @@ class Text: public Node {
 public:
 	Text(Font* font, const char* text, const Color& color);
 	Node* get_child(int index) override;
+	const Color& get_color() const;
+	void set_color(const Color& color);
 	Property<Color> color();
 };
 
@@ -356,6 +372,8 @@ public:
 	TextContainer(Font* font, const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment = HorizontalAlignment::CENTER, VerticalAlignment vertical_alignment = VerticalAlignment::CENTER);
 	Node* get_child(int index) override;
 	void layout() override;
+	const Color& get_color() const;
+	void set_color(const Color& color);
 	Property<Color> color();
 };
 

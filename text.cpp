@@ -74,13 +74,19 @@ atmosphere::Text::Text(Font* font, const char* text, const Color& color): Node{0
 atmosphere::Node* atmosphere::Text::get_child(int index) {
 	return index < glyphs.size() ? glyphs[index] : nullptr;
 }
+const atmosphere::Color& atmosphere::Text::get_color() const {
+	return glyphs[0]->get_color();
+}
+void atmosphere::Text::set_color(const Color& color) {
+	for (ColorMaskNode* mask: glyphs) {
+		mask->set_color(color);
+	}
+}
 atmosphere::Property<atmosphere::Color> atmosphere::Text::color() {
 	return Property<Color> {this, [](Text* text) {
-		return text->glyphs[0]->color().get();
+		return text->get_color();
 	}, [](Text* text, Color color) {
-		for (ColorMaskNode* mask: text->glyphs) {
-			mask->color().set(color);
-		}
+		text->set_color(color);
 	}};
 }
 
@@ -100,6 +106,12 @@ void atmosphere::TextContainer::layout() {
 		text.set_location_y(roundf(get_height() - text.get_height()));
 	else if (vertical_alignment == VerticalAlignment::CENTER)
 		text.set_location_y(roundf((get_height() - text.get_height()) / 2.f));
+}
+const atmosphere::Color& atmosphere::TextContainer::get_color() const {
+	return text.get_color();
+}
+void atmosphere::TextContainer::set_color(const Color& color) {
+	text.set_color(color);
 }
 atmosphere::Property<atmosphere::Color> atmosphere::TextContainer::color() {
 	return text.color();
