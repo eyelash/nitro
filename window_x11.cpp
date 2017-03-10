@@ -107,13 +107,13 @@ void atmosphere::Window::dispatch_events () {
 		XNextEvent (display, &event);
 		switch (event.type) {
 		case MotionNotify:
-			mouse_motion(gles2::vec4 {(float)event.xmotion.x, get_height() - event.xmotion.y, 0.f, 1.f});
+			mouse_motion(Point {(float)event.xmotion.x, get_height() - event.xmotion.y});
 			break;
 		case ButtonPress:
-			mouse_button_press(gles2::vec4{(float)event.xbutton.x, get_height() - event.xbutton.y, 0.f, 1.f}, event.xbutton.button);
+			mouse_button_press(Point {(float)event.xbutton.x, get_height() - event.xbutton.y}, event.xbutton.button);
 			break;
 		case ButtonRelease:
-			mouse_button_release(gles2::vec4{(float)event.xbutton.x, get_height() - event.xbutton.y, 0.f, 1.f}, event.xbutton.button);
+			mouse_button_release(Point {(float)event.xbutton.x, get_height() - event.xbutton.y}, event.xbutton.button);
 			break;
 		case EnterNotify:
 			mouse_enter();

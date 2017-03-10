@@ -110,9 +110,9 @@ public:
 	virtual void layout();
 	virtual void mouse_enter();
 	virtual void mouse_leave();
-	virtual void mouse_motion(const gles2::vec4& position);
-	virtual void mouse_button_press(const gles2::vec4& position, int button);
-	virtual void mouse_button_release(const gles2::vec4& position, int button);
+	virtual void mouse_motion(const Point& point);
+	virtual void mouse_button_press(const Point& point, int button);
+	virtual void mouse_button_release(const Point& point, int button);
 	Transformation get_transformation() const;
 	float get_location_x() const;
 	void set_location_x(float x);
@@ -122,8 +122,13 @@ public:
 	void set_width(float width);
 	float get_height() const;
 	void set_height(float height);
+	float get_scale_x() const;
+	void set_scale_x(float scale_x);
+	float get_scale_y() const;
+	void set_scale_y(float scale_x);
 	void set_location(float x, float y);
 	void set_size(float width, float height);
+	void set_scale(float scale_x, float scale_y);
 	bool is_mouse_inside() const;
 	Property<float> position_x();
 	Property<float> position_y();

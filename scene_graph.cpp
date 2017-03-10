@@ -70,30 +70,30 @@ void atmosphere::Node::mouse_leave() {
 		if (child->is_mouse_inside()) child->mouse_leave();
 	}
 }
-void atmosphere::Node::mouse_motion(const vec4& position) {
+void atmosphere::Node::mouse_motion(const Point& point) {
 	for (int i = 0; Node* child = get_child(i); ++i) {
-		const vec4 child_position = child->get_transformation().get_inverse().get_matrix() * position;
+		const Point child_point = child->get_transformation().get_inverse() * point;
 		if (mouse_inside) {
-			if (child_position.x >= 0.f && child_position.x < child->get_width() && child_position.y >= 0.f && child_position.y < child->get_height()) {
+			if (child_point.x >= 0.f && child_point.x < child->get_width() && child_point.y >= 0.f && child_point.y < child->get_height()) {
 				if (!child->is_mouse_inside()) child->mouse_enter();
 			}
 			else {
 				if (child->is_mouse_inside()) child->mouse_leave();
 			}
 		}
-		child->mouse_motion(child_position);
+		child->mouse_motion(child_point);
 	}
 }
-void atmosphere::Node::mouse_button_press(const vec4& position, int button) {
+void atmosphere::Node::mouse_button_press(const Point& point, int button) {
 	for (int i = 0; Node* child = get_child(i); ++i) {
-		const vec4 child_position = child->get_transformation().get_inverse().get_matrix() * position;
-		child->mouse_button_press(child_position, button);
+		const Point child_point = child->get_transformation().get_inverse() * point;
+		child->mouse_button_press(child_point, button);
 	}
 }
-void atmosphere::Node::mouse_button_release(const vec4& position, int button) {
+void atmosphere::Node::mouse_button_release(const Point& point, int button) {
 	for (int i = 0; Node* child = get_child(i); ++i) {
-		const vec4 child_position = child->get_transformation().get_inverse().get_matrix() * position;
-		child->mouse_button_release(child_position, button);
+		const Point child_point = child->get_transformation().get_inverse() * point;
+		child->mouse_button_release(child_point, button);
 	}
 }
 atmosphere::Transformation atmosphere::Node::get_transformation() const {
@@ -125,6 +125,18 @@ void atmosphere::Node::set_height(float height) {
 	this->height = height;
 	layout();
 }
+float atmosphere::Node::get_scale_x() const {
+	return scale_x;
+}
+void atmosphere::Node::set_scale_x(float scale_x) {
+	this->scale_x = scale_x;
+}
+float atmosphere::Node::get_scale_y() const {
+	return scale_y;
+}
+void atmosphere::Node::set_scale_y(float scale_x) {
+	this->scale_y = scale_y;
+}
 void atmosphere::Node::set_location(float x, float y) {
 	set_location_x(x);
 	set_location_y(y);
@@ -133,6 +145,10 @@ void atmosphere::Node::set_size(float width, float height) {
 	this->width = width;
 	this->height = height;
 	layout();
+}
+void atmosphere::Node::set_scale(float scale_x, float scale_y) {
+	this->scale_x = scale_x;
+	this->scale_y = scale_y;
 }
 bool atmosphere::Node::is_mouse_inside() const {
 	return mouse_inside;
