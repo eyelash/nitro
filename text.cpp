@@ -71,7 +71,7 @@ atmosphere::Text::Text(Font* font, const char* text, const Color& color): Node{0
 	}
 	set_size(x, font->font_height);
 }
-atmosphere::Node* atmosphere::Text::get_child(int index) {
+atmosphere::Node* atmosphere::Text::get_child(size_t index) {
 	return index < glyphs.size() ? glyphs[index] : nullptr;
 }
 const atmosphere::Color& atmosphere::Text::get_color() const {
@@ -94,7 +94,7 @@ atmosphere::Property<atmosphere::Color> atmosphere::Text::color() {
 atmosphere::TextContainer::TextContainer(Font* font, const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): Node{0, 0, width, height}, text{font, text, color}, horizontal_alignment{horizontal_alignment}, vertical_alignment{vertical_alignment} {
 	layout();
 }
-atmosphere::Node* atmosphere::TextContainer::get_child(int index) {
+atmosphere::Node* atmosphere::TextContainer::get_child(size_t index) {
 	return index == 0 ? &text : nullptr;
 }
 void atmosphere::TextContainer::layout() {

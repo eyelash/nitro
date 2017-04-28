@@ -16,7 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "atmosphere.hpp"
-#include "utilities.hpp"
+#include <vector>
 #include <stb_image.h>
 #include <nanosvg.h>
 #include <nanosvgrast.h>
@@ -43,7 +43,7 @@ atmosphere::Node::Node(float x, float y, float width, float height): x{x}, y{y},
 atmosphere::Node::~Node() {
 
 }
-atmosphere::Node* atmosphere::Node::get_child(int index) {
+atmosphere::Node* atmosphere::Node::get_child(size_t index) {
 	return nullptr;
 }
 void atmosphere::Node::prepare_draw() {
@@ -164,7 +164,7 @@ atmosphere::Property<float> atmosphere::Node::position_y() {
 atmosphere::Bin::Bin(float x, float y, float width, float height, float padding): Node{x, y, width, height}, child{nullptr}, padding{padding} {
 
 }
-atmosphere::Node* atmosphere::Bin::get_child(int index) {
+atmosphere::Node* atmosphere::Bin::get_child(size_t index) {
 	return index == 0 ? child : nullptr;
 }
 void atmosphere::Bin::layout() {
@@ -186,7 +186,7 @@ void atmosphere::Bin::set_padding(float padding) {
 atmosphere::SimpleContainer::SimpleContainer(float x, float y, float width, float height): Node{x, y, width, height} {
 
 }
-atmosphere::Node* atmosphere::SimpleContainer::get_child(int index) {
+atmosphere::Node* atmosphere::SimpleContainer::get_child(size_t index) {
 	return index < children.size() ? children[index] : nullptr;
 }
 void atmosphere::SimpleContainer::add_child(Node* node) {
@@ -410,7 +410,7 @@ atmosphere::Property<float> atmosphere::TextureMaskNode::alpha() {
 atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const Color& color): Bin{x, y, width, height}, node{x, y, width, height, color} {
 
 }
-atmosphere::Node* atmosphere::Rectangle::get_child(int index) {
+atmosphere::Node* atmosphere::Rectangle::get_child(size_t index) {
 	return index == 0 ? &node : Bin::get_child(index-1);
 }
 void atmosphere::Rectangle::layout() {
@@ -502,13 +502,13 @@ namespace {
 		return rounded_corner_area(x/radius, y/radius, w, h) / (w * h);
 	}
 	Texture* create_rounded_corner_texture(int radius) {
-		Buffer<unsigned char> data {radius * radius};
+		std::vector<unsigned char> data (radius * radius);
 		for (int y = 0; y < radius; ++y) {
 			for (int x = 0; x < radius; ++x) {
 				data[y*radius+x] = rounded_corner((float)radius, (float)x, (float)y) * 255.f + 0.5f;
 			}
 		}
-		return new Texture{radius, radius, 1, data};
+		return new Texture(radius, radius, 1, data.data());
 	}
 }
 atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius): Bin{x, y, width, height}, radius{radius} {
@@ -526,7 +526,7 @@ atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, fl
 
 	layout();
 }
-atmosphere::Node* atmosphere::RoundedRectangle::get_child(int index) {
+atmosphere::Node* atmosphere::RoundedRectangle::get_child(size_t index) {
 	switch (index) {
 		case 0: return &bottom_left;
 		case 1: return &bottom_right;
@@ -598,7 +598,7 @@ atmosphere::RoundedImage atmosphere::RoundedImage::create_from_file(const char* 
 	Texture* texture = create_texture_from_file(file_name, width, height);
 	return RoundedImage{x, y, (float)width, (float)height, texture, radius};
 }
-atmosphere::Node* atmosphere::RoundedImage::get_child(int index) {
+atmosphere::Node* atmosphere::RoundedImage::get_child(size_t index) {
 	switch (index) {
 		case 0: return &bottom_left;
 		case 1: return &bottom_right;
@@ -659,14 +659,14 @@ atmosphere::Property<float> atmosphere::RoundedImage::alpha() {
 // RoundedBorder
 namespace {
 	Texture* create_rounded_border_texture(int radius, int width) {
-		Buffer<unsigned char> data {radius * radius};
+		std::vector<unsigned char> data (radius * radius);
 		for (int y = 0; y < radius; ++y) {
 			for (int x = 0; x < radius; ++x) {
 				const float value = rounded_corner((float)radius, (float)x, (float)y) - rounded_corner((float)(radius-width), (float)x, (float)y);
 				data[y*radius+x] = value * 255.f + 0.5f;
 			}
 		}
-		return new Texture{radius, radius, 1, data};
+		return new Texture(radius, radius, 1, data.data());
 	}
 }
 atmosphere::RoundedBorder::RoundedBorder(float x, float y, float width, float height, float border_width, const Color& color, float radius): Bin{x, y, width, height, border_width}, border_width{border_width}, radius{radius} {
@@ -684,7 +684,7 @@ atmosphere::RoundedBorder::RoundedBorder(float x, float y, float width, float he
 
 	layout();
 }
-atmosphere::Node* atmosphere::RoundedBorder::get_child(int index) {
+atmosphere::Node* atmosphere::RoundedBorder::get_child(size_t index) {
 	switch (index) {
 		case 0: return &bottom_left;
 		case 1: return &bottom_right;
@@ -739,23 +739,23 @@ atmosphere::Property<atmosphere::Color> atmosphere::RoundedBorder::color() {
 
 // BlurredRectangle
 namespace {
-	Buffer<float> create_gaussian_kernel(int radius) {
-		Buffer<float> kernel {radius * 2 + 1};
+	std::vector<float> create_gaussian_kernel(int radius) {
+		std::vector<float> kernel (radius * 2 + 1);
 		const float sigma = radius / 3.f;
 		const float factor = 1.f / sqrtf(2.f * M_PI * sigma*sigma);
-		for (int i = 0; i < kernel.get_length(); ++i) {
+		for (unsigned int i = 0; i < kernel.size(); ++i) {
 			const float x = i - radius;
 			kernel[i] = factor * expf(-x*x/(2.f*sigma*sigma));
 		}
 		return kernel;
 	}
-	void blur(const Buffer<float>& kernel, const Buffer<unsigned char>& buffer, float w, float h) {
-		const int center = kernel.get_length() / 2;
-		Buffer<unsigned char> tmp {buffer.get_length()};
+	void blur(const std::vector<float>& kernel, std::vector<unsigned char>& buffer, float w, float h) {
+		const int center = kernel.size() / 2;
+		std::vector<unsigned char> tmp (buffer.size());
 		for (int y = 0; y < h; ++y) {
 			for (int x = 0; x < w; ++x) {
 				float sum = 0.f;
-				for (int k = 0; k < kernel.get_length(); ++k) {
+				for (unsigned int k = 0; k < kernel.size(); ++k) {
 					int kx = x + k - center;
 					if (kx < 0) kx = 0;
 					else if (kx >= w) kx = w - 1;
@@ -767,7 +767,7 @@ namespace {
 		for (int y = 0; y < h; ++y) {
 			for (int x = 0; x < w; ++x) {
 				float sum = 0.f;
-				for (int k = 0; k < kernel.get_length(); ++k) {
+				for (unsigned int k = 0; k < kernel.size(); ++k) {
 					int ky = y + k - center;
 					if (ky < 0) ky = 0;
 					else if (ky >= h) ky = h - 1;
@@ -779,7 +779,7 @@ namespace {
 	}
 	Texture* create_blurred_corner_texture(int radius, int blur_radius) {
 		int size = radius + blur_radius * 2;
-		Buffer<unsigned char> buffer {size * size};
+		std::vector<unsigned char> buffer (size * size);
 		for (int y = 0; y < size; ++y) {
 			for (int x = 0; x < size; ++x) {
 				const int i = y * size + x;
@@ -794,7 +794,7 @@ namespace {
 			}
 		}
 		blur(create_gaussian_kernel(blur_radius), buffer, size, size);
-		return new Texture{size, size, 1, buffer};
+		return new Texture(size, size, 1, buffer.data());
 	}
 }
 atmosphere::BlurredRectangle::BlurredRectangle(const Color& color, float radius, float blur_radius): Bin{0, 0, 0, 0}, radius{radius}, blur_radius{blur_radius} {
@@ -820,7 +820,7 @@ atmosphere::BlurredRectangle::BlurredRectangle(const Color& color, float radius,
 
 	set_color(color);
 }
-atmosphere::Node* atmosphere::BlurredRectangle::get_child(int index) {
+atmosphere::Node* atmosphere::BlurredRectangle::get_child(size_t index) {
 	switch (index) {
 		case 0: return &bottom_left;
 		case 1: return &bottom_right;

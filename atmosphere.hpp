@@ -104,7 +104,7 @@ public:
 	Node();
 	Node(float x, float y, float width, float height);
 	virtual ~Node();
-	virtual Node* get_child(int index);
+	virtual Node* get_child(size_t index);
 	virtual void prepare_draw();
 	virtual void draw(const DrawContext& draw_context);
 	virtual void layout();
@@ -139,7 +139,7 @@ class Bin: public Node {
 	float padding;
 public:
 	Bin(float x, float y, float width, float height, float padding = 0.f);
-	Node* get_child(int index) override;
+	Node* get_child(size_t index) override;
 	void layout() override;
 	void set_child(Node* node);
 	void set_padding(float padding);
@@ -149,7 +149,7 @@ class SimpleContainer: public Node {
 	std::vector<Node*> children;
 public:
 	SimpleContainer(float x, float y, float width, float height);
-	Node* get_child(int index) override;
+	Node* get_child(size_t index) override;
 	void add_child(Node* node);
 };
 
@@ -242,7 +242,7 @@ class Rectangle: public Bin {
 	ColorNode node;
 public:
 	Rectangle(float x, float y, float width, float height, const Color& color);
-	Node* get_child(int index) override;
+	Node* get_child(size_t index) override;
 	void layout() override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
@@ -273,7 +273,7 @@ class RoundedRectangle: public Bin {
 	ColorNode top;
 public:
 	RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius);
-	Node* get_child(int index) override;
+	Node* get_child(size_t index) override;
 	void layout() override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
@@ -292,7 +292,7 @@ class RoundedImage: public Bin {
 public:
 	RoundedImage(float x, float y, float width, float height, gles2::Texture* texture, float radius);
 	static RoundedImage create_from_file(const char* file_name, float radius, float x = 0.f, float y = 0.f);
-	Node* get_child(int index) override;
+	Node* get_child(size_t index) override;
 	void layout() override;
 	void set_texture(gles2::Texture* texture, const Quad& texcoord);
 	float get_alpha() const;
@@ -313,7 +313,7 @@ class RoundedBorder: public Bin {
 	ColorNode top;
 public:
 	RoundedBorder(float x, float y, float width, float height, float border_width, const Color& color, float radius);
-	Node* get_child(int index) override;
+	Node* get_child(size_t index) override;
 	void layout() override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
@@ -334,7 +334,7 @@ class BlurredRectangle: public Bin {
 	ColorNode center;
 public:
 	BlurredRectangle(const Color& color, float radius, float blur_radius);
-	Node* get_child(int index) override;
+	Node* get_child(size_t index) override;
 	void layout() override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
@@ -353,7 +353,7 @@ class Text: public Node {
 	std::vector<ColorMaskNode*> glyphs;
 public:
 	Text(Font* font, const char* text, const Color& color);
-	Node* get_child(int index) override;
+	Node* get_child(size_t index) override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
 	Property<Color> color();
@@ -375,7 +375,7 @@ class TextContainer: public Node {
 	VerticalAlignment vertical_alignment;
 public:
 	TextContainer(Font* font, const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment = HorizontalAlignment::CENTER, VerticalAlignment vertical_alignment = VerticalAlignment::CENTER);
-	Node* get_child(int index) override;
+	Node* get_child(size_t index) override;
 	void layout() override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
