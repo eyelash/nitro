@@ -28,40 +28,32 @@ namespace atmosphere {
 class Point {
 public:
 	float x, y;
-	Point() {
-
-	}
-	constexpr Point(float x, float y): x{x}, y{y} {
-
-	}
+	Point() {}
+	constexpr Point(float x, float y): x(x), y(y) {}
 	constexpr Point operator +(const Point& p) const {
-		return Point {x + p.x, y + p.y};
+		return Point(x + p.x, y + p.y);
 	}
 	constexpr Point operator *(float f) const {
-		return Point {x * f, y * f};
+		return Point(x * f, y * f);
 	}
 };
 
 class Color {
 	float r, g, b, a;
-	constexpr Color(float r, float g, float b, float a): r{r}, g{g}, b{b}, a{a} {
-
-	}
+	constexpr Color(float r, float g, float b, float a): r(r), g(g), b(b), a(a) {}
 public:
-	Color() {
-
-	}
+	Color() {}
 	static constexpr Color create(float r, float g, float b, float a = 1.f) {
-		return Color {r*a, g*a, b*a, a};
+		return Color(r*a, g*a, b*a, a);
 	}
 	constexpr gles2::vec4 unpremultiply() const {
 		return a == 0.f ? gles2::vec4 {0.f, 0.f, 0.f, 0.f} : gles2::vec4 {r/a, g/a, b/a, a};
 	}
 	constexpr Color operator +(const Color& c) const {
-		return Color {r+c.r, g+c.g, b+c.b, a+c.a};
+		return Color(r+c.r, g+c.g, b+c.b, a+c.a);
 	}
 	constexpr Color operator *(float x) const {
-		return Color {r*x, g*x, b*x, a*x};
+		return Color(r*x, g*x, b*x, a*x);
 	}
 };
 
@@ -69,11 +61,9 @@ class Transformation {
 	float x, y;
 	float scale_x, scale_y;
 public:
-	constexpr Transformation(float x, float y, float scale_x = 1.f, float scale_y = 1.f): x{x}, y{y}, scale_x{scale_x}, scale_y{scale_y} {
-
-	}
+	constexpr Transformation(float x, float y, float scale_x = 1.f, float scale_y = 1.f): x(x), y(y), scale_x(scale_x), scale_y(scale_y) {}
 	constexpr Transformation get_inverse() const {
-		return Transformation {-x/scale_x, -y/scale_y, 1.f/scale_x, 1.f/scale_y};
+		return Transformation(-x/scale_x, -y/scale_y, 1.f/scale_x, 1.f/scale_y);
 	}
 	constexpr gles2::mat4 get_matrix() const {
 		return gles2::mat4 {
@@ -84,10 +74,10 @@ public:
 		};
 	}
 	constexpr Point operator *(const Point& p) const {
-		return Point {scale_x * p.x + x, scale_y * p.y + y};
+		return Point(scale_x * p.x + x, scale_y * p.y + y);
 	}
 	constexpr Transformation operator *(const Transformation& t) const {
-		return Transformation {scale_x * t.x + x, scale_y * t.y + y, scale_x * t.scale_x, scale_y * t.scale_y};
+		return Transformation(scale_x * t.x + x, scale_y * t.y + y, scale_x * t.scale_x, scale_y * t.scale_y);
 	}
 };
 
