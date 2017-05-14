@@ -151,8 +151,7 @@ void Texture::unbind(GLenum texture_unit) {
 }
 
 // FramebufferObject
-FramebufferObject::FramebufferObject(int width, int height): width(width), height(height) {
-	texture = new Texture(width, height, 4, nullptr);
+FramebufferObject::FramebufferObject(int width, int height): width(width), height(height), texture(new Texture(width, height, 4, nullptr)) {
 	glGenFramebuffers(1, &identifier);
 	bind();
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture->identifier, 0);
@@ -160,7 +159,6 @@ FramebufferObject::FramebufferObject(int width, int height): width(width), heigh
 }
 FramebufferObject::~FramebufferObject() {
 	glDeleteFramebuffers(1, &identifier);
-	delete texture;
 }
 void FramebufferObject::use() {
 	bind();

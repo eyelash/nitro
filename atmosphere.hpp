@@ -182,15 +182,14 @@ struct Quad {
 };
 
 class TextureNode: public Node {
-	gles2::Texture* texture;
+	std::shared_ptr<gles2::Texture> texture;
 	Quad texcoord;
 	float _alpha;
 public:
 	TextureNode();
-	TextureNode(float x, float y, float width, float height, gles2::Texture* texture, const Quad& texcoord);
 	static TextureNode create_from_file(const char* file_name, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
-	void set_texture(gles2::Texture* texture, const Quad& texcoord);
+	void set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord);
 	float get_alpha() const;
 	void set_alpha(float alpha);
 	Property<float> alpha();
@@ -198,31 +197,30 @@ public:
 
 class ColorMaskNode: public Node {
 	Color _color;
-	gles2::Texture* mask;
+	std::shared_ptr<gles2::Texture> mask;
 	Quad mask_texcoord;
 public:
 	ColorMaskNode();
-	ColorMaskNode(float x, float y, float width, float height, const Color& color, gles2::Texture* texture, const Quad& texcoord);
+	ColorMaskNode(float x, float y, float width, float height, const Color& color, const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord);
 	static ColorMaskNode create_from_file(const char* file_name, const Color& color, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
 	Property<Color> color();
-	void set_mask(gles2::Texture* mask, const Quad& mask_texcoord);
+	void set_mask(const std::shared_ptr<gles2::Texture>& mask, const Quad& mask_texcoord);
 };
 
 class TextureMaskNode: public Node {
-	gles2::Texture* texture;
+	std::shared_ptr<gles2::Texture> texture;
 	Quad texcoord;
-	gles2::Texture* mask;
+	std::shared_ptr<gles2::Texture> mask;
 	Quad mask_texcoord;
 	float _alpha;
 public:
 	TextureMaskNode();
-	TextureMaskNode(float x, float y, float width, float height, gles2::Texture* texture, const Quad& texcoord, gles2::Texture* mask, const Quad& mask_texcoord);
 	void draw(const DrawContext& draw_context) override;
-	void set_texture(gles2::Texture* texture, const Quad& texcoord);
-	void set_mask(gles2::Texture* mask, const Quad& mask_texcoord);
+	void set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord);
+	void set_mask(const std::shared_ptr<gles2::Texture>& mask, const Quad& mask_texcoord);
 	float get_alpha() const;
 	void set_alpha(float alpha);
 	Property<float> alpha();
@@ -240,7 +238,7 @@ public:
 };
 
 class Clip: public Bin {
-	gles2::FramebufferObject* fbo;
+	std::shared_ptr<gles2::FramebufferObject> fbo;
 	TextureNode image;
 public:
 	Clip(float x, float y, float width, float height);
@@ -280,11 +278,11 @@ class RoundedImage: public Bin {
 	TextureNode center;
 	TextureNode top;
 public:
-	RoundedImage(float x, float y, float width, float height, gles2::Texture* texture, float radius);
+	RoundedImage(float x, float y, float width, float height, std::shared_ptr<gles2::Texture> texture, float radius);
 	static RoundedImage create_from_file(const char* file_name, float radius, float x = 0.f, float y = 0.f);
 	Node* get_child(size_t index) override;
 	void layout() override;
-	void set_texture(gles2::Texture* texture, const Quad& texcoord);
+	void set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord);
 	float get_alpha() const;
 	void set_alpha(float alpha);
 	Property<float> alpha();

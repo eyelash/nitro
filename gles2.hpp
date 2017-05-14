@@ -18,9 +18,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #pragma once
 
 #include <GLES2/gl2.h>
+#include <memory>
 #include <cmath>
-#include <cstdlib>
-#include <cstdio>
 
 namespace gles2 {
 
@@ -166,14 +165,17 @@ public:
 };
 
 class FramebufferObject {
+	std::shared_ptr<Texture> texture;
 public:
 	GLuint identifier;
 	int width, height;
-	Texture* texture;
 	FramebufferObject(int width, int height);
 	FramebufferObject(const FramebufferObject&) = delete;
 	~FramebufferObject();
 	FramebufferObject& operator =(const FramebufferObject&) = delete;
+	std::shared_ptr<Texture> get_texture() const {
+		return texture;
+	}
 	void use();
 	void bind();
 	void unbind();

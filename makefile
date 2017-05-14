@@ -1,5 +1,5 @@
 sources = scene_graph.cpp gles2.cpp animation.cpp text.cpp window_x11.cpp 3rdparty/3rdparty.o
-headers = atmosphere.hpp animation.hpp gles2.hpp utilities.hpp
+headers = atmosphere.hpp animation.hpp gles2.hpp
 shaders = $(wildcard shaders/*.glsl)
 CC = gcc
 CXX = g++
