@@ -35,7 +35,7 @@ static void set_time () {
 	atmosphere::Animation::set_time (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }
 
-atmosphere::Window::Window (int width, int height, const char* title): Bin{0, 0, (float)width, (float)height} {
+atmosphere::Window::Window (int width, int height, const char* title) {
 	display = XOpenDisplay (NULL);
 	egl_display = eglGetDisplay (display);
 	eglInitialize (egl_display, NULL, NULL);

@@ -92,7 +92,6 @@ class Node {
 	bool mouse_inside;
 public:
 	Node();
-	Node(float x, float y, float width, float height);
 	virtual ~Node();
 	virtual Node* get_child(size_t index);
 	virtual void prepare_draw();
@@ -128,7 +127,7 @@ class Bin: public Node {
 	Node* child;
 	float padding;
 public:
-	Bin(float x, float y, float width, float height, float padding = 0.f);
+	Bin();
 	Node* get_child(size_t index) override;
 	void layout() override;
 	void set_child(Node* node);
@@ -138,7 +137,7 @@ public:
 class SimpleContainer: public Node {
 	std::vector<Node*> children;
 public:
-	SimpleContainer(float x, float y, float width, float height);
+	SimpleContainer();
 	Node* get_child(size_t index) override;
 	void add_child(Node* node);
 };
@@ -154,7 +153,6 @@ class ColorNode: public Node {
 	Color _color;
 public:
 	ColorNode();
-	ColorNode(float x, float y, float width, float height, const Color& color);
 	void draw(const DrawContext& draw_context) override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
@@ -189,6 +187,7 @@ public:
 	TextureNode();
 	static TextureNode create_from_file(const char* file_name, float x = 0.f, float y = 0.f);
 	void draw(const DrawContext& draw_context) override;
+	std::shared_ptr<gles2::Texture> get_texture() const;
 	void set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord);
 	float get_alpha() const;
 	void set_alpha(float alpha);
@@ -201,8 +200,7 @@ class ColorMaskNode: public Node {
 	Quad mask_texcoord;
 public:
 	ColorMaskNode();
-	ColorMaskNode(float x, float y, float width, float height, const Color& color, const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord);
-	static ColorMaskNode create_from_file(const char* file_name, const Color& color, float x = 0.f, float y = 0.f);
+	static ColorMaskNode create_from_file(const char* file_name, const Color& color);
 	void draw(const DrawContext& draw_context) override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
@@ -229,7 +227,7 @@ public:
 class Rectangle: public Bin {
 	ColorNode node;
 public:
-	Rectangle(float x, float y, float width, float height, const Color& color);
+	Rectangle(const Color& color);
 	Node* get_child(size_t index) override;
 	void layout() override;
 	const Color& get_color() const;
@@ -241,7 +239,7 @@ class Clip: public Bin {
 	std::shared_ptr<gles2::FramebufferObject> fbo;
 	TextureNode image;
 public:
-	Clip(float x, float y, float width, float height);
+	Clip();
 	void prepare_draw() override;
 	void draw(const DrawContext& draw_context) override;
 	void layout() override;
@@ -260,7 +258,7 @@ class RoundedRectangle: public Bin {
 	ColorNode center;
 	ColorNode top;
 public:
-	RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius);
+	RoundedRectangle(const Color& color, float radius);
 	Node* get_child(size_t index) override;
 	void layout() override;
 	const Color& get_color() const;
@@ -278,8 +276,8 @@ class RoundedImage: public Bin {
 	TextureNode center;
 	TextureNode top;
 public:
-	RoundedImage(float x, float y, float width, float height, std::shared_ptr<gles2::Texture> texture, float radius);
-	static RoundedImage create_from_file(const char* file_name, float radius, float x = 0.f, float y = 0.f);
+	RoundedImage(const std::shared_ptr<gles2::Texture>& texture, float radius);
+	static RoundedImage create_from_file(const char* file_name, float radius);
 	Node* get_child(size_t index) override;
 	void layout() override;
 	void set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord);
@@ -300,7 +298,7 @@ class RoundedBorder: public Bin {
 	ColorNode right;
 	ColorNode top;
 public:
-	RoundedBorder(float x, float y, float width, float height, float border_width, const Color& color, float radius);
+	RoundedBorder(float border_width, const Color& color, float radius);
 	Node* get_child(size_t index) override;
 	void layout() override;
 	const Color& get_color() const;
@@ -362,7 +360,7 @@ class TextContainer: public Node {
 	HorizontalAlignment horizontal_alignment;
 	VerticalAlignment vertical_alignment;
 public:
-	TextContainer(Font* font, const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment = HorizontalAlignment::CENTER, VerticalAlignment vertical_alignment = VerticalAlignment::CENTER);
+	TextContainer(Font* font, const char* text, const Color& color, HorizontalAlignment horizontal_alignment = HorizontalAlignment::CENTER, VerticalAlignment vertical_alignment = VerticalAlignment::CENTER);
 	Node* get_child(size_t index) override;
 	void layout() override;
 	const Color& get_color() const;

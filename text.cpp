@@ -57,7 +57,7 @@ FT_GlyphSlot atmosphere::Font::load_char(int c) {
 }
 
 // Text
-atmosphere::Text::Text(Font* font, const char* text, const Color& color): Node{0, 0, 0, 0} {
+atmosphere::Text::Text(Font* font, const char* text, const Color& color) {
 	float x = 0.f;
 	float y = font->descender;
 	while (int c = utf8_get_next(text)) {
@@ -65,7 +65,12 @@ atmosphere::Text::Text(Font* font, const char* text, const Color& color): Node{0
 		const int width = glyph->bitmap.width;
 		const int height = glyph->bitmap.rows;
 		auto texture = std::make_shared<gles2::Texture>(width, height, 1, glyph->bitmap.buffer);
-		glyphs.push_back(new ColorMaskNode{x+glyph->bitmap_left, y+glyph->bitmap_top-height, (float)width, (float)height, color, texture, Quad::create(0.f, 1.f, 1.f, 0.f)});
+		ColorMaskNode* node = new ColorMaskNode();
+		node->set_location(x + glyph->bitmap_left, y + glyph->bitmap_top - height);
+		node->set_size(width, height);
+		node->set_color(color);
+		node->set_mask(texture,  Quad::create(0.f, 1.f, 1.f, 0.f));
+		glyphs.push_back(node);
 		x += glyph->advance.x >> 6;
 		y += glyph->advance.y >> 6;
 	}
@@ -91,7 +96,7 @@ atmosphere::Property<atmosphere::Color> atmosphere::Text::color() {
 }
 
 // TextContainer
-atmosphere::TextContainer::TextContainer(Font* font, const char* text, const Color& color, float width, float height, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): Node{0, 0, width, height}, text{font, text, color}, horizontal_alignment{horizontal_alignment}, vertical_alignment{vertical_alignment} {
+atmosphere::TextContainer::TextContainer(Font* font, const char* text, const Color& color, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): text(font, text, color), horizontal_alignment(horizontal_alignment), vertical_alignment(vertical_alignment) {
 	layout();
 }
 atmosphere::Node* atmosphere::TextContainer::get_child(size_t index) {

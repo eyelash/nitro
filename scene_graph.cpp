@@ -37,9 +37,6 @@ using namespace gles2;
 atmosphere::Node::Node(): x{0.f}, y{0.f}, width{0.f}, height{0.f}, scale_x{1.f}, scale_y{1.f}, mouse_inside{false} {
 
 }
-atmosphere::Node::Node(float x, float y, float width, float height): x{x}, y{y}, width{width}, height{height}, scale_x{1.f}, scale_y{1.f}, mouse_inside{false} {
-
-}
 atmosphere::Node::~Node() {
 
 }
@@ -161,7 +158,7 @@ atmosphere::Property<float> atmosphere::Node::position_y() {
 }
 
 // Bin
-atmosphere::Bin::Bin(float x, float y, float width, float height, float padding): Node{x, y, width, height}, child{nullptr}, padding{padding} {
+atmosphere::Bin::Bin(): child(nullptr), padding(0.f) {
 
 }
 atmosphere::Node* atmosphere::Bin::get_child(size_t index) {
@@ -183,7 +180,7 @@ void atmosphere::Bin::set_padding(float padding) {
 }
 
 // SimpleContainer
-atmosphere::SimpleContainer::SimpleContainer(float x, float y, float width, float height): Node{x, y, width, height} {
+atmosphere::SimpleContainer::SimpleContainer() {
 
 }
 atmosphere::Node* atmosphere::SimpleContainer::get_child(size_t index) {
@@ -212,9 +209,6 @@ static Program* get_texture_mask_program() {
 
 // ColorNode
 atmosphere::ColorNode::ColorNode() {
-
-}
-atmosphere::ColorNode::ColorNode(float x, float y, float width, float height, const Color& color): Node{x, y, width, height}, _color{color} {
 
 }
 void atmosphere::ColorNode::draw(const DrawContext& draw_context) {
@@ -300,6 +294,9 @@ void atmosphere::TextureNode::draw(const DrawContext& draw_context) {
 		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.data)
 	);
 }
+std::shared_ptr<Texture> atmosphere::TextureNode::get_texture() const {
+	return texture;
+}
 void atmosphere::TextureNode::set_texture(const std::shared_ptr<Texture>& texture, const Quad& texcoord) {
 	this->texture = texture;
 	this->texcoord = texcoord;
@@ -318,16 +315,13 @@ atmosphere::Property<float> atmosphere::TextureNode::alpha() {
 atmosphere::ColorMaskNode::ColorMaskNode() {
 
 }
-atmosphere::ColorMaskNode::ColorMaskNode(float x, float y, float width, float height, const Color& color, const std::shared_ptr<Texture>& mask, const Quad& texcoord) {
-	set_location(x, y);
-	set_size(width, height);
-	set_color(color);
-	set_mask(mask, texcoord);
-}
-atmosphere::ColorMaskNode atmosphere::ColorMaskNode::create_from_file(const char* file_name, const Color& color, float x, float y) {
+atmosphere::ColorMaskNode atmosphere::ColorMaskNode::create_from_file(const char* file_name, const Color& color) {
 	int width, height;
-	std::shared_ptr<Texture> texture = create_texture_from_file(file_name, width, height);
-	return ColorMaskNode{x, y, (float)width, (float)height, color, texture, Quad::create(0.f, 1.f, 1.f, 0.f)};
+	std::shared_ptr<Texture> mask = create_texture_from_file(file_name, width, height);
+	ColorMaskNode node;
+	node.set_size(width, height);
+	node.set_mask(mask, Quad::create(0.f, 1.f, 1.f, 0.f));
+	return node;
 }
 void atmosphere::ColorMaskNode::draw(const DrawContext& draw_context) {
 	if (mask == nullptr) return;
@@ -408,8 +402,8 @@ atmosphere::Property<float> atmosphere::TextureMaskNode::alpha() {
 }
 
 // Rectangle
-atmosphere::Rectangle::Rectangle(float x, float y, float width, float height, const Color& color): Bin{x, y, width, height}, node{x, y, width, height, color} {
-
+atmosphere::Rectangle::Rectangle(const Color& color) {
+	set_color(color);
 }
 atmosphere::Node* atmosphere::Rectangle::get_child(size_t index) {
 	return index == 0 ? &node : Bin::get_child(index-1);
@@ -433,7 +427,7 @@ atmosphere::Property<atmosphere::Color> atmosphere::Rectangle::color() {
 }
 
 // Clip
-atmosphere::Clip::Clip(float x, float y, float width, float height): Bin{x, y, width, height}, fbo{new FramebufferObject{(int)width, (int)height}}, image{0.f, 0.f, width, height, fbo->texture, Quad::create(0.f, 0.f, 1.f, 1.f)} {
+atmosphere::Clip::Clip() {
 
 }
 void atmosphere::Clip::prepare_draw() {
@@ -511,7 +505,7 @@ namespace {
 		return std::make_shared<Texture>(radius, radius, 1, data.data());
 	}
 }
-atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, float height, const Color& color, float radius): Bin{x, y, width, height}, radius{radius} {
+atmosphere::RoundedRectangle::RoundedRectangle(const Color& color, float radius): radius(radius) {
 	std::shared_ptr<Texture> texture = create_rounded_corner_texture(radius);
 	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
 	top_right.set_mask(texture, texcoord);
@@ -523,8 +517,6 @@ atmosphere::RoundedRectangle::RoundedRectangle(float x, float y, float width, fl
 	bottom_right.set_mask(texture, texcoord);
 
 	set_color(color);
-
-	layout();
 }
 atmosphere::Node* atmosphere::RoundedRectangle::get_child(size_t index) {
 	switch (index) {
@@ -578,7 +570,7 @@ atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
 }
 
 // RoundedImage
-atmosphere::RoundedImage::RoundedImage(float x, float y, float width, float height, std::shared_ptr<Texture> texture, float radius): Bin{x, y, width, height}, radius{radius} {
+atmosphere::RoundedImage::RoundedImage(const std::shared_ptr<Texture>& texture, float radius): radius(radius) {
 	std::shared_ptr<Texture> mask = create_rounded_corner_texture(radius);
 	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
 	top_right.set_mask(mask, texcoord);
@@ -590,13 +582,13 @@ atmosphere::RoundedImage::RoundedImage(float x, float y, float width, float heig
 	bottom_right.set_mask(mask, texcoord);
 
 	set_texture(texture, Quad::create(0.f, 0.f, 1.f, 1.f));
-
-	layout();
 }
-atmosphere::RoundedImage atmosphere::RoundedImage::create_from_file(const char* file_name, float radius, float x, float y) {
+atmosphere::RoundedImage atmosphere::RoundedImage::create_from_file(const char* file_name, float radius) {
 	int width, height;
 	std::shared_ptr<Texture> texture = create_texture_from_file(file_name, width, height);
-	return RoundedImage{x, y, (float)width, (float)height, texture, radius};
+	RoundedImage rounded_image (texture, radius);
+	rounded_image.set_size(width, height);
+	return rounded_image;
 }
 atmosphere::Node* atmosphere::RoundedImage::get_child(size_t index) {
 	switch (index) {
@@ -626,6 +618,8 @@ void atmosphere::RoundedImage::layout() {
 	center.set_size(get_width(), get_height() - 2.f * radius);
 	top.set_location(radius, get_height() - radius);
 	top.set_size(get_width() - 2.f * radius, radius);
+
+	set_texture(center.get_texture(), Quad::create(0.f, 0.f, 1.f, 1.f));
 
 	Bin::layout();
 }
@@ -669,7 +663,7 @@ namespace {
 		return std::make_shared<Texture>(radius, radius, 1, data.data());
 	}
 }
-atmosphere::RoundedBorder::RoundedBorder(float x, float y, float width, float height, float border_width, const Color& color, float radius): Bin{x, y, width, height, border_width}, border_width{border_width}, radius{radius} {
+atmosphere::RoundedBorder::RoundedBorder(float border_width, const Color& color, float radius): border_width(border_width), radius(radius) {
 	std::shared_ptr<Texture> mask = create_rounded_border_texture(radius, border_width);
 	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
 	top_right.set_mask(mask, texcoord);
@@ -681,8 +675,6 @@ atmosphere::RoundedBorder::RoundedBorder(float x, float y, float width, float he
 	bottom_right.set_mask(mask, texcoord);
 
 	set_color(color);
-
-	layout();
 }
 atmosphere::Node* atmosphere::RoundedBorder::get_child(size_t index) {
 	switch (index) {
@@ -797,7 +789,7 @@ namespace {
 		return std::make_shared<Texture>(size, size, 1, buffer.data());
 	}
 }
-atmosphere::BlurredRectangle::BlurredRectangle(const Color& color, float radius, float blur_radius): Bin{0, 0, 0, 0}, radius{radius}, blur_radius{blur_radius} {
+atmosphere::BlurredRectangle::BlurredRectangle(const Color& color, float radius, float blur_radius): radius(radius), blur_radius(blur_radius) {
 	std::shared_ptr<Texture> mask = create_blurred_corner_texture(radius, blur_radius);
 
 	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
