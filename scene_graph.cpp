@@ -216,7 +216,7 @@ void atmosphere::ColorNode::draw(const DrawContext& draw_context) {
 
 	Program* program = get_color_program();
 
-	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
+	Quad vertices (0.f, 0.f, get_width(), get_height());
 
 	gles2::draw(
 		program,
@@ -224,7 +224,7 @@ void atmosphere::ColorNode::draw(const DrawContext& draw_context) {
 		4,
 		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
 		AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
-		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.data)
+		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data())
 	);
 }
 const atmosphere::Color& atmosphere::ColorNode::get_color() const {
@@ -272,7 +272,7 @@ atmosphere::TextureNode atmosphere::TextureNode::create_from_file(const char* fi
 	std::shared_ptr<Texture> texture = create_texture_from_file(file_name, width, height);
 	TextureNode node;
 	node.set_size(width, height);
-	node.set_texture(texture, Quad::create(0.f, 1.f, 1.f, 0.f));
+	node.set_texture(texture, Quad(0.f, 1.f, 1.f, 0.f));
 	node.set_location(x, y);
 	return node;
 }
@@ -281,7 +281,7 @@ void atmosphere::TextureNode::draw(const DrawContext& draw_context) {
 
 	Program* program = get_texture_program();
 
-	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
+	Quad vertices (0.f, 0.f, get_width(), get_height());
 
 	gles2::draw(
 		program,
@@ -290,8 +290,8 @@ void atmosphere::TextureNode::draw(const DrawContext& draw_context) {
 		TextureState(texture.get(), GL_TEXTURE0, program->get_uniform_location("texture")),
 		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
 		UniformFloat(program->get_uniform_location("alpha"), _alpha),
-		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.data),
-		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.data)
+		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
+		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.get_data())
 	);
 }
 std::shared_ptr<Texture> atmosphere::TextureNode::get_texture() const {
@@ -320,7 +320,7 @@ atmosphere::ColorMaskNode atmosphere::ColorMaskNode::create_from_file(const char
 	std::shared_ptr<Texture> mask = create_texture_from_file(file_name, width, height);
 	ColorMaskNode node;
 	node.set_size(width, height);
-	node.set_mask(mask, Quad::create(0.f, 1.f, 1.f, 0.f));
+	node.set_mask(mask, Quad(0.f, 1.f, 1.f, 0.f));
 	return node;
 }
 void atmosphere::ColorMaskNode::draw(const DrawContext& draw_context) {
@@ -328,7 +328,7 @@ void atmosphere::ColorMaskNode::draw(const DrawContext& draw_context) {
 
 	Program* program = get_color_mask_program();
 
-	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
+	Quad vertices (0.f, 0.f, get_width(), get_height());
 
 	gles2::draw(
 		program,
@@ -337,8 +337,8 @@ void atmosphere::ColorMaskNode::draw(const DrawContext& draw_context) {
 		TextureState(mask.get(), GL_TEXTURE0, program->get_uniform_location("mask")),
 		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
 		AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
-		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.data),
-		AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.data)
+		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
+		AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.get_data())
 	);
 }
 const atmosphere::Color& atmosphere::ColorMaskNode::get_color() const {
@@ -368,7 +368,7 @@ void atmosphere::TextureMaskNode::draw(const DrawContext& draw_context) {
 
 	Program* program = get_texture_mask_program();
 
-	Quad vertices = Quad::create(0.f, 0.f, get_width(), get_height());
+	Quad vertices (0.f, 0.f, get_width(), get_height());
 
 	gles2::draw(
 		program,
@@ -378,9 +378,9 @@ void atmosphere::TextureMaskNode::draw(const DrawContext& draw_context) {
 		TextureState(mask.get(), GL_TEXTURE1, program->get_uniform_location("mask")),
 		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
 		UniformFloat(program->get_uniform_location("alpha"), _alpha),
-		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.data),
-		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.data),
-		AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.data)
+		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
+		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.get_data()),
+		AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.get_data())
 	);
 }
 void atmosphere::TextureMaskNode::set_texture(const std::shared_ptr<Texture>& texture, const Quad& texcoord) {
@@ -445,7 +445,7 @@ void atmosphere::Clip::draw(const DrawContext& draw_context) {
 void atmosphere::Clip::layout() {
 	Bin::layout();
 	fbo = std::make_shared<FramebufferObject>(get_width(), get_height());
-	image.set_texture(fbo->get_texture(), Quad::create(0.f, 0.f, 1.f, 1.f));
+	image.set_texture(fbo->get_texture(), Quad(0.f, 0.f, 1.f, 1.f));
 	image.set_width(get_width());
 	image.set_height(get_height());
 }
@@ -506,15 +506,15 @@ namespace {
 	}
 }
 atmosphere::RoundedRectangle::RoundedRectangle(const Color& color, float radius): radius(radius) {
-	std::shared_ptr<Texture> texture = create_rounded_corner_texture(radius);
-	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
-	top_right.set_mask(texture, texcoord);
+	std::shared_ptr<Texture> mask = create_rounded_corner_texture(radius);
+	Quad texcoord (0.f, 0.f, 1.f, 1.f);
+	top_right.set_mask(mask, texcoord);
 	texcoord = texcoord.rotate();
-	top_left.set_mask(texture, texcoord);
+	top_left.set_mask(mask, texcoord);
 	texcoord = texcoord.rotate();
-	bottom_left.set_mask(texture, texcoord);
+	bottom_left.set_mask(mask, texcoord);
 	texcoord = texcoord.rotate();
-	bottom_right.set_mask(texture, texcoord);
+	bottom_right.set_mask(mask, texcoord);
 
 	set_color(color);
 }
@@ -570,23 +570,23 @@ atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
 }
 
 // RoundedImage
-atmosphere::RoundedImage::RoundedImage(const std::shared_ptr<Texture>& texture, float radius): radius(radius) {
+atmosphere::RoundedImage::RoundedImage(const std::shared_ptr<Texture>& texture, const Quad& texcoord, float radius): texcoord(texcoord), radius(radius) {
 	std::shared_ptr<Texture> mask = create_rounded_corner_texture(radius);
-	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
-	top_right.set_mask(mask, texcoord);
-	texcoord = texcoord.rotate();
-	top_left.set_mask(mask, texcoord);
-	texcoord = texcoord.rotate();
-	bottom_left.set_mask(mask, texcoord);
-	texcoord = texcoord.rotate();
-	bottom_right.set_mask(mask, texcoord);
+	Quad mask_texcoord (0.f, 0.f, 1.f, 1.f);
+	top_right.set_mask(mask, mask_texcoord);
+	mask_texcoord = mask_texcoord.rotate();
+	top_left.set_mask(mask, mask_texcoord);
+	mask_texcoord = mask_texcoord.rotate();
+	bottom_left.set_mask(mask, mask_texcoord);
+	mask_texcoord = mask_texcoord.rotate();
+	bottom_right.set_mask(mask, mask_texcoord);
 
-	set_texture(texture, Quad::create(0.f, 0.f, 1.f, 1.f));
+	set_texture(texture, texcoord);
 }
 atmosphere::RoundedImage atmosphere::RoundedImage::create_from_file(const char* file_name, float radius) {
 	int width, height;
 	std::shared_ptr<Texture> texture = create_texture_from_file(file_name, width, height);
-	RoundedImage rounded_image (texture, radius);
+	RoundedImage rounded_image (texture, Quad(0.f, 1.f, 1.f, 0.f), radius);
 	rounded_image.set_size(width, height);
 	return rounded_image;
 }
@@ -619,20 +619,21 @@ void atmosphere::RoundedImage::layout() {
 	top.set_location(radius, get_height() - radius);
 	top.set_size(get_width() - 2.f * radius, radius);
 
-	set_texture(center.get_texture(), Quad::create(0.f, 0.f, 1.f, 1.f));
+	set_texture(center.get_texture(), texcoord);
 
 	Bin::layout();
 }
 void atmosphere::RoundedImage::set_texture(const std::shared_ptr<Texture>& texture, const Quad& texcoord) {
+	this->texcoord = texcoord;
 	const float width = get_width();
 	const float height = get_height();
-	bottom_left.set_texture(texture, Quad::create(0, 1, radius/width, 1-radius/height));
-	bottom_right.set_texture(texture, Quad::create(1-radius/width, 1, 1, 1-radius/height));
-	top_left.set_texture(texture, Quad::create(0, radius/height, radius/width, 0));
-	top_right.set_texture(texture, Quad::create(1-radius/width, radius/height, 1, 0));
-	bottom.set_texture(texture, Quad::create(radius/width, 1, 1-radius/width, 1-radius/height));
-	center.set_texture(texture, Quad::create(0, 1-radius/height, 1, radius/height));
-	top.set_texture(texture, Quad::create(radius/width, radius/height, 1-radius/width, 0));
+	bottom_left.set_texture(texture, texcoord*Quad(0, 0, radius/width, radius/height));
+	bottom_right.set_texture(texture, texcoord*Quad(1-radius/width, 0, 1, radius/height));
+	top_left.set_texture(texture, texcoord*Quad(0, 1-radius/height, radius/width, 1));
+	top_right.set_texture(texture, texcoord*Quad(1-radius/width, 1-radius/height, 1, 1));
+	bottom.set_texture(texture, texcoord*Quad(radius/width, 0, 1-radius/width, radius/height));
+	center.set_texture(texture, texcoord*Quad(0, radius/height, 1, 1-radius/height));
+	top.set_texture(texture, texcoord*Quad(radius/width, 1-radius/height, 1-radius/width, 1));
 }
 float atmosphere::RoundedImage::get_alpha() const {
 	return center.get_alpha();
@@ -665,7 +666,7 @@ namespace {
 }
 atmosphere::RoundedBorder::RoundedBorder(float border_width, const Color& color, float radius): border_width(border_width), radius(radius) {
 	std::shared_ptr<Texture> mask = create_rounded_border_texture(radius, border_width);
-	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
+	Quad texcoord (0.f, 0.f, 1.f, 1.f);
 	top_right.set_mask(mask, texcoord);
 	texcoord = texcoord.rotate();
 	top_left.set_mask(mask, texcoord);
@@ -792,7 +793,7 @@ namespace {
 atmosphere::BlurredRectangle::BlurredRectangle(const Color& color, float radius, float blur_radius): radius(radius), blur_radius(blur_radius) {
 	std::shared_ptr<Texture> mask = create_blurred_corner_texture(radius, blur_radius);
 
-	Quad texcoord = Quad::create(0.f, 0.f, 1.f, 1.f);
+	Quad texcoord (0.f, 0.f, 1.f, 1.f);
 	top_right.set_mask(mask, texcoord);
 	texcoord = texcoord.rotate();
 	top_left.set_mask(mask, texcoord);
@@ -801,7 +802,7 @@ atmosphere::BlurredRectangle::BlurredRectangle(const Color& color, float radius,
 	texcoord = texcoord.rotate();
 	bottom_right.set_mask(mask, texcoord);
 
-	texcoord = Quad::create(0.f, 0.f, 0.f, 1.f);
+	texcoord = Quad(0.f, 0.f, 0.f, 1.f);
 	top.set_mask(mask, texcoord);
 	texcoord = texcoord.rotate();
 	left.set_mask(mask, texcoord);

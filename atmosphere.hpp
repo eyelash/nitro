@@ -33,6 +33,9 @@ public:
 	constexpr Point operator +(const Point& p) const {
 		return Point(x + p.x, y + p.y);
 	}
+	constexpr Point operator -(const Point& p) const {
+		return Point(x - p.x, y - p.y);
+	}
 	constexpr Point operator *(float f) const {
 		return Point(x * f, y * f);
 	}
@@ -42,7 +45,7 @@ class Color {
 	float r, g, b, a;
 	constexpr Color(float r, float g, float b, float a): r(r), g(g), b(b), a(a) {}
 public:
-	Color() {}
+	constexpr Color(): Color(0.f, 0.f, 0.f, 0.f) {}
 	static constexpr Color create(float r, float g, float b, float a = 1.f) {
 		return Color(r*a, g*a, b*a, a);
 	}
@@ -78,6 +81,39 @@ public:
 	}
 	constexpr Transformation operator *(const Transformation& t) const {
 		return Transformation(scale_x * t.x + x, scale_y * t.y + y, scale_x * t.scale_x, scale_y * t.scale_y);
+	}
+};
+
+class Quad {
+	Point origin;
+	Point x;
+	Point y;
+public:
+	constexpr Quad(const Point& origin, const Point& x, const Point& y): origin(origin), x(x), y(y) {}
+	constexpr Quad(): origin(0.f, 0.f), x(1.f, 0.f), y(0.f, 1.f) {}
+	constexpr Quad(float x0, float y0, float x1, float y1): origin(x0, y0), x(x1, y0), y(x0, y1) {}
+	constexpr Quad rotate() const {
+		return Quad(y, origin, x + y - origin);
+	}
+	constexpr Point operator *(const Point& p) const {
+		return origin + (x - origin) * p.x + (y - origin) * p.y;
+	}
+	constexpr Quad operator *(const Quad& t) const {
+		return Quad(operator *(t.origin), operator *(t.x), operator *(t.y));
+	}
+	struct Data {
+		GLfloat data[8];
+		constexpr operator const GLfloat*() const {
+			return data;
+		}
+	};
+	constexpr Data get_data() const {
+		return Data {
+			origin.x, origin.y,
+			x.x, x.y,
+			y.x, y.y,
+			x.x+y.x-origin.x, x.y+y.y-origin.y
+		};
 	}
 };
 
@@ -157,26 +193,6 @@ public:
 	const Color& get_color() const;
 	void set_color(const Color& color);
 	Property<Color> color();
-};
-
-struct Quad {
-	GLfloat data[8];
-	constexpr Quad rotate() const {
-		return Quad{
-			data[4], data[5],
-			data[0], data[1],
-			data[6], data[7],
-			data[2], data[3]
-		};
-	}
-	static constexpr Quad create(float x0, float y0, float x1, float y1) {
-		return Quad{
-			x0, y0,
-			x1, y0,
-			x0, y1,
-			x1, y1
-		};
-	}
 };
 
 class TextureNode: public Node {
@@ -267,6 +283,7 @@ public:
 };
 
 class RoundedImage: public Bin {
+	Quad texcoord;
 	float radius;
 	TextureMaskNode bottom_left;
 	TextureMaskNode bottom_right;
@@ -276,7 +293,7 @@ class RoundedImage: public Bin {
 	TextureNode center;
 	TextureNode top;
 public:
-	RoundedImage(const std::shared_ptr<gles2::Texture>& texture, float radius);
+	RoundedImage(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord, float radius);
 	static RoundedImage create_from_file(const char* file_name, float radius);
 	Node* get_child(size_t index) override;
 	void layout() override;

@@ -69,7 +69,7 @@ atmosphere::Text::Text(Font* font, const char* text, const Color& color) {
 		node->set_location(x + glyph->bitmap_left, y + glyph->bitmap_top - height);
 		node->set_size(width, height);
 		node->set_color(color);
-		node->set_mask(texture,  Quad::create(0.f, 1.f, 1.f, 0.f));
+		node->set_mask(texture,  Quad(0.f, 1.f, 1.f, 0.f));
 		glyphs.push_back(node);
 		x += glyph->advance.x >> 6;
 		y += glyph->advance.y >> 6;
