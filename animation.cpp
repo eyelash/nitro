@@ -19,37 +19,32 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <cmath>
 #include <algorithm>
 
-static atmosphere::LinearAnimation linear_animation;
-static atmosphere::AcceleratingAnimation accelerating_animation;
-static atmosphere::DeceleratingAnimation decelerating_animation;
-static atmosphere::OscillatingAnimation oscillating_animation;
-static atmosphere::SwayAnimation sway_animation;
-const atmosphere::AnimationType* atmosphere::AnimationType::LINEAR = &linear_animation;
-const atmosphere::AnimationType* atmosphere::AnimationType::ACCELERATING = &accelerating_animation;
-const atmosphere::AnimationType* atmosphere::AnimationType::DECELERATING = &decelerating_animation;
-const atmosphere::AnimationType* atmosphere::AnimationType::OSCILLATING = &oscillating_animation;
-const atmosphere::AnimationType* atmosphere::AnimationType::SWAY = &sway_animation;
-
-float atmosphere::LinearAnimation::get_y(float x) const {
+static float linear_get_y(float x) {
 	return x;
 }
 
-float atmosphere::AcceleratingAnimation::get_y(float x) const {
+static float accelerating_get_y(float x) {
 	return x*x;
 }
 
-float atmosphere::DeceleratingAnimation::get_y(float x) const {
+static float decelerating_get_y(float x) {
 	return -x*x + 2.f*x;
 }
 
-float atmosphere::OscillatingAnimation::get_y(float x) const {
+static float oscillating_get_y(float x) {
 	return -cos(x*M_PI) * .5f + .5f;
 }
 
-float atmosphere::SwayAnimation::get_y(float x) const {
+static float sway_get_y(float x) {
 	// -2x^3 + 3x^2
 	return -2.f*x*x*x + 3.f*x*x;
 }
+
+const atmosphere::AnimationType atmosphere::AnimationType::LINEAR = AnimationType(&linear_get_y);
+const atmosphere::AnimationType atmosphere::AnimationType::ACCELERATING = AnimationType(&accelerating_get_y);
+const atmosphere::AnimationType atmosphere::AnimationType::DECELERATING = AnimationType(&decelerating_get_y);
+const atmosphere::AnimationType atmosphere::AnimationType::OSCILLATING = AnimationType(&oscillating_get_y);
+const atmosphere::AnimationType atmosphere::AnimationType::SWAY = AnimationType(&sway_get_y);
 
 long atmosphere::Animation::time;
 std::vector<atmosphere::Animation*> atmosphere::Animation::animations;

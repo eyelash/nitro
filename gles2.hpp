@@ -165,10 +165,10 @@ public:
 };
 
 class FramebufferObject {
+	int width, height;
 	std::shared_ptr<Texture> texture;
 public:
 	GLuint identifier;
-	int width, height;
 	FramebufferObject(int width, int height);
 	FramebufferObject(const FramebufferObject&) = delete;
 	~FramebufferObject();

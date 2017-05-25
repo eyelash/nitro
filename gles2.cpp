@@ -38,20 +38,6 @@ static void print_error (const char* origin) {
 		fprintf (stderr, "%s unknown error\n", origin);
 }
 
-static char* read_file (const char* file_name, int* length) {
-	FILE* file = fopen (file_name, "r");
-	if (!file) return nullptr;
-	// determine the length
-	fseek (file, 0, SEEK_END);
-	*length = ftell (file);
-	rewind (file);
-	// allocate memory and read the file
-	char* content = (char*) malloc (*length);
-	fread (content, 1, *length, file);
-	fclose (file);
-	return content;
-}
-
 // Shader
 Shader::Shader(const char* source, GLenum type) {
 	identifier = glCreateShader(type);

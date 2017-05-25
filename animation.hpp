@@ -59,37 +59,20 @@ template <class T> constexpr T linear(const T& v1, const T& v2, float x) {
 
 class AnimationType {
 public:
-	virtual float get_y (float x) const = 0;
-	static const AnimationType* LINEAR;
-	static const AnimationType* ACCELERATING;
-	static const AnimationType* DECELERATING;
-	static const AnimationType* OSCILLATING;
-	static const AnimationType* SWAY;
-};
-class LinearAnimation: public AnimationType {
-public:
-	float get_y(float x) const override;
-};
-class AcceleratingAnimation: public AnimationType {
-public:
-	float get_y(float x) const override;
-};
-class DeceleratingAnimation: public AnimationType {
-public:
-	float get_y(float x) const override;
-};
-class OscillatingAnimation: public AnimationType {
-public:
-	float get_y(float x) const override;
-};
-class SwayAnimation: public AnimationType {
-public:
-	float get_y(float x) const override;
+	float (*get_y)(float x);
+	AnimationType() {}
+	constexpr AnimationType(float (*get_y)(float)): get_y(get_y) {}
+	static const AnimationType LINEAR;
+	static const AnimationType ACCELERATING;
+	static const AnimationType DECELERATING;
+	static const AnimationType OSCILLATING;
+	static const AnimationType SWAY;
 };
 
 class Animation {
 	static std::vector<Animation*> animations;
 public:
+	virtual ~Animation() {}
 	static long time;
 	virtual bool apply() = 0;
 	static void add_animation(Animation* animation);
@@ -101,13 +84,13 @@ template <class T> class Animator: public Animation {
 	T start_value, end_value;
 	long start_time, duration;
 	Property<T> property;
-	const AnimationType* type;
+	AnimationType type;
 	bool running;
 public:
 	Animator(const Property<T>& property): property(property), running(false) {
 
 	}
-	void animate(T to, long duration, const AnimationType* type = AnimationType::SWAY) {
+	void animate(T to, long duration, AnimationType type = AnimationType::SWAY) {
 		start_value = property.get();
 		end_value = to;
 		start_time = Animation::time;
@@ -125,7 +108,7 @@ public:
 			running = false;
 			return true;
 		}
-		x = type->get_y(x);
+		x = type.get_y(x);
 		property.set(linear(start_value, end_value, x));
 		return false;
 	}

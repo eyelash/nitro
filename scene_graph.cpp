@@ -737,7 +737,7 @@ namespace {
 		const float sigma = radius / 3.f;
 		const float factor = 1.f / sqrtf(2.f * M_PI * sigma*sigma);
 		for (unsigned int i = 0; i < kernel.size(); ++i) {
-			const float x = i - radius;
+			const float x = (int)i - radius;
 			kernel[i] = factor * expf(-x*x/(2.f*sigma*sigma));
 		}
 		return kernel;

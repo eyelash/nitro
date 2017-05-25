@@ -127,7 +127,7 @@ void atmosphere::Window::dispatch_events () {
 			draw_context.projection = gles2::project (event.xconfigure.width, event.xconfigure.height, event.xconfigure.width*2);
 			break;
 		case ClientMessage:
-			if (event.xclient.data.l[0] == XA_WM_DELETE_WINDOW) {
+			if ((Atom)event.xclient.data.l[0] == XA_WM_DELETE_WINDOW) {
 				running = false;
 			}
 			break;
