@@ -23,6 +23,7 @@ dependencies = [
 	dependency('egl'),
 	dependency('x11'),
 	dependency('freetype2'),
+	dependency('fontconfig'),
 ]
 
 glsl2h = generator(executable('glsl2h', 'glsl2h.c'), output: '@PLAINNAME@.h', arguments: ['@INPUT@', '@OUTPUT@'])

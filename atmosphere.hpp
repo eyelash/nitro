@@ -348,7 +348,7 @@ class Font {
 public:
 	float descender;
 	float font_height;
-	Font(const char* file_name, float size);
+	Font(const char* family, float size);
 	FT_GlyphSlot load_char(int c);
 };
 

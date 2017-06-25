@@ -16,6 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "atmosphere.hpp"
+#include <fontconfig/fontconfig.h>
 
 static int utf8_get_next(const char*& c) {
 	int result = 0;
@@ -44,10 +45,20 @@ static FT_Library initialize_freetype() {
 	FT_Init_FreeType(&library);
 	return library;
 }
-atmosphere::Font::Font(const char* file_name, float size) {
+atmosphere::Font::Font(const char* family, float size) {
 	static FT_Library library = initialize_freetype();
+	FcPattern* pattern = FcPatternCreate();
+	FcPatternAddString(pattern, FC_FAMILY, reinterpret_cast<const FcChar8*>(family));
+	FcConfigSubstitute(nullptr, pattern, FcMatchPattern);
+	FcDefaultSubstitute(pattern);
+	FcResult result;
+	FcPattern* font = FcFontMatch(nullptr, pattern, &result);
+	char* file_name;
+	FcPatternGetString(font, FC_FILE, 0, reinterpret_cast<FcChar8**>(&file_name));
 	FT_New_Face(library, file_name, 0, &face);
 	FT_Set_Pixel_Sizes(face, 0, size);
+	FcPatternDestroy(font);
+	FcPatternDestroy(pattern);
 	descender = -face->size->metrics.descender >> 6;
 	font_height = descender + (face->size->metrics.ascender >> 6);
 }

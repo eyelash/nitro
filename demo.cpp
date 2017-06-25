@@ -17,9 +17,9 @@ int main() {
 	RoundedBorder border {2, Color::create(0, 0, 0, 0.2), 10};
 	rounded_rectangle.set_child(&border);
 
-	//Font font {"/usr/share/fonts/truetype/roboto/hinted/Roboto-Regular.ttf", 16};
-	//TextContainer text {&font, "some text", Color::create(0, 0, 0, 0.5)};
-	//border.set_child(&text);
+	Font font {"Roboto", 16};
+	TextContainer text {&font, "some text", Color::create(0, 0, 0, 0.5)};
+	border.set_child(&text);
 
 	window.run();
 }

@@ -7,7 +7,7 @@ CPPFLAGS = -I. -Ishaders -I3rdparty -I/usr/include/freetype2
 CFLAGS = -O2 -fPIC
 CXXFLAGS = -std=c++11 -O2
 LDFLAGS = -L.
-LDLIBS = -lX11 -lEGL -lGLESv2 -lfreetype
+LDLIBS = -lX11 -lEGL -lGLESv2 -lfreetype -lfontconfig
 
 all: demo
 
