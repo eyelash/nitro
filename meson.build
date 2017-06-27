@@ -22,6 +22,7 @@ dependencies = [
 	dependency('glesv2'),
 	dependency('egl'),
 	dependency('x11'),
+	dependency('harfbuzz'),
 	dependency('freetype2'),
 	dependency('fontconfig'),
 ]

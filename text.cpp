@@ -16,6 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "atmosphere.hpp"
+#include <hb-ft.h>
 #include <fontconfig/fontconfig.h>
 
 static int utf8_get_next(const char*& c) {
@@ -61,18 +62,29 @@ atmosphere::Font::Font(const char* family, float size) {
 	FcPatternDestroy(pattern);
 	descender = -face->size->metrics.descender >> 6;
 	font_height = descender + (face->size->metrics.ascender >> 6);
+	hb_font = hb_ft_font_create(face, nullptr);
 }
-FT_GlyphSlot atmosphere::Font::load_char(int c) {
-	FT_Load_Char(face, c, FT_LOAD_RENDER|FT_LOAD_TARGET_LIGHT);
+FT_GlyphSlot atmosphere::Font::load_glyph(unsigned int glyph) {
+	FT_Load_Glyph(face, glyph, FT_LOAD_RENDER|FT_LOAD_TARGET_LIGHT);
 	return face->glyph;
+}
+hb_font_t* atmosphere::Font::get_hb_font() {
+	return hb_font;
 }
 
 // Text
 atmosphere::Text::Text(Font* font, const char* text, const Color& color) {
+	hb_buffer_t* buffer = hb_buffer_create();
+	hb_buffer_add_utf8(buffer, text, -1, 0, -1);
+	hb_buffer_guess_segment_properties(buffer);
+	hb_shape(font->get_hb_font(), buffer, nullptr, 0);
+	const unsigned int length = hb_buffer_get_length(buffer);
+	hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer, nullptr);
+	hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer, nullptr);
 	float x = 0.f;
 	float y = font->descender;
-	while (int c = utf8_get_next(text)) {
-		FT_GlyphSlot glyph = font->load_char(c);
+	for (unsigned int i = 0; i < length; ++i) {
+		FT_GlyphSlot glyph = font->load_glyph(infos[i].codepoint);
 		const int width = glyph->bitmap.width;
 		const int height = glyph->bitmap.rows;
 		auto texture = std::make_shared<gles2::Texture>(width, height, 1, glyph->bitmap.buffer);
@@ -82,9 +94,10 @@ atmosphere::Text::Text(Font* font, const char* text, const Color& color) {
 		node->set_color(color);
 		node->set_mask(texture,  Quad(0.f, 1.f, 1.f, 0.f));
 		glyphs.push_back(node);
-		x += glyph->advance.x >> 6;
-		y += glyph->advance.y >> 6;
+		x += positions[i].x_advance >> 6;
+		y += positions[i].y_advance >> 6;
 	}
+	hb_buffer_destroy(buffer);
 	set_size(x, font->font_height);
 }
 atmosphere::Node* atmosphere::Text::get_child(size_t index) {

@@ -20,6 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "gles2.hpp"
 #include "animation.hpp"
 #include <vector>
+#include <hb.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
@@ -345,11 +346,13 @@ public:
 
 class Font {
 	FT_Face face;
+	hb_font_t* hb_font;
 public:
 	float descender;
 	float font_height;
 	Font(const char* family, float size);
-	FT_GlyphSlot load_char(int c);
+	FT_GlyphSlot load_glyph(unsigned int glyph);
+	hb_font_t* get_hb_font();
 };
 
 class Text: public Node {
