@@ -16,29 +16,20 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "atmosphere.hpp"
+#include <unicode/utypes.h>
+#include <unicode/ustring.h>
+#include <unicode/ubidi.h>
+#include <unicode/uscript.h>
+#include <unicode/uchriter.h>
+#include <hb-icu.h>
 #include <hb-ft.h>
 #include <fontconfig/fontconfig.h>
 
-static int utf8_get_next(const char*& c) {
-	int result = 0;
-	if ((c[0] & 0x80) == 0x00) {
-		result = c[0];
-		c += 1;
-	}
-	else if ((c[0] & 0xE0) == 0xC0) {
-		result = (c[0] & 0x1F) << 6 | (c[1] & 0x3F);
-		c += 2;
-	}
-	else if ((c[0] & 0xF0) == 0xE0) {
-		result = (c[0] & 0x0F) << 12 | (c[1] & 0x3F) << 6 | (c[2] & 0x3F);
-		c += 3;
-	}
-	else if ((c[0] & 0xF8) == 0xF0) {
-		result = (c[0] & 0x07) << 18 | (c[1] & 0x3F) << 12 | (c[2] & 0x3F) << 6 | (c[3] & 0x3F);
-		c += 4;
-	}
-	return result;
-}
+// private ICU API
+struct UScriptRun;
+U_CAPI UScriptRun* U_EXPORT2 uscript_openRun(const UChar* src, int32_t length, UErrorCode* pErrorCode);
+U_CAPI void U_EXPORT2 uscript_closeRun(UScriptRun* scriptRun);
+U_CAPI UBool U_EXPORT2 uscript_nextRun(UScriptRun* scriptRun, int32_t* pRunStart, int32_t* pRunLimit, UScriptCode *pRunScript);
 
 // Font
 static FT_Library initialize_freetype() {
@@ -73,31 +64,72 @@ hb_font_t* atmosphere::Font::get_hb_font() {
 }
 
 // Text
-atmosphere::Text::Text(Font* font, const char* text, const Color& color) {
-	hb_buffer_t* buffer = hb_buffer_create();
-	hb_buffer_add_utf8(buffer, text, -1, 0, -1);
-	hb_buffer_guess_segment_properties(buffer);
-	hb_shape(font->get_hb_font(), buffer, nullptr, 0);
-	const unsigned int length = hb_buffer_get_length(buffer);
-	hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer, nullptr);
-	hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer, nullptr);
+atmosphere::Text::Text(Font* font, const char* text_utf8, const Color& color) {
+	UErrorCode status = U_ZERO_ERROR;
+	// convert UTF-8 to UTF-16
+	int32_t text_length;
+	u_strFromUTF8(nullptr, 0, &text_length, text_utf8, -1, &status);
+	status = U_ZERO_ERROR;
+	std::vector<UChar> text(text_length);
+	u_strFromUTF8(text.data(), text.size(), nullptr, text_utf8, -1, &status);
+	if (U_FAILURE(status)) {
+		fprintf(stderr, "error: %s\n", u_errorName(status));
+	}
+	// BiDi iterator
+	UBiDi* bidi = ubidi_openSized(text.size(), 0, &status);
+	ubidi_setPara(bidi, text.data(), text.size(), UBIDI_DEFAULT_LTR, nullptr, &status);
+	int32_t bidi_limit;
+	UBiDiLevel bidi_level;
+	ubidi_getLogicalRun(bidi, 0, &bidi_limit, &bidi_level);
+	// script iterator
+	UScriptRun* script_iterator = uscript_openRun(text.data(), text.size(), &status);
+	int32_t script_limit;
+	UScriptCode script;
+	uscript_nextRun(script_iterator, nullptr, &script_limit, &script);
+	// iterate code points
 	float x = 0.f;
 	float y = font->descender;
-	for (unsigned int i = 0; i < length; ++i) {
-		FT_GlyphSlot glyph = font->load_glyph(infos[i].codepoint);
-		const int width = glyph->bitmap.width;
-		const int height = glyph->bitmap.rows;
-		auto texture = std::make_shared<gles2::Texture>(width, height, 1, glyph->bitmap.buffer);
-		ColorMaskNode* node = new ColorMaskNode();
-		node->set_location(x + glyph->bitmap_left, y + glyph->bitmap_top - height);
-		node->set_size(width, height);
-		node->set_color(color);
-		node->set_mask(texture,  Quad(0.f, 1.f, 1.f, 0.f));
-		glyphs.push_back(node);
-		x += positions[i].x_advance >> 6;
-		y += positions[i].y_advance >> 6;
+	icu::UCharCharacterIterator iter(text.data(), text.size());
+	int32_t previous_index = 0;
+	while (iter.hasNext()) {
+		const UChar32 c = iter.next32PostInc();
+		const int32_t index = iter.getIndex();
+		if (index == bidi_limit || index == script_limit) {
+			hb_buffer_t* buffer = hb_buffer_create();
+			hb_buffer_add_utf16(buffer, text.data(), text.size(), previous_index, index-previous_index);
+			hb_buffer_set_direction(buffer, (bidi_level & 1) ? HB_DIRECTION_RTL : HB_DIRECTION_LTR);
+			hb_buffer_set_script(buffer, hb_icu_script_to_script(script));
+			hb_buffer_guess_segment_properties(buffer);
+			hb_shape(font->get_hb_font(), buffer, nullptr, 0);
+			const unsigned int length = hb_buffer_get_length(buffer);
+			hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer, nullptr);
+			hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer, nullptr);
+			for (unsigned int i = 0; i < length; ++i) {
+				FT_GlyphSlot glyph = font->load_glyph(infos[i].codepoint);
+				const int width = glyph->bitmap.width;
+				const int height = glyph->bitmap.rows;
+				auto texture = std::make_shared<gles2::Texture>(width, height, 1, glyph->bitmap.buffer);
+				ColorMaskNode* node = new ColorMaskNode();
+				node->set_location(x + glyph->bitmap_left, y + glyph->bitmap_top - height);
+				node->set_size(width, height);
+				node->set_color(color);
+				node->set_mask(texture,  Quad(0.f, 1.f, 1.f, 0.f));
+				glyphs.push_back(node);
+				x += positions[i].x_advance >> 6;
+				y += positions[i].y_advance >> 6;
+			}
+			hb_buffer_destroy(buffer);
+			previous_index = index;
+			if (index == bidi_limit) {
+				ubidi_getLogicalRun(bidi, index, &bidi_limit, &bidi_level);
+			}
+			if (index == script_limit) {
+				uscript_nextRun(script_iterator, nullptr, &script_limit, &script);
+			}
+		}
 	}
-	hb_buffer_destroy(buffer);
+	ubidi_close(bidi);
+	uscript_closeRun(script_iterator);
 	set_size(x, font->font_height);
 }
 atmosphere::Node* atmosphere::Text::get_child(size_t index) {
