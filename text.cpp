@@ -23,7 +23,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <unicode/uchriter.h>
 #include <hb-icu.h>
 #include <hb-ft.h>
-#include <fontconfig/fontconfig.h>
 
 // private ICU API
 struct UScriptRun;
@@ -37,23 +36,21 @@ static FT_Library initialize_freetype() {
 	FT_Init_FreeType(&library);
 	return library;
 }
-atmosphere::Font::Font(const char* family, float size) {
+atmosphere::Font::Font(const char* file_name, float size) {
 	static FT_Library library = initialize_freetype();
-	FcPattern* pattern = FcPatternCreate();
-	FcPatternAddString(pattern, FC_FAMILY, reinterpret_cast<const FcChar8*>(family));
-	FcConfigSubstitute(nullptr, pattern, FcMatchPattern);
-	FcDefaultSubstitute(pattern);
-	FcResult result;
-	FcPattern* font = FcFontMatch(nullptr, pattern, &result);
-	char* file_name;
-	FcPatternGetString(font, FC_FILE, 0, reinterpret_cast<FcChar8**>(&file_name));
 	FT_New_Face(library, file_name, 0, &face);
 	FT_Set_Pixel_Sizes(face, 0, size);
-	FcPatternDestroy(font);
-	FcPatternDestroy(pattern);
-	descender = -face->size->metrics.descender >> 6;
-	font_height = descender + (face->size->metrics.ascender >> 6);
 	hb_font = hb_ft_font_create(face, nullptr);
+}
+atmosphere::Font::~Font() {
+	hb_font_destroy(hb_font);
+	FT_Done_Face(face);
+}
+float atmosphere::Font::get_descender() const {
+	return -face->size->metrics.descender >> 6;
+}
+float atmosphere::Font::get_height() const {
+	return get_descender() + (face->size->metrics.ascender >> 6);
 }
 FT_GlyphSlot atmosphere::Font::load_glyph(unsigned int glyph) {
 	FT_Load_Glyph(face, glyph, FT_LOAD_RENDER|FT_LOAD_TARGET_LIGHT);
@@ -63,8 +60,58 @@ hb_font_t* atmosphere::Font::get_hb_font() {
 	return hb_font;
 }
 
+// FontSet
+atmosphere::Font* atmosphere::FontSet::load_font(int index) {
+	auto iterator = fonts.find(index);
+	if (iterator != fonts.end()) {
+		return iterator->second.get();
+	}
+	FcPattern* font_pattern = FcFontRenderPrepare(nullptr, pattern, font_set->fonts[index]);
+	char* file;
+	double size;
+	FcPatternGetString(font_pattern, FC_FILE, 0, reinterpret_cast<FcChar8**>(&file));
+	FcPatternGetDouble(font_pattern, FC_PIXEL_SIZE, 0, &size);
+	Font* font = new Font(file, size);
+	FcPatternDestroy(font_pattern);
+	fonts[index] = std::unique_ptr<Font>(font);
+	return font;
+}
+atmosphere::FontSet::FontSet(const char* family, float size) {
+	FcResult result;
+	pattern = FcPatternCreate();
+	FcPatternAddString(pattern, FC_FAMILY, reinterpret_cast<const FcChar8*>(family));
+	FcPatternAddDouble(pattern, FC_PIXEL_SIZE, size);
+	FcConfigSubstitute(nullptr, pattern, FcMatchPattern);
+	FcDefaultSubstitute(pattern);
+	font_set = FcFontSort(nullptr, pattern, true, &char_set, &result);
+}
+atmosphere::FontSet::~FontSet() {
+	FcCharSetDestroy(char_set);
+	FcFontSetDestroy(font_set);
+	FcPatternDestroy(pattern);
+}
+float atmosphere::FontSet::get_descender() {
+	return load_font(0)->get_descender();
+}
+float atmosphere::FontSet::get_height() {
+	return load_font(0)->get_height();
+}
+atmosphere::Font* atmosphere::FontSet::get_font(uint32_t character) {
+	int i = 0;
+	if (FcCharSetHasChar(char_set, character)) {
+		for (i = 0; i < font_set->nfont; ++i) {
+			FcCharSet* font_char_set;
+			FcPatternGetCharSet(font_set->fonts[i], FC_CHARSET, 0, &font_char_set);
+			if (FcCharSetHasChar(font_char_set, character)) {
+				break;
+			}
+		}
+	}
+	return load_font(i);
+}
+
 // Text
-atmosphere::Text::Text(Font* font, const char* text_utf8, const Color& color) {
+atmosphere::Text::Text(FontSet* font_set, const char* text_utf8, const Color& color) {
 	UErrorCode status = U_ZERO_ERROR;
 	// convert UTF-8 to UTF-16
 	int32_t text_length;
@@ -88,24 +135,26 @@ atmosphere::Text::Text(Font* font, const char* text_utf8, const Color& color) {
 	uscript_nextRun(script_iterator, nullptr, &script_limit, &script);
 	// iterate code points
 	float x = 0.f;
-	float y = font->descender;
+	float y = font_set->get_descender();
 	icu::UCharCharacterIterator iter(text.data(), text.size());
 	int32_t previous_index = 0;
+	Font* previous_font = font_set->get_font(iter.first32());
 	while (iter.hasNext()) {
-		const UChar32 c = iter.next32PostInc();
+		const UChar32 c = iter.next32();
 		const int32_t index = iter.getIndex();
-		if (index == bidi_limit || index == script_limit) {
+		Font* font = font_set->get_font(c);
+		if (index == bidi_limit || index == script_limit || font != previous_font) {
 			hb_buffer_t* buffer = hb_buffer_create();
 			hb_buffer_add_utf16(buffer, text.data(), text.size(), previous_index, index-previous_index);
 			hb_buffer_set_direction(buffer, (bidi_level & 1) ? HB_DIRECTION_RTL : HB_DIRECTION_LTR);
 			hb_buffer_set_script(buffer, hb_icu_script_to_script(script));
 			hb_buffer_guess_segment_properties(buffer);
-			hb_shape(font->get_hb_font(), buffer, nullptr, 0);
+			hb_shape(previous_font->get_hb_font(), buffer, nullptr, 0);
 			const unsigned int length = hb_buffer_get_length(buffer);
 			hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer, nullptr);
 			hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer, nullptr);
 			for (unsigned int i = 0; i < length; ++i) {
-				FT_GlyphSlot glyph = font->load_glyph(infos[i].codepoint);
+				FT_GlyphSlot glyph = previous_font->load_glyph(infos[i].codepoint);
 				const int width = glyph->bitmap.width;
 				const int height = glyph->bitmap.rows;
 				auto texture = std::make_shared<gles2::Texture>(width, height, 1, glyph->bitmap.buffer);
@@ -120,6 +169,7 @@ atmosphere::Text::Text(Font* font, const char* text_utf8, const Color& color) {
 			}
 			hb_buffer_destroy(buffer);
 			previous_index = index;
+			previous_font = font;
 			if (index == bidi_limit) {
 				ubidi_getLogicalRun(bidi, index, &bidi_limit, &bidi_level);
 			}
@@ -130,7 +180,7 @@ atmosphere::Text::Text(Font* font, const char* text_utf8, const Color& color) {
 	}
 	ubidi_close(bidi);
 	uscript_closeRun(script_iterator);
-	set_size(x, font->font_height);
+	set_size(x, font_set->get_height());
 }
 atmosphere::Node* atmosphere::Text::get_child(size_t index) {
 	return index < glyphs.size() ? glyphs[index] : nullptr;
@@ -152,7 +202,7 @@ atmosphere::Property<atmosphere::Color> atmosphere::Text::color() {
 }
 
 // TextContainer
-atmosphere::TextContainer::TextContainer(Font* font, const char* text, const Color& color, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): text(font, text, color), horizontal_alignment(horizontal_alignment), vertical_alignment(vertical_alignment) {
+atmosphere::TextContainer::TextContainer(FontSet* font, const char* text, const Color& color, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): text(font, text, color), horizontal_alignment(horizontal_alignment), vertical_alignment(vertical_alignment) {
 	layout();
 }
 atmosphere::Node* atmosphere::TextContainer::get_child(size_t index) {

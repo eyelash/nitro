@@ -20,9 +20,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "gles2.hpp"
 #include "animation.hpp"
 #include <vector>
+#include <map>
 #include <hb.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include <fontconfig/fontconfig.h>
 
 namespace atmosphere {
 
@@ -348,17 +350,36 @@ class Font {
 	FT_Face face;
 	hb_font_t* hb_font;
 public:
-	float descender;
-	float font_height;
-	Font(const char* family, float size);
+	Font(const char* file_name, float size);
+	Font(const Font&) = delete;
+	~Font();
+	Font& operator =(const Font&) = delete;
+	float get_descender() const;
+	float get_height() const;
 	FT_GlyphSlot load_glyph(unsigned int glyph);
 	hb_font_t* get_hb_font();
+};
+
+class FontSet {
+	FcPattern* pattern;
+	FcFontSet* font_set;
+	FcCharSet* char_set;
+	std::map<int, std::unique_ptr<Font>> fonts;
+	Font* load_font(int index);
+public:
+	FontSet(const char* family, float size);
+	FontSet(const FontSet&) = delete;
+	~FontSet();
+	FontSet& operator =(const FontSet&) = delete;
+	float get_descender();
+	float get_height();
+	Font* get_font(uint32_t character);
 };
 
 class Text: public Node {
 	std::vector<ColorMaskNode*> glyphs;
 public:
-	Text(Font* font, const char* text, const Color& color);
+	Text(FontSet* font, const char* text, const Color& color);
 	Node* get_child(size_t index) override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
@@ -380,7 +401,7 @@ class TextContainer: public Node {
 	HorizontalAlignment horizontal_alignment;
 	VerticalAlignment vertical_alignment;
 public:
-	TextContainer(Font* font, const char* text, const Color& color, HorizontalAlignment horizontal_alignment = HorizontalAlignment::CENTER, VerticalAlignment vertical_alignment = VerticalAlignment::CENTER);
+	TextContainer(FontSet* font, const char* text, const Color& color, HorizontalAlignment horizontal_alignment = HorizontalAlignment::CENTER, VerticalAlignment vertical_alignment = VerticalAlignment::CENTER);
 	Node* get_child(size_t index) override;
 	void layout() override;
 	const Color& get_color() const;
