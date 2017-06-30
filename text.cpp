@@ -145,7 +145,7 @@ atmosphere::Text::Text(FontSet* font_set, const char* text_utf8, const Color& co
 		Font* font = font_set->get_font(c);
 		if (index == bidi_limit || index == script_limit || font != previous_font) {
 			hb_buffer_t* buffer = hb_buffer_create();
-			hb_buffer_add_utf16(buffer, text.data(), text.size(), previous_index, index-previous_index);
+			hb_buffer_add_utf16(buffer, reinterpret_cast<uint16_t*>(text.data()), text.size(), previous_index, index-previous_index);
 			hb_buffer_set_direction(buffer, (bidi_level & 1) ? HB_DIRECTION_RTL : HB_DIRECTION_LTR);
 			hb_buffer_set_script(buffer, hb_icu_script_to_script(script));
 			hb_buffer_guess_segment_properties(buffer);

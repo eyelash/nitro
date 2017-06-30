@@ -3,11 +3,11 @@ headers = atmosphere.hpp animation.hpp gles2.hpp
 shaders = $(wildcard shaders/*.glsl)
 CC = gcc
 CXX = g++
-CPPFLAGS = -I. -Ishaders -I3rdparty -I/usr/include/freetype2
+CPPFLAGS = -I. -Ishaders -I3rdparty -I/usr/include/harfbuzz -I/usr/include/freetype2
 CFLAGS = -O2 -fPIC
 CXXFLAGS = -std=c++11 -O2
 LDFLAGS = -L.
-LDLIBS = -lX11 -lEGL -lGLESv2 -lfreetype -lfontconfig
+LDLIBS = -lX11 -lEGL -lGLESv2 -licuuc -lharfbuzz-icu -lfreetype -lfontconfig
 
 all: demo
 
