@@ -17,7 +17,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include <vector>
 
-namespace atmosphere {
+namespace nitro {
 
 template <class T> struct _Identity {
 	using type = T;

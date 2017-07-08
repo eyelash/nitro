@@ -40,24 +40,24 @@ static float sway_get_y(float x) {
 	return -2.f*x*x*x + 3.f*x*x;
 }
 
-const atmosphere::AnimationType atmosphere::AnimationType::LINEAR = AnimationType(&linear_get_y);
-const atmosphere::AnimationType atmosphere::AnimationType::ACCELERATING = AnimationType(&accelerating_get_y);
-const atmosphere::AnimationType atmosphere::AnimationType::DECELERATING = AnimationType(&decelerating_get_y);
-const atmosphere::AnimationType atmosphere::AnimationType::OSCILLATING = AnimationType(&oscillating_get_y);
-const atmosphere::AnimationType atmosphere::AnimationType::SWAY = AnimationType(&sway_get_y);
+const nitro::AnimationType nitro::AnimationType::LINEAR = AnimationType(&linear_get_y);
+const nitro::AnimationType nitro::AnimationType::ACCELERATING = AnimationType(&accelerating_get_y);
+const nitro::AnimationType nitro::AnimationType::DECELERATING = AnimationType(&decelerating_get_y);
+const nitro::AnimationType nitro::AnimationType::OSCILLATING = AnimationType(&oscillating_get_y);
+const nitro::AnimationType nitro::AnimationType::SWAY = AnimationType(&sway_get_y);
 
-long atmosphere::Animation::time;
-std::vector<atmosphere::Animation*> atmosphere::Animation::animations;
+long nitro::Animation::time;
+std::vector<nitro::Animation*> nitro::Animation::animations;
 
-void atmosphere::Animation::add_animation(atmosphere::Animation* animation) {
+void nitro::Animation::add_animation(nitro::Animation* animation) {
 	animations.push_back(animation);
 }
 
-void atmosphere::Animation::set_time(long time) {
+void nitro::Animation::set_time(long time) {
 	Animation::time = time;
 }
 
-void atmosphere::Animation::apply_all() {
+void nitro::Animation::apply_all() {
 	auto it = std::remove_if(animations.begin(), animations.end(), [](Animation* animation) {
 		return animation->apply();
 	});

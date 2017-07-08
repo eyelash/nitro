@@ -1,5 +1,5 @@
-#include <atmosphere.hpp>
-using namespace atmosphere;
+#include <nitro.hpp>
+using namespace nitro;
 
 int main() {
 	Window window {800, 500, "demo"};

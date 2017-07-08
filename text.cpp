@@ -15,7 +15,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 */
 
-#include "atmosphere.hpp"
+#include "nitro.hpp"
 #include <unicode/utypes.h>
 #include <unicode/ustring.h>
 #include <unicode/ubidi.h>
@@ -36,32 +36,32 @@ static FT_Library initialize_freetype() {
 	FT_Init_FreeType(&library);
 	return library;
 }
-atmosphere::Font::Font(const char* file_name, float size) {
+nitro::Font::Font(const char* file_name, float size) {
 	static FT_Library library = initialize_freetype();
 	FT_New_Face(library, file_name, 0, &face);
 	FT_Set_Pixel_Sizes(face, 0, size);
 	hb_font = hb_ft_font_create(face, nullptr);
 }
-atmosphere::Font::~Font() {
+nitro::Font::~Font() {
 	hb_font_destroy(hb_font);
 	FT_Done_Face(face);
 }
-float atmosphere::Font::get_descender() const {
+float nitro::Font::get_descender() const {
 	return -face->size->metrics.descender >> 6;
 }
-float atmosphere::Font::get_height() const {
+float nitro::Font::get_height() const {
 	return get_descender() + (face->size->metrics.ascender >> 6);
 }
-FT_GlyphSlot atmosphere::Font::load_glyph(unsigned int glyph) {
+FT_GlyphSlot nitro::Font::load_glyph(unsigned int glyph) {
 	FT_Load_Glyph(face, glyph, FT_LOAD_RENDER|FT_LOAD_TARGET_LIGHT);
 	return face->glyph;
 }
-hb_font_t* atmosphere::Font::get_hb_font() {
+hb_font_t* nitro::Font::get_hb_font() {
 	return hb_font;
 }
 
 // FontSet
-atmosphere::Font* atmosphere::FontSet::load_font(int index) {
+nitro::Font* nitro::FontSet::load_font(int index) {
 	auto iterator = fonts.find(index);
 	if (iterator != fonts.end()) {
 		return iterator->second.get();
@@ -76,7 +76,7 @@ atmosphere::Font* atmosphere::FontSet::load_font(int index) {
 	fonts[index] = std::unique_ptr<Font>(font);
 	return font;
 }
-atmosphere::FontSet::FontSet(const char* family, float size) {
+nitro::FontSet::FontSet(const char* family, float size) {
 	FcResult result;
 	pattern = FcPatternCreate();
 	FcPatternAddString(pattern, FC_FAMILY, reinterpret_cast<const FcChar8*>(family));
@@ -85,18 +85,18 @@ atmosphere::FontSet::FontSet(const char* family, float size) {
 	FcDefaultSubstitute(pattern);
 	font_set = FcFontSort(nullptr, pattern, true, &char_set, &result);
 }
-atmosphere::FontSet::~FontSet() {
+nitro::FontSet::~FontSet() {
 	FcCharSetDestroy(char_set);
 	FcFontSetDestroy(font_set);
 	FcPatternDestroy(pattern);
 }
-float atmosphere::FontSet::get_descender() {
+float nitro::FontSet::get_descender() {
 	return load_font(0)->get_descender();
 }
-float atmosphere::FontSet::get_height() {
+float nitro::FontSet::get_height() {
 	return load_font(0)->get_height();
 }
-atmosphere::Font* atmosphere::FontSet::get_font(uint32_t character) {
+nitro::Font* nitro::FontSet::get_font(uint32_t character) {
 	int i = 0;
 	if (FcCharSetHasChar(char_set, character)) {
 		for (i = 0; i < font_set->nfont; ++i) {
@@ -111,7 +111,7 @@ atmosphere::Font* atmosphere::FontSet::get_font(uint32_t character) {
 }
 
 // Text
-atmosphere::Text::Text(FontSet* font_set, const char* text_utf8, const Color& color) {
+nitro::Text::Text(FontSet* font_set, const char* text_utf8, const Color& color) {
 	UErrorCode status = U_ZERO_ERROR;
 	// convert UTF-8 to UTF-16
 	int32_t text_length;
@@ -182,18 +182,18 @@ atmosphere::Text::Text(FontSet* font_set, const char* text_utf8, const Color& co
 	uscript_closeRun(script_iterator);
 	set_size(x, font_set->get_height());
 }
-atmosphere::Node* atmosphere::Text::get_child(size_t index) {
+nitro::Node* nitro::Text::get_child(size_t index) {
 	return index < glyphs.size() ? glyphs[index] : nullptr;
 }
-const atmosphere::Color& atmosphere::Text::get_color() const {
+const nitro::Color& nitro::Text::get_color() const {
 	return glyphs[0]->get_color();
 }
-void atmosphere::Text::set_color(const Color& color) {
+void nitro::Text::set_color(const Color& color) {
 	for (ColorMaskNode* mask: glyphs) {
 		mask->set_color(color);
 	}
 }
-atmosphere::Property<atmosphere::Color> atmosphere::Text::color() {
+nitro::Property<nitro::Color> nitro::Text::color() {
 	return Property<Color> {this, [](Text* text) {
 		return text->get_color();
 	}, [](Text* text, Color color) {
@@ -202,13 +202,13 @@ atmosphere::Property<atmosphere::Color> atmosphere::Text::color() {
 }
 
 // TextContainer
-atmosphere::TextContainer::TextContainer(FontSet* font, const char* text, const Color& color, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): text(font, text, color), horizontal_alignment(horizontal_alignment), vertical_alignment(vertical_alignment) {
+nitro::TextContainer::TextContainer(FontSet* font, const char* text, const Color& color, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): text(font, text, color), horizontal_alignment(horizontal_alignment), vertical_alignment(vertical_alignment) {
 	layout();
 }
-atmosphere::Node* atmosphere::TextContainer::get_child(size_t index) {
+nitro::Node* nitro::TextContainer::get_child(size_t index) {
 	return index == 0 ? &text : nullptr;
 }
-void atmosphere::TextContainer::layout() {
+void nitro::TextContainer::layout() {
 	if (horizontal_alignment == HorizontalAlignment::CENTER)
 		text.set_location_x(roundf((get_width() - text.get_width()) / 2.f));
 	else if (horizontal_alignment == HorizontalAlignment::RIGHT)
@@ -218,12 +218,12 @@ void atmosphere::TextContainer::layout() {
 	else if (vertical_alignment == VerticalAlignment::CENTER)
 		text.set_location_y(roundf((get_height() - text.get_height()) / 2.f));
 }
-const atmosphere::Color& atmosphere::TextContainer::get_color() const {
+const nitro::Color& nitro::TextContainer::get_color() const {
 	return text.get_color();
 }
-void atmosphere::TextContainer::set_color(const Color& color) {
+void nitro::TextContainer::set_color(const Color& color) {
 	text.set_color(color);
 }
-atmosphere::Property<atmosphere::Color> atmosphere::TextContainer::color() {
+nitro::Property<nitro::Color> nitro::TextContainer::color() {
 	return text.color();
 }

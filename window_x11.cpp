@@ -15,7 +15,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 */
 
-#include "atmosphere.hpp"
+#include "nitro.hpp"
 #include <X11/Xlib.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
@@ -32,10 +32,10 @@ static Atom XA_WM_DELETE_WINDOW;
 static void set_time () {
 	struct timespec ts;
 	clock_gettime (CLOCK_MONOTONIC, &ts);
-	atmosphere::Animation::set_time (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
+	nitro::Animation::set_time (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }
 
-atmosphere::Window::Window (int width, int height, const char* title) {
+nitro::Window::Window (int width, int height, const char* title) {
 	display = XOpenDisplay (NULL);
 	egl_display = eglGetDisplay (display);
 	eglInitialize (egl_display, NULL, NULL);
@@ -101,7 +101,7 @@ atmosphere::Window::Window (int width, int height, const char* title) {
 	set_time ();
 }
 
-void atmosphere::Window::dispatch_events () {
+void nitro::Window::dispatch_events () {
 	XEvent event;
 	while (XPending (display)) {
 		XNextEvent (display, &event);
@@ -135,7 +135,7 @@ void atmosphere::Window::dispatch_events () {
 	}
 }
 
-void atmosphere::Window::run () {
+void nitro::Window::run () {
 	XMapWindow (display, window);
 	running = true;
 	while (running) {

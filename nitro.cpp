@@ -15,7 +15,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 */
 
-#include "atmosphere.hpp"
+#include "nitro.hpp"
 #include <vector>
 #include <stb_image.h>
 #include <nanosvg.h>
@@ -34,40 +34,40 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 using namespace gles2;
 
 // Node
-atmosphere::Node::Node(): parent(nullptr), x(0.f), y(0.f), width(0.f), height(0.f), scale_x(1.f), scale_y(1.f), mouse_inside(false) {
+nitro::Node::Node(): parent(nullptr), x(0.f), y(0.f), width(0.f), height(0.f), scale_x(1.f), scale_y(1.f), mouse_inside(false) {
 
 }
-atmosphere::Node::~Node() {
+nitro::Node::~Node() {
 
 }
-atmosphere::Node* atmosphere::Node::get_child(size_t index) {
+nitro::Node* nitro::Node::get_child(size_t index) {
 	return nullptr;
 }
-void atmosphere::Node::prepare_draw() {
+void nitro::Node::prepare_draw() {
 	for (int i = 0; Node* node = get_child(i); ++i) {
 		node->prepare_draw();
 	}
 }
-void atmosphere::Node::draw(const DrawContext& draw_context) {
+void nitro::Node::draw(const DrawContext& draw_context) {
 	for (int i = 0; Node* node = get_child(i); ++i) {
 		DrawContext child_draw_context;
 		child_draw_context.projection = draw_context.projection * node->get_transformation().get_matrix();
 		node->draw(child_draw_context);
 	}
 }
-void atmosphere::Node::layout() {
+void nitro::Node::layout() {
 
 }
-void atmosphere::Node::mouse_enter() {
+void nitro::Node::mouse_enter() {
 	mouse_inside = true;
 }
-void atmosphere::Node::mouse_leave() {
+void nitro::Node::mouse_leave() {
 	mouse_inside = false;
 	for (int i = 0; Node* child = get_child(i); ++i) {
 		if (child->is_mouse_inside()) child->mouse_leave();
 	}
 }
-void atmosphere::Node::mouse_motion(const Point& point) {
+void nitro::Node::mouse_motion(const Point& point) {
 	for (int i = 0; Node* child = get_child(i); ++i) {
 		const Point child_point = child->get_transformation().get_inverse() * point;
 		if (mouse_inside) {
@@ -81,118 +81,118 @@ void atmosphere::Node::mouse_motion(const Point& point) {
 		child->mouse_motion(child_point);
 	}
 }
-void atmosphere::Node::mouse_button_press(const Point& point, int button) {
+void nitro::Node::mouse_button_press(const Point& point, int button) {
 	for (int i = 0; Node* child = get_child(i); ++i) {
 		const Point child_point = child->get_transformation().get_inverse() * point;
 		child->mouse_button_press(child_point, button);
 	}
 }
-void atmosphere::Node::mouse_button_release(const Point& point, int button) {
+void nitro::Node::mouse_button_release(const Point& point, int button) {
 	for (int i = 0; Node* child = get_child(i); ++i) {
 		const Point child_point = child->get_transformation().get_inverse() * point;
 		child->mouse_button_release(child_point, button);
 	}
 }
-void atmosphere::Node::set_parent(Node* parent) {
+void nitro::Node::set_parent(Node* parent) {
 	this->parent = parent;
 }
-atmosphere::Transformation atmosphere::Node::get_transformation() const {
+nitro::Transformation nitro::Node::get_transformation() const {
 	return Transformation {-width/2.f*scale_x+width/2.f+x, -height/2.f*scale_y+height/2.f+y, scale_x, scale_y};
 }
-float atmosphere::Node::get_location_x() const {
+float nitro::Node::get_location_x() const {
 	return x;
 }
-void atmosphere::Node::set_location_x(float x) {
+void nitro::Node::set_location_x(float x) {
 	this->x = x;
 }
-float atmosphere::Node::get_location_y() const {
+float nitro::Node::get_location_y() const {
 	return y;
 }
-void atmosphere::Node::set_location_y(float y) {
+void nitro::Node::set_location_y(float y) {
 	this->y = y;
 }
-float atmosphere::Node::get_width() const {
+float nitro::Node::get_width() const {
 	return width;
 }
-void atmosphere::Node::set_width(float width) {
+void nitro::Node::set_width(float width) {
 	this->width = width;
 	layout();
 }
-float atmosphere::Node::get_height() const {
+float nitro::Node::get_height() const {
 	return height;
 }
-void atmosphere::Node::set_height(float height) {
+void nitro::Node::set_height(float height) {
 	this->height = height;
 	layout();
 }
-float atmosphere::Node::get_scale_x() const {
+float nitro::Node::get_scale_x() const {
 	return scale_x;
 }
-void atmosphere::Node::set_scale_x(float scale_x) {
+void nitro::Node::set_scale_x(float scale_x) {
 	this->scale_x = scale_x;
 }
-float atmosphere::Node::get_scale_y() const {
+float nitro::Node::get_scale_y() const {
 	return scale_y;
 }
-void atmosphere::Node::set_scale_y(float scale_x) {
+void nitro::Node::set_scale_y(float scale_x) {
 	this->scale_y = scale_y;
 }
-void atmosphere::Node::set_location(float x, float y) {
+void nitro::Node::set_location(float x, float y) {
 	set_location_x(x);
 	set_location_y(y);
 }
-void atmosphere::Node::set_size(float width, float height) {
+void nitro::Node::set_size(float width, float height) {
 	this->width = width;
 	this->height = height;
 	layout();
 }
-void atmosphere::Node::set_scale(float scale_x, float scale_y) {
+void nitro::Node::set_scale(float scale_x, float scale_y) {
 	this->scale_x = scale_x;
 	this->scale_y = scale_y;
 }
-bool atmosphere::Node::is_mouse_inside() const {
+bool nitro::Node::is_mouse_inside() const {
 	return mouse_inside;
 }
-atmosphere::Property<float> atmosphere::Node::position_x() {
+nitro::Property<float> nitro::Node::position_x() {
 	return create_property<float, Node, &Node::get_location_x, &Node::set_location_x>(this);
 }
-atmosphere::Property<float> atmosphere::Node::position_y() {
+nitro::Property<float> nitro::Node::position_y() {
 	return create_property<float, Node, &Node::get_location_y, &Node::set_location_y>(this);
 }
 
 // Bin
-atmosphere::Bin::Bin(): child(nullptr), padding(0.f) {
+nitro::Bin::Bin(): child(nullptr), padding(0.f) {
 
 }
-atmosphere::Node* atmosphere::Bin::get_child(size_t index) {
+nitro::Node* nitro::Bin::get_child(size_t index) {
 	return index == 0 ? child : nullptr;
 }
-void atmosphere::Bin::layout() {
+void nitro::Bin::layout() {
 	if (child) {
 		child->set_location(padding, padding);
 		child->set_size(get_width() - 2.f * padding, get_height() - 2.f * padding);
 	}
 }
-void atmosphere::Bin::set_child(Node* node) {
+void nitro::Bin::set_child(Node* node) {
 	child = node;
 	if (child) {
 		child->set_parent(this);
 	}
 	Bin::layout();
 }
-void atmosphere::Bin::set_padding(float padding) {
+void nitro::Bin::set_padding(float padding) {
 	this->padding = padding;
 	Bin::layout();
 }
 
 // SimpleContainer
-atmosphere::SimpleContainer::SimpleContainer() {
+nitro::SimpleContainer::SimpleContainer() {
 
 }
-atmosphere::Node* atmosphere::SimpleContainer::get_child(size_t index) {
+nitro::Node* nitro::SimpleContainer::get_child(size_t index) {
 	return index < children.size() ? children[index] : nullptr;
 }
-void atmosphere::SimpleContainer::add_child(Node* node) {
+void nitro::SimpleContainer::add_child(Node* node) {
 	children.push_back(node);
 }
 
@@ -214,10 +214,10 @@ static Program* get_texture_mask_program() {
 }
 
 // ColorNode
-atmosphere::ColorNode::ColorNode() {
+nitro::ColorNode::ColorNode() {
 
 }
-void atmosphere::ColorNode::draw(const DrawContext& draw_context) {
+void nitro::ColorNode::draw(const DrawContext& draw_context) {
 	if (get_width() <= 0.f || get_height() <= 0.f) return;
 
 	Program* program = get_color_program();
@@ -233,13 +233,13 @@ void atmosphere::ColorNode::draw(const DrawContext& draw_context) {
 		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data())
 	);
 }
-const atmosphere::Color& atmosphere::ColorNode::get_color() const {
+const nitro::Color& nitro::ColorNode::get_color() const {
 	return _color;
 }
-void atmosphere::ColorNode::set_color(const Color& color) {
+void nitro::ColorNode::set_color(const Color& color) {
 	_color = color;
 }
-atmosphere::Property<atmosphere::Color> atmosphere::ColorNode::color() {
+nitro::Property<nitro::Color> nitro::ColorNode::color() {
 	return Property<Color> {this, [](ColorNode* rectangle) {
 		return rectangle->_color;
 	}, [](ColorNode* rectangle, Color color) {
@@ -270,10 +270,10 @@ static std::shared_ptr<Texture> create_texture_from_file(const char* file_name, 
 	}
 	return texture;
 }
-atmosphere::TextureNode::TextureNode(): _alpha(1.f) {
+nitro::TextureNode::TextureNode(): _alpha(1.f) {
 
 }
-atmosphere::TextureNode atmosphere::TextureNode::create_from_file(const char* file_name, float x, float y) {
+nitro::TextureNode nitro::TextureNode::create_from_file(const char* file_name, float x, float y) {
 	int width, height;
 	std::shared_ptr<Texture> texture = create_texture_from_file(file_name, width, height);
 	TextureNode node;
@@ -282,7 +282,7 @@ atmosphere::TextureNode atmosphere::TextureNode::create_from_file(const char* fi
 	node.set_location(x, y);
 	return node;
 }
-void atmosphere::TextureNode::draw(const DrawContext& draw_context) {
+void nitro::TextureNode::draw(const DrawContext& draw_context) {
 	if (texture == nullptr) return;
 
 	Program* program = get_texture_program();
@@ -300,28 +300,28 @@ void atmosphere::TextureNode::draw(const DrawContext& draw_context) {
 		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.get_data())
 	);
 }
-std::shared_ptr<Texture> atmosphere::TextureNode::get_texture() const {
+std::shared_ptr<Texture> nitro::TextureNode::get_texture() const {
 	return texture;
 }
-void atmosphere::TextureNode::set_texture(const std::shared_ptr<Texture>& texture, const Quad& texcoord) {
+void nitro::TextureNode::set_texture(const std::shared_ptr<Texture>& texture, const Quad& texcoord) {
 	this->texture = texture;
 	this->texcoord = texcoord;
 }
-float atmosphere::TextureNode::get_alpha() const {
+float nitro::TextureNode::get_alpha() const {
 	return _alpha;
 }
-void atmosphere::TextureNode::set_alpha(float alpha) {
+void nitro::TextureNode::set_alpha(float alpha) {
 	_alpha = alpha;
 }
-atmosphere::Property<float> atmosphere::TextureNode::alpha() {
+nitro::Property<float> nitro::TextureNode::alpha() {
 	return create_property<float, TextureNode, &TextureNode::get_alpha, &TextureNode::set_alpha>(this);
 }
 
 // ColorMaskNode
-atmosphere::ColorMaskNode::ColorMaskNode() {
+nitro::ColorMaskNode::ColorMaskNode() {
 
 }
-atmosphere::ColorMaskNode atmosphere::ColorMaskNode::create_from_file(const char* file_name, const Color& color) {
+nitro::ColorMaskNode nitro::ColorMaskNode::create_from_file(const char* file_name, const Color& color) {
 	int width, height;
 	std::shared_ptr<Texture> mask = create_texture_from_file(file_name, width, height);
 	ColorMaskNode node;
@@ -329,7 +329,7 @@ atmosphere::ColorMaskNode atmosphere::ColorMaskNode::create_from_file(const char
 	node.set_mask(mask, Quad(0.f, 1.f, 1.f, 0.f));
 	return node;
 }
-void atmosphere::ColorMaskNode::draw(const DrawContext& draw_context) {
+void nitro::ColorMaskNode::draw(const DrawContext& draw_context) {
 	if (mask == nullptr) return;
 
 	Program* program = get_color_mask_program();
@@ -347,29 +347,29 @@ void atmosphere::ColorMaskNode::draw(const DrawContext& draw_context) {
 		AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.get_data())
 	);
 }
-const atmosphere::Color& atmosphere::ColorMaskNode::get_color() const {
+const nitro::Color& nitro::ColorMaskNode::get_color() const {
 	return _color;
 }
-void atmosphere::ColorMaskNode::set_color(const Color& color) {
+void nitro::ColorMaskNode::set_color(const Color& color) {
 	_color = color;
 }
-atmosphere::Property<atmosphere::Color> atmosphere::ColorMaskNode::color() {
+nitro::Property<nitro::Color> nitro::ColorMaskNode::color() {
 	return Property<Color> {this, [](ColorMaskNode* mask) {
 		return mask->get_color();
 	}, [](ColorMaskNode* mask, Color color) {
 		mask->set_color(color);
 	}};
 }
-void atmosphere::ColorMaskNode::set_mask(const std::shared_ptr<Texture>& mask, const Quad& mask_texcoord) {
+void nitro::ColorMaskNode::set_mask(const std::shared_ptr<Texture>& mask, const Quad& mask_texcoord) {
 	this->mask = mask;
 	this->mask_texcoord = mask_texcoord;
 }
 
 // TextureMaskNode
-atmosphere::TextureMaskNode::TextureMaskNode(): _alpha(1.f) {
+nitro::TextureMaskNode::TextureMaskNode(): _alpha(1.f) {
 
 }
-void atmosphere::TextureMaskNode::draw(const DrawContext& draw_context) {
+void nitro::TextureMaskNode::draw(const DrawContext& draw_context) {
 	if (texture == nullptr || mask == nullptr) return;
 
 	Program* program = get_texture_mask_program();
@@ -389,42 +389,42 @@ void atmosphere::TextureMaskNode::draw(const DrawContext& draw_context) {
 		AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.get_data())
 	);
 }
-void atmosphere::TextureMaskNode::set_texture(const std::shared_ptr<Texture>& texture, const Quad& texcoord) {
+void nitro::TextureMaskNode::set_texture(const std::shared_ptr<Texture>& texture, const Quad& texcoord) {
 	this->texture = texture;
 	this->texcoord = texcoord;
 }
-void atmosphere::TextureMaskNode::set_mask(const std::shared_ptr<Texture>& mask, const Quad& mask_texcoord) {
+void nitro::TextureMaskNode::set_mask(const std::shared_ptr<Texture>& mask, const Quad& mask_texcoord) {
 	this->mask = mask;
 	this->mask_texcoord = mask_texcoord;
 }
-float atmosphere::TextureMaskNode::get_alpha() const {
+float nitro::TextureMaskNode::get_alpha() const {
 	return _alpha;
 }
-void atmosphere::TextureMaskNode::set_alpha(float alpha) {
+void nitro::TextureMaskNode::set_alpha(float alpha) {
 	_alpha = alpha;
 }
-atmosphere::Property<float> atmosphere::TextureMaskNode::alpha() {
+nitro::Property<float> nitro::TextureMaskNode::alpha() {
 	return create_property<float, TextureMaskNode, &TextureMaskNode::get_alpha, &TextureMaskNode::set_alpha>(this);
 }
 
 // Rectangle
-atmosphere::Rectangle::Rectangle(const Color& color) {
+nitro::Rectangle::Rectangle(const Color& color) {
 	set_color(color);
 }
-atmosphere::Node* atmosphere::Rectangle::get_child(size_t index) {
+nitro::Node* nitro::Rectangle::get_child(size_t index) {
 	return index == 0 ? &node : Bin::get_child(index-1);
 }
-void atmosphere::Rectangle::layout() {
+void nitro::Rectangle::layout() {
 	node.set_size(get_width(), get_height());
 	Bin::layout();
 }
-const atmosphere::Color& atmosphere::Rectangle::get_color() const {
+const nitro::Color& nitro::Rectangle::get_color() const {
 	return node.get_color();
 }
-void atmosphere::Rectangle::set_color(const Color& color) {
+void nitro::Rectangle::set_color(const Color& color) {
 	node.set_color(color);
 }
-atmosphere::Property<atmosphere::Color> atmosphere::Rectangle::color() {
+nitro::Property<nitro::Color> nitro::Rectangle::color() {
 	return Property<Color> {this, [](Rectangle* rectangle) {
 		return rectangle->get_color();
 	}, [](Rectangle* rectangle, Color color) {
@@ -433,10 +433,10 @@ atmosphere::Property<atmosphere::Color> atmosphere::Rectangle::color() {
 }
 
 // Clip
-atmosphere::Clip::Clip() {
+nitro::Clip::Clip() {
 
 }
-void atmosphere::Clip::prepare_draw() {
+void nitro::Clip::prepare_draw() {
 	if (Node* child = get_child(0)) {
 		child->prepare_draw();
 		fbo->use();
@@ -445,23 +445,23 @@ void atmosphere::Clip::prepare_draw() {
 		child->draw(draw_context);
 	}
 }
-void atmosphere::Clip::draw(const DrawContext& draw_context) {
+void nitro::Clip::draw(const DrawContext& draw_context) {
 	image.draw(draw_context);
 }
-void atmosphere::Clip::layout() {
+void nitro::Clip::layout() {
 	Bin::layout();
 	fbo = std::make_shared<FramebufferObject>(get_width(), get_height());
 	image.set_texture(fbo->get_texture(), Quad(0.f, 0.f, 1.f, 1.f));
 	image.set_width(get_width());
 	image.set_height(get_height());
 }
-float atmosphere::Clip::get_alpha() const {
+float nitro::Clip::get_alpha() const {
 	return image.get_alpha();
 }
-void atmosphere::Clip::set_alpha(float alpha) {
+void nitro::Clip::set_alpha(float alpha) {
 	image.set_alpha(alpha);
 }
-atmosphere::Property<float> atmosphere::Clip::alpha() {
+nitro::Property<float> nitro::Clip::alpha() {
 	return image.alpha();
 }
 
@@ -511,7 +511,7 @@ namespace {
 		return std::make_shared<Texture>(radius, radius, 1, data.data());
 	}
 }
-atmosphere::RoundedRectangle::RoundedRectangle(const Color& color, float radius): radius(radius) {
+nitro::RoundedRectangle::RoundedRectangle(const Color& color, float radius): radius(radius) {
 	std::shared_ptr<Texture> mask = create_rounded_corner_texture(radius);
 	Quad texcoord (0.f, 0.f, 1.f, 1.f);
 	top_right.set_mask(mask, texcoord);
@@ -524,7 +524,7 @@ atmosphere::RoundedRectangle::RoundedRectangle(const Color& color, float radius)
 
 	set_color(color);
 }
-atmosphere::Node* atmosphere::RoundedRectangle::get_child(size_t index) {
+nitro::Node* nitro::RoundedRectangle::get_child(size_t index) {
 	switch (index) {
 		case 0: return &bottom_left;
 		case 1: return &bottom_right;
@@ -536,7 +536,7 @@ atmosphere::Node* atmosphere::RoundedRectangle::get_child(size_t index) {
 		default: return Bin::get_child(index-7);
 	}
 }
-void atmosphere::RoundedRectangle::layout() {
+void nitro::RoundedRectangle::layout() {
 	bottom_left.set_location(0.f, 0.f);
 	bottom_left.set_size(radius, radius);
 	bottom_right.set_location(get_width() - radius, 0.f);
@@ -555,10 +555,10 @@ void atmosphere::RoundedRectangle::layout() {
 
 	Bin::layout();
 }
-const atmosphere::Color& atmosphere::RoundedRectangle::get_color() const {
+const nitro::Color& nitro::RoundedRectangle::get_color() const {
 	return center.get_color();
 }
-void atmosphere::RoundedRectangle::set_color(const Color& color) {
+void nitro::RoundedRectangle::set_color(const Color& color) {
 	bottom_left.set_color(color);
 	bottom_right.set_color(color);
 	top_left.set_color(color);
@@ -567,7 +567,7 @@ void atmosphere::RoundedRectangle::set_color(const Color& color) {
 	center.set_color(color);
 	top.set_color(color);
 }
-atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
+nitro::Property<nitro::Color> nitro::RoundedRectangle::color() {
 	return Property<Color> {this, [](RoundedRectangle* rectangle) {
 		return rectangle->get_color();
 	}, [](RoundedRectangle* rectangle, Color color) {
@@ -576,7 +576,7 @@ atmosphere::Property<atmosphere::Color> atmosphere::RoundedRectangle::color() {
 }
 
 // RoundedImage
-atmosphere::RoundedImage::RoundedImage(const std::shared_ptr<Texture>& texture, const Quad& texcoord, float radius): texcoord(texcoord), radius(radius) {
+nitro::RoundedImage::RoundedImage(const std::shared_ptr<Texture>& texture, const Quad& texcoord, float radius): texcoord(texcoord), radius(radius) {
 	std::shared_ptr<Texture> mask = create_rounded_corner_texture(radius);
 	Quad mask_texcoord (0.f, 0.f, 1.f, 1.f);
 	top_right.set_mask(mask, mask_texcoord);
@@ -589,14 +589,14 @@ atmosphere::RoundedImage::RoundedImage(const std::shared_ptr<Texture>& texture, 
 
 	set_texture(texture, texcoord);
 }
-atmosphere::RoundedImage atmosphere::RoundedImage::create_from_file(const char* file_name, float radius) {
+nitro::RoundedImage nitro::RoundedImage::create_from_file(const char* file_name, float radius) {
 	int width, height;
 	std::shared_ptr<Texture> texture = create_texture_from_file(file_name, width, height);
 	RoundedImage rounded_image (texture, Quad(0.f, 1.f, 1.f, 0.f), radius);
 	rounded_image.set_size(width, height);
 	return rounded_image;
 }
-atmosphere::Node* atmosphere::RoundedImage::get_child(size_t index) {
+nitro::Node* nitro::RoundedImage::get_child(size_t index) {
 	switch (index) {
 		case 0: return &bottom_left;
 		case 1: return &bottom_right;
@@ -608,7 +608,7 @@ atmosphere::Node* atmosphere::RoundedImage::get_child(size_t index) {
 		default: return Bin::get_child(index-7);
 	}
 }
-void atmosphere::RoundedImage::layout() {
+void nitro::RoundedImage::layout() {
 	bottom_left.set_location(0.f, 0.f);
 	bottom_left.set_size(radius, radius);
 	bottom_right.set_location(get_width() - radius, 0.f);
@@ -629,7 +629,7 @@ void atmosphere::RoundedImage::layout() {
 
 	Bin::layout();
 }
-void atmosphere::RoundedImage::set_texture(const std::shared_ptr<Texture>& texture, const Quad& texcoord) {
+void nitro::RoundedImage::set_texture(const std::shared_ptr<Texture>& texture, const Quad& texcoord) {
 	this->texcoord = texcoord;
 	const float width = get_width();
 	const float height = get_height();
@@ -641,10 +641,10 @@ void atmosphere::RoundedImage::set_texture(const std::shared_ptr<Texture>& textu
 	center.set_texture(texture, texcoord*Quad(0, radius/height, 1, 1-radius/height));
 	top.set_texture(texture, texcoord*Quad(radius/width, 1-radius/height, 1-radius/width, 1));
 }
-float atmosphere::RoundedImage::get_alpha() const {
+float nitro::RoundedImage::get_alpha() const {
 	return center.get_alpha();
 }
-void atmosphere::RoundedImage::set_alpha(float alpha) {
+void nitro::RoundedImage::set_alpha(float alpha) {
 	bottom_left.set_alpha(alpha);
 	bottom_right.set_alpha(alpha);
 	top_left.set_alpha(alpha);
@@ -653,7 +653,7 @@ void atmosphere::RoundedImage::set_alpha(float alpha) {
 	center.set_alpha(alpha);
 	top.set_alpha(alpha);
 }
-atmosphere::Property<float> atmosphere::RoundedImage::alpha() {
+nitro::Property<float> nitro::RoundedImage::alpha() {
 	return create_property<float, RoundedImage, &RoundedImage::get_alpha, &RoundedImage::set_alpha>(this);
 }
 
@@ -670,7 +670,7 @@ namespace {
 		return std::make_shared<Texture>(radius, radius, 1, data.data());
 	}
 }
-atmosphere::RoundedBorder::RoundedBorder(float border_width, const Color& color, float radius): border_width(border_width), radius(radius) {
+nitro::RoundedBorder::RoundedBorder(float border_width, const Color& color, float radius): border_width(border_width), radius(radius) {
 	std::shared_ptr<Texture> mask = create_rounded_border_texture(radius, border_width);
 	Quad texcoord (0.f, 0.f, 1.f, 1.f);
 	top_right.set_mask(mask, texcoord);
@@ -683,7 +683,7 @@ atmosphere::RoundedBorder::RoundedBorder(float border_width, const Color& color,
 
 	set_color(color);
 }
-atmosphere::Node* atmosphere::RoundedBorder::get_child(size_t index) {
+nitro::Node* nitro::RoundedBorder::get_child(size_t index) {
 	switch (index) {
 		case 0: return &bottom_left;
 		case 1: return &bottom_right;
@@ -696,7 +696,7 @@ atmosphere::Node* atmosphere::RoundedBorder::get_child(size_t index) {
 		default: return Bin::get_child(index-8);
 	}
 }
-void atmosphere::RoundedBorder::layout() {
+void nitro::RoundedBorder::layout() {
 	bottom_left.set_location(0.f, 0.f);
 	bottom_left.set_size(radius, radius);
 	bottom_right.set_location(get_width() - radius, 0.f);
@@ -715,10 +715,10 @@ void atmosphere::RoundedBorder::layout() {
 	top.set_size(get_width() - 2.f * radius, border_width);
 	Bin::layout();
 }
-const atmosphere::Color& atmosphere::RoundedBorder::get_color() const {
+const nitro::Color& nitro::RoundedBorder::get_color() const {
 	return bottom.get_color();
 }
-void atmosphere::RoundedBorder::set_color(const Color& color) {
+void nitro::RoundedBorder::set_color(const Color& color) {
 	bottom_left.set_color(color);
 	bottom_right.set_color(color);
 	top_left.set_color(color);
@@ -728,7 +728,7 @@ void atmosphere::RoundedBorder::set_color(const Color& color) {
 	right.set_color(color);
 	top.set_color(color);
 }
-atmosphere::Property<atmosphere::Color> atmosphere::RoundedBorder::color() {
+nitro::Property<nitro::Color> nitro::RoundedBorder::color() {
 	return Property<Color> {this, [](RoundedBorder* border) {
 		return border->get_color();
 	}, [](RoundedBorder* border, Color color) {
@@ -796,7 +796,7 @@ namespace {
 		return std::make_shared<Texture>(size, size, 1, buffer.data());
 	}
 }
-atmosphere::BlurredRectangle::BlurredRectangle(const Color& color, float radius, float blur_radius): radius(radius), blur_radius(blur_radius) {
+nitro::BlurredRectangle::BlurredRectangle(const Color& color, float radius, float blur_radius): radius(radius), blur_radius(blur_radius) {
 	std::shared_ptr<Texture> mask = create_blurred_corner_texture(radius, blur_radius);
 
 	Quad texcoord (0.f, 0.f, 1.f, 1.f);
@@ -819,7 +819,7 @@ atmosphere::BlurredRectangle::BlurredRectangle(const Color& color, float radius,
 
 	set_color(color);
 }
-atmosphere::Node* atmosphere::BlurredRectangle::get_child(size_t index) {
+nitro::Node* nitro::BlurredRectangle::get_child(size_t index) {
 	switch (index) {
 		case 0: return &bottom_left;
 		case 1: return &bottom_right;
@@ -833,7 +833,7 @@ atmosphere::Node* atmosphere::BlurredRectangle::get_child(size_t index) {
 		default: return Bin::get_child(index-9);
 	}
 }
-void atmosphere::BlurredRectangle::layout() {
+void nitro::BlurredRectangle::layout() {
 	const float size = radius + 2.f * blur_radius;
 	bottom_left.set_location(-blur_radius, -blur_radius);
 	bottom_left.set_size(size, size);
@@ -855,10 +855,10 @@ void atmosphere::BlurredRectangle::layout() {
 	center.set_size(get_width() - 2.f * (radius + blur_radius),  get_height() - 2.f * (radius + blur_radius));
 	Bin::layout();
 }
-const atmosphere::Color& atmosphere::BlurredRectangle::get_color() const {
+const nitro::Color& nitro::BlurredRectangle::get_color() const {
 	return center.get_color();
 }
-void atmosphere::BlurredRectangle::set_color(const Color& color) {
+void nitro::BlurredRectangle::set_color(const Color& color) {
 	bottom_left.set_color(color);
 	bottom_right.set_color(color);
 	top_left.set_color(color);

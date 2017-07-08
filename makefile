@@ -1,5 +1,5 @@
-sources = scene_graph.cpp gles2.cpp animation.cpp text.cpp window_x11.cpp 3rdparty/3rdparty.o
-headers = atmosphere.hpp animation.hpp gles2.hpp
+sources = nitro.cpp gles2.cpp animation.cpp text.cpp window_x11.cpp 3rdparty/3rdparty.o
+headers = nitro.hpp gles2.hpp animation.hpp
 shaders = $(wildcard shaders/*.glsl)
 CC = gcc
 CXX = g++
@@ -17,13 +17,13 @@ glsl2h: glsl2h.c
 %.glsl.h: %.glsl glsl2h
 	./glsl2h $< $@
 
-libatmosphere.so: $(sources) $(headers) $(shaders:.glsl=.glsl.h)
+libnitro.so: $(sources) $(headers) $(shaders:.glsl=.glsl.h)
 	$(CXX) -shared -o $@ -fPIC $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(sources) $(LDLIBS)
 
-demo: demo.cpp libatmosphere.so
-	$(CXX) -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) demo.cpp -latmosphere
+demo: demo.cpp libnitro.so
+	$(CXX) -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) demo.cpp -lnitro
 
 clean:
-	rm -f demo libatmosphere.so 3rdparty/3rdparty.o glsl2h $(shaders:.glsl=.glsl.h)
+	rm -f demo libnitro.so 3rdparty/3rdparty.o glsl2h $(shaders:.glsl=.glsl.h)
 
 .PHONY: all clean

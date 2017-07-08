@@ -26,7 +26,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include FT_FREETYPE_H
 #include <fontconfig/fontconfig.h>
 
-namespace atmosphere {
+namespace nitro {
 
 class Point {
 public:
