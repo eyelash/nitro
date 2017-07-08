@@ -125,6 +125,7 @@ struct DrawContext {
 };
 
 class Node {
+	Node* parent;
 	float x, y;
 	float width, height;
 	float scale_x, scale_y;
@@ -141,6 +142,7 @@ public:
 	virtual void mouse_motion(const Point& point);
 	virtual void mouse_button_press(const Point& point, int button);
 	virtual void mouse_button_release(const Point& point, int button);
+	void set_parent(Node* parent);
 	Transformation get_transformation() const;
 	float get_location_x() const;
 	void set_location_x(float x);

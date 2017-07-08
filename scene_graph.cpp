@@ -34,7 +34,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 using namespace gles2;
 
 // Node
-atmosphere::Node::Node(): x{0.f}, y{0.f}, width{0.f}, height{0.f}, scale_x{1.f}, scale_y{1.f}, mouse_inside{false} {
+atmosphere::Node::Node(): parent(nullptr), x(0.f), y(0.f), width(0.f), height(0.f), scale_x(1.f), scale_y(1.f), mouse_inside(false) {
 
 }
 atmosphere::Node::~Node() {
@@ -92,6 +92,9 @@ void atmosphere::Node::mouse_button_release(const Point& point, int button) {
 		const Point child_point = child->get_transformation().get_inverse() * point;
 		child->mouse_button_release(child_point, button);
 	}
+}
+void atmosphere::Node::set_parent(Node* parent) {
+	this->parent = parent;
 }
 atmosphere::Transformation atmosphere::Node::get_transformation() const {
 	return Transformation {-width/2.f*scale_x+width/2.f+x, -height/2.f*scale_y+height/2.f+y, scale_x, scale_y};
@@ -172,6 +175,9 @@ void atmosphere::Bin::layout() {
 }
 void atmosphere::Bin::set_child(Node* node) {
 	child = node;
+	if (child) {
+		child->set_parent(this);
+	}
 	Bin::layout();
 }
 void atmosphere::Bin::set_padding(float padding) {
