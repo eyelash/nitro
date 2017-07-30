@@ -17,7 +17,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "nitro.hpp"
 #include <vector>
-#include <stb_image.h>
+#include <png.h>
 #include <nanosvg.h>
 #include <nanosvgrast.h>
 #include <cstring>
@@ -263,10 +263,26 @@ static std::shared_ptr<Texture> create_texture_from_file(const char* file_name, 
 		free(data);
 	}
 	else {
-		int depth;
-		unsigned char* data = stbi_load(file_name, &width, &height, &depth, 0);
-		texture = std::make_shared<Texture>(width, height, depth, data);
-		stbi_image_free(data);
+		FILE* file = fopen(file_name, "rb");
+		png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+		png_infop info = png_create_info_struct(png);
+		png_init_io(png, file);
+		png_read_info(png, info);
+		width = png_get_image_width(png, info);
+		height = png_get_image_height(png, info);
+		if (png_get_color_type(png, info) == PNG_COLOR_TYPE_PALETTE) {
+			png_set_palette_to_rgb(png);
+		}
+		png_read_update_info(png, info);
+		int channels = png_get_channels(png, info);
+		int rowbytes = png_get_rowbytes(png, info);
+		std::vector<unsigned char> data(rowbytes * height);
+		for (int i = 0; i < height; ++i) {
+			png_read_row(png, data.data() + i * rowbytes, nullptr);
+		}
+		texture = std::make_shared<Texture>(width, height, channels, data.data());
+		png_destroy_read_struct(&png, &info, nullptr);
+		fclose(file);
 	}
 	return texture;
 }
