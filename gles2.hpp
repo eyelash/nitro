@@ -144,10 +144,16 @@ public:
 	Program(const Program&) = delete;
 	~Program();
 	Program& operator =(const Program&) = delete;
-	void attach_shader(const Shader& shader);
-	void detach_shader(const Shader& shader);
+	void attach_shader(const Shader& shader) {
+		glAttachShader(identifier, shader.identifier);
+	}
+	void detach_shader(const Shader& shader) {
+		glDetachShader(identifier, shader.identifier);
+	}
 	void link();
-	void use();
+	void use() {
+		glUseProgram(identifier);
+	}
 	GLint get_attribute_location(const char* name);
 	GLint get_uniform_location(const char* name);
 };
@@ -164,6 +170,25 @@ public:
 	void unbind(GLenum texture_unit = GL_TEXTURE0);
 };
 
+class Buffer {
+public:
+	GLuint identifier;
+	Buffer() {
+		glGenBuffers(1, &identifier);
+	}
+	Buffer(const Buffer&) = delete;
+	~Buffer() {
+		glDeleteBuffers(1, &identifier);
+	}
+	Buffer& operator =(const Buffer&) = delete;
+	void bind() {
+		glBindBuffer(GL_ARRAY_BUFFER, identifier);
+	}
+	void unbind() {
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+};
+
 class FramebufferObject {
 	int width, height;
 	std::shared_ptr<Texture> texture;
@@ -177,8 +202,12 @@ public:
 		return texture;
 	}
 	void use();
-	void bind();
-	void unbind();
+	void bind() {
+		glBindFramebuffer(GL_FRAMEBUFFER, identifier);
+	}
+	void unbind() {
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
 };
 
 class TextureState {

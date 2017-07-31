@@ -77,12 +77,6 @@ Program::Program(const char* vertex_shader, const char* fragment_shader): Progra
 Program::~Program() {
 	glDeleteProgram(identifier);
 }
-void Program::attach_shader(const Shader& shader) {
-	glAttachShader(identifier, shader.identifier);
-}
-void Program::detach_shader(const Shader& shader) {
-	glDetachShader(identifier, shader.identifier);
-}
 void Program::link() {
 	glLinkProgram(identifier);
 
@@ -96,9 +90,6 @@ void Program::link() {
 		fprintf(stderr, "program link error:\n%s\n", log);
 		delete[] log;
 	}
-}
-void Program::use() {
-	glUseProgram(identifier);
 }
 GLint Program::get_attribute_location(const char* name) {
 	return glGetAttribLocation(identifier, name);
@@ -150,12 +141,6 @@ void FramebufferObject::use() {
 	bind();
 	glViewport(0, 0, width, height);
 	glClear(GL_COLOR_BUFFER_BIT);
-}
-void FramebufferObject::bind() {
-	glBindFramebuffer(GL_FRAMEBUFFER, identifier);
-}
-void FramebufferObject::unbind() {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 }
