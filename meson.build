@@ -22,7 +22,7 @@ dependencies = [
 	dependency('glesv2'),
 	dependency('egl'),
 	dependency('x11'),
-	dependency('libpng'),
+	dependency('libpng', version: '>= 1.5.4'),
 	dependency('icu-uc'),
 	dependency('harfbuzz-icu'),
 	dependency('freetype2'),

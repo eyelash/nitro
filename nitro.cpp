@@ -273,6 +273,15 @@ static std::shared_ptr<Texture> create_texture_from_file(const char* file_name, 
 		if (png_get_color_type(png, info) == PNG_COLOR_TYPE_PALETTE) {
 			png_set_palette_to_rgb(png);
 		}
+		if (png_get_valid(png, info, PNG_INFO_tRNS)) {
+			png_set_tRNS_to_alpha(png);
+		}
+		if (png_get_color_type(png, info) == PNG_COLOR_TYPE_GRAY && png_get_bit_depth(png, info) < 8) {
+			png_set_expand_gray_1_2_4_to_8(png);
+		}
+		if (png_get_bit_depth(png, info) == 16) {
+			png_set_scale_16(png);
+		}
 		png_read_update_info(png, info);
 		int channels = png_get_channels(png, info);
 		int rowbytes = png_get_rowbytes(png, info);
