@@ -17,7 +17,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #pragma once
 
-#include <GLES2/gl2.h>
+#include <epoxy/gl.h>
 #include <memory>
 #include <cmath>
 

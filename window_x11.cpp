@@ -17,8 +17,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "nitro.hpp"
 #include <X11/Xlib.h>
-#include <EGL/egl.h>
-#include <GLES2/gl2.h>
+#include <epoxy/egl.h>
 #include <time.h>
 #include <cstdio>
 

@@ -7,7 +7,7 @@ CPPFLAGS = -I. -Ishaders -I3rdparty -I/usr/include/harfbuzz -I/usr/include/freet
 CFLAGS = -O2 -fPIC
 CXXFLAGS = -std=c++11 -O2
 LDFLAGS = -L.
-LDLIBS = -lX11 -lEGL -lGLESv2 -licuuc -lharfbuzz-icu -lfreetype -lfontconfig
+LDLIBS = -lX11 -lepoxy -licuuc -lharfbuzz-icu -lfreetype -lfontconfig
 
 all: demo
 
