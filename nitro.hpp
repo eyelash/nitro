@@ -63,6 +63,31 @@ public:
 	}
 };
 
+class BoundingBox {
+	Point bottom_left;
+	Point top_right;
+	static constexpr float min(float x, float y) {
+		return x < y ? x : y;
+	}
+	static constexpr float max(float x, float y) {
+		return x < y ? y : x;
+	}
+	static constexpr Point min(const Point& p0, const Point& p1) {
+		return Point(min(p0.x, p1.x), min(p0.y, p1.y));
+	}
+	static constexpr Point max(const Point& p0, const Point& p1) {
+		return Point(max(p0.x, p1.x), max(p0.y, p1.y));
+	}
+public:
+	constexpr BoundingBox(const Point& bottom_left, const Point& top_right): bottom_left(bottom_left), top_right(top_right) {}
+	friend constexpr BoundingBox intersect(const BoundingBox& b0, const BoundingBox& b1) {
+		return BoundingBox(max(b0.bottom_left, b1.bottom_left), min(b0.top_right, b1.top_right));
+	}
+	friend constexpr BoundingBox _union(const BoundingBox& b0, const BoundingBox& b1) {
+		return BoundingBox(min(b0.bottom_left, b1.bottom_left), max(b0.top_right, b1.top_right));
+	}
+};
+
 class Transformation {
 	float x, y;
 	float scale_x, scale_y;
