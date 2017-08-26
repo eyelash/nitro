@@ -89,26 +89,26 @@ public:
 };
 
 class Transformation {
-	float x, y;
-	float scale_x, scale_y;
+	float tx, ty;
+	float sx, sy;
 public:
-	constexpr Transformation(float x, float y, float scale_x = 1.f, float scale_y = 1.f): x(x), y(y), scale_x(scale_x), scale_y(scale_y) {}
+	constexpr Transformation(float tx, float ty, float sx = 1.f, float sy = 1.f): tx(tx), ty(ty), sx(sx), sy(sy) {}
 	constexpr Transformation get_inverse() const {
-		return Transformation(-x/scale_x, -y/scale_y, 1.f/scale_x, 1.f/scale_y);
+		return Transformation(-tx/sx, -ty/sy, 1.f/sx, 1.f/sy);
 	}
 	constexpr gles2::mat4 get_matrix() const {
-		return gles2::mat4 {
-			gles2::vec4 {scale_x, 0.f, 0.f, 0.f},
-			gles2::vec4 {0.f, scale_y, 0.f, 0.f},
-			gles2::vec4 {0.f, 0.f, 1.f, 0.f},
-			gles2::vec4 {x, y, 0.f, 1.f}
-		};
+		return gles2::mat4(
+			gles2::vec4(sx, 0.f, 0.f, 0.f),
+			gles2::vec4(0.f, sy, 0.f, 0.f),
+			gles2::vec4(0.f, 0.f, 1.f, 0.f),
+			gles2::vec4(tx, ty, 0.f, 1.f)
+		);
 	}
 	constexpr Point operator *(const Point& p) const {
-		return Point(scale_x * p.x + x, scale_y * p.y + y);
+		return Point(sx * p.x + tx, sy * p.y + ty);
 	}
 	constexpr Transformation operator *(const Transformation& t) const {
-		return Transformation(scale_x * t.x + x, scale_y * t.y + y, scale_x * t.scale_x, scale_y * t.scale_y);
+		return Transformation(sx * t.tx + tx, sy * t.ty + ty, sx * t.sx, sy * t.sy);
 	}
 };
 
@@ -147,6 +147,7 @@ public:
 
 struct DrawContext {
 	gles2::mat4 projection;
+	constexpr DrawContext(const gles2::mat4& projection): projection(projection) {}
 };
 
 class Node {

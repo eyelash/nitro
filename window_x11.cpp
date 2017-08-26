@@ -34,7 +34,7 @@ static void set_time () {
 	nitro::Animation::set_time (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }
 
-nitro::Window::Window (int width, int height, const char* title) {
+nitro::Window::Window (int width, int height, const char* title): draw_context(gles2::project(width, height)) {
 	display = XOpenDisplay (NULL);
 	egl_display = eglGetDisplay (display);
 	eglInitialize (egl_display, NULL, NULL);
@@ -123,7 +123,7 @@ void nitro::Window::dispatch_events () {
 		case ConfigureNotify:
 			set_size(event.xconfigure.width, event.xconfigure.height);
 			glViewport (0, 0, event.xconfigure.width, event.xconfigure.height);
-			draw_context.projection = gles2::project (event.xconfigure.width, event.xconfigure.height, event.xconfigure.width*2);
+			draw_context.projection = gles2::project (event.xconfigure.width, event.xconfigure.height);
 			break;
 		case ClientMessage:
 			if ((Atom)event.xclient.data.l[0] == XA_WM_DELETE_WINDOW) {

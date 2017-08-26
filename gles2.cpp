@@ -20,24 +20,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 namespace gles2 {
 
-static void print_error (const char* origin) {
-	GLenum error = glGetError ();
-	if (error == GL_NO_ERROR)
-		return;
-	else if (error == GL_INVALID_ENUM)
-		fprintf (stderr, "%s GL_INVALID_ENUM\n", origin);
-	else if (error == GL_INVALID_VALUE)
-		fprintf (stderr, "%s GL_INVALID_VALUE\n", origin);
-	else if (error == GL_INVALID_OPERATION)
-		fprintf (stderr, "%s GL_INVALID_OPERATION\n", origin);
-	else if (error == GL_INVALID_FRAMEBUFFER_OPERATION)
-		fprintf (stderr, "%s GL_INVALID_FRAMEBUFFER_OPERATION\n", origin);
-	else if (error == GL_OUT_OF_MEMORY)
-		fprintf (stderr, "%s GL_OUT_OF_MEMORY\n", origin);
-	else
-		fprintf (stderr, "%s unknown error\n", origin);
-}
-
 // Shader
 Shader::Shader(const char* source, GLenum type) {
 	identifier = glCreateShader(type);

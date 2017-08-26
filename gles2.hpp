@@ -25,6 +25,8 @@ namespace gles2 {
 
 struct vec4 {
 	GLfloat values[4];
+	constexpr vec4(float x, float y, float z, float w): values{x, y, z, w} {}
+	constexpr vec4(float x): vec4(x, x, x, x) {}
 	constexpr GLfloat operator [](int i) const {
 		return values[i];
 	}
@@ -32,6 +34,7 @@ struct vec4 {
 
 struct mat4 {
 	vec4 values[4];
+	constexpr mat4(const vec4& v0, const vec4& v1, const vec4& v2, const vec4& v3): values{v0, v1, v2, v3} {}
 	vec4& operator [](int i) {
 		return values[i];
 	}
@@ -39,91 +42,107 @@ struct mat4 {
 		return values[i];
 	}
 	static constexpr mat4 id() {
-		return mat4 {
-			vec4 {1.f, 0.f, 0.f, 0.f},
-			vec4 {0.f, 1.f, 0.f, 0.f},
-			vec4 {0.f, 0.f, 1.f, 0.f},
-			vec4 {0.f, 0.f, 0.f, 1.f}
-		};
+		return mat4(
+			vec4(1.f, 0.f, 0.f, 0.f),
+			vec4(0.f, 1.f, 0.f, 0.f),
+			vec4(0.f, 0.f, 1.f, 0.f),
+			vec4(0.f, 0.f, 0.f, 1.f)
+		);
 	}
 };
 
-inline constexpr vec4 operator *(const mat4& lhs, const vec4& rhs) {
-	return vec4 {
+constexpr vec4 operator *(const mat4& lhs, const vec4& rhs) {
+	return vec4(
 		lhs[0][0] * rhs[0] + lhs[1][0] * rhs[1] + lhs[2][0] * rhs[2] + lhs[3][0] * rhs[3],
 		lhs[0][1] * rhs[0] + lhs[1][1] * rhs[1] + lhs[2][1] * rhs[2] + lhs[3][1] * rhs[3],
 		lhs[0][2] * rhs[0] + lhs[1][2] * rhs[1] + lhs[2][2] * rhs[2] + lhs[3][2] * rhs[3],
 		lhs[0][3] * rhs[0] + lhs[1][3] * rhs[1] + lhs[2][3] * rhs[2] + lhs[3][3] * rhs[3]
-	};
+	);
 }
 
-inline constexpr mat4 operator *(const mat4& lhs, const mat4& rhs) {
-	return mat4 {lhs * rhs[0], lhs * rhs[1], lhs * rhs[2], lhs * rhs[3]};
+constexpr mat4 operator *(const mat4& lhs, const mat4& rhs) {
+	return mat4(lhs * rhs[0], lhs * rhs[1], lhs * rhs[2], lhs * rhs[3]);
 }
 
-inline constexpr float radians(float degrees) {
+constexpr float radians(float degrees) {
 	return degrees / 180.f * M_PI;
 }
 
-inline constexpr mat4 glOrtho(float l, float r, float b, float t, float n, float f) {
-	return mat4 {
-		vec4 {2.f/(r-l), 0.f, 0.f, 0.f},
-		vec4 {0.f, 2.f/(t-b), 0.f, 0.f},
-		vec4 {0.f, 0.f, -2.f/(f-n), 0.f},
-		vec4 {-(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1.f}
-	};
+constexpr mat4 ortho(float l, float r, float b, float t, float n, float f) {
+	return mat4(
+		vec4(2.f/(r-l), 0.f, 0.f, 0.f),
+		vec4(0.f, 2.f/(t-b), 0.f, 0.f),
+		vec4(0.f, 0.f, -2.f/(f-n), 0.f),
+		vec4(-(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1.f)
+	);
 }
 
-inline constexpr mat4 project(float w, float h, float d) {
-	return mat4 {
-		vec4 {2.f/w, 0.f, 0.f, 0.f},
-		vec4 {0.f, 2.f/h, 0.f, 0.f},
-		vec4 {0.f, 0.f, 0.f, -1.f/d},
-		vec4 {-1.f, -1.f, 0.f, 1.f}
-	};
+constexpr mat4 project(float w, float h, float d) {
+	return mat4(
+		vec4(2.f/w, 0.f, 0.f, 0.f),
+		vec4(0.f, 2.f/h, 0.f, 0.f),
+		vec4(0.f, 0.f, 0.f, -1.f/d),
+		vec4(-1.f, -1.f, 0.f, 1.f)
+	);
 }
 
-inline constexpr mat4 translate(float x, float y, float z = 0.f) {
-	return mat4 {
-		vec4 {1.f, 0.f, 0.f, 0.f},
-		vec4 {0.f, 1.f, 0.f, 0.f},
-		vec4 {0.f, 0.f, 1.f, 0.f},
-		vec4 {x, y, z, 1.f}
-	};
+constexpr mat4 project(float w, float h) {
+	return project(w, h, w * 2.f);
 }
 
-inline constexpr mat4 scale(float x, float y, float z = 1.f) {
-	return mat4 {
-		vec4 {x, 0.f, 0.f, 0.f},
-		vec4 {0.f, y, 0.f, 0.f},
-		vec4 {0.f, 0.f, z, 0.f},
-		vec4 {0.f, 0.f, 0.f, 1.f}
-	};
+constexpr mat4 translate(float x, float y, float z = 0.f) {
+	return mat4(
+		vec4(1.f, 0.f, 0.f, 0.f),
+		vec4(0.f, 1.f, 0.f, 0.f),
+		vec4(0.f, 0.f, 1.f, 0.f),
+		vec4(x, y, z, 1.f)
+	);
+}
+
+constexpr mat4 scale(float x, float y, float z = 1.f) {
+	return mat4(
+		vec4(x, 0.f, 0.f, 0.f),
+		vec4(0.f, y, 0.f, 0.f),
+		vec4(0.f, 0.f, z, 0.f),
+		vec4(0.f, 0.f, 0.f, 1.f)
+	);
 }
 
 inline mat4 rotateX(float a) {
-	return mat4 {
-		vec4 {1.f, 0.f, 0.f, 0.f},
-		vec4 {0.f, cosf(a), sinf(a), 0.f},
-		vec4 {0.f, -sinf(a), cosf(a), 0.f},
-		vec4 {0.f, 0.f, 0.f, 1.f}
-	};
+	return mat4(
+		vec4(1.f, 0.f, 0.f, 0.f),
+		vec4(0.f, cosf(a), sinf(a), 0.f),
+		vec4(0.f, -sinf(a), cosf(a), 0.f),
+		vec4(0.f, 0.f, 0.f, 1.f)
+	);
 }
 inline mat4 rotateY(float a) {
-	return mat4 {
-		vec4 {cosf(a), 0.f, -sinf(a), 0.f},
-		vec4 {0.f, 1.f, 0.f, 0.f},
-		vec4 {sinf(a), 0.f, cosf(a), 0.f},
-		vec4 {0.f, 0.f, 0.f, 1.f}
-	};
+	return mat4(
+		vec4(cosf(a), 0.f, -sinf(a), 0.f),
+		vec4(0.f, 1.f, 0.f, 0.f),
+		vec4(sinf(a), 0.f, cosf(a), 0.f),
+		vec4(0.f, 0.f, 0.f, 1.f)
+	);
 }
 inline mat4 rotateZ(float a) {
-	return mat4 {
-		vec4 {cosf(a), sinf(a), 0.f, 0.f},
-		vec4 {-sinf(a), cosf(a), 0.f, 0.f},
-		vec4 {0.f, 0.f, 1.f, 0.f},
-		vec4 {0.f, 0.f, 0.f, 1.f}
-	};
+	return mat4(
+		vec4(cosf(a), sinf(a), 0.f, 0.f),
+		vec4(-sinf(a), cosf(a), 0.f, 0.f),
+		vec4(0.f, 0.f, 1.f, 0.f),
+		vec4(0.f, 0.f, 0.f, 1.f)
+	);
+}
+
+inline const char* error_to_string(GLenum error) {
+	switch(error) {
+		case GL_NO_ERROR: return "GL_NO_ERROR";
+		case GL_INVALID_ENUM: return "GL_INVALID_ENUM";
+		case GL_INVALID_VALUE: return "GL_INVALID_VALUE";
+		case GL_INVALID_OPERATION: return "GL_INVALID_OPERATION";
+		case GL_INVALID_FRAMEBUFFER_OPERATION: return "GL_INVALID_FRAMEBUFFER_OPERATION";
+		case GL_OUT_OF_MEMORY: return "GL_OUT_OF_MEMORY";
+		default: return "";
+	}
 }
 
 class Shader {

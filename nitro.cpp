@@ -50,9 +50,7 @@ void nitro::Node::prepare_draw() {
 }
 void nitro::Node::draw(const DrawContext& draw_context) {
 	for (int i = 0; Node* node = get_child(i); ++i) {
-		DrawContext child_draw_context;
-		child_draw_context.projection = draw_context.projection * node->get_transformation().get_matrix();
-		node->draw(child_draw_context);
+		node->draw(DrawContext(draw_context.projection * node->get_transformation().get_matrix()));
 	}
 }
 void nitro::Node::layout() {
@@ -465,9 +463,7 @@ void nitro::Clip::prepare_draw() {
 	if (Node* child = get_child(0)) {
 		child->prepare_draw();
 		fbo->use();
-		DrawContext draw_context;
-		draw_context.projection = gles2::project(get_width(), get_height(), get_width() * 2.f);
-		child->draw(draw_context);
+		child->draw(DrawContext(gles2::project(get_width(), get_height())));
 	}
 }
 void nitro::Clip::draw(const DrawContext& draw_context) {
