@@ -22,26 +22,26 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <poll.h>
 #include <cstdio>
 
-static Display *display;
+static Display* display;
 static Window window;
 static EGLDisplay egl_display;
 static EGLSurface surface;
 static bool running;
 static Atom XA_WM_DELETE_WINDOW;
 
-static void set_time () {
+static void set_time() {
 	struct timespec ts;
-	clock_gettime (CLOCK_MONOTONIC, &ts);
-	nitro::Animation::set_time (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	nitro::Animation::set_time(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }
 
-nitro::Window::Window (int width, int height, const char* title): draw_context(gles2::project(width, height)), needs_redraw(false) {
-	display = XOpenDisplay (NULL);
-	egl_display = eglGetDisplay (display);
-	eglInitialize (egl_display, NULL, NULL);
+nitro::Window::Window(int width, int height, const char* title): draw_context(gles2::project(width, height)), needs_redraw(false) {
+	display = XOpenDisplay(nullptr);
+	egl_display = eglGetDisplay(display);
+	eglInitialize(egl_display, nullptr, nullptr);
 
 	// setup EGL
-	EGLint attribs[] = {
+	constexpr EGLint attribs[] = {
 		EGL_RED_SIZE, 1,
 		EGL_GREEN_SIZE, 1,
 		EGL_BLUE_SIZE, 1,
@@ -50,21 +50,21 @@ nitro::Window::Window (int width, int height, const char* title): draw_context(g
 	EGL_NONE};
 	EGLConfig config;
 	EGLint num_configs_returned;
-	eglChooseConfig (egl_display, attribs, &config, 1, &num_configs_returned);
+	eglChooseConfig(egl_display, attribs, &config, 1, &num_configs_returned);
 
 	// get the visual from the EGL config
 	EGLint visual_id;
-	eglGetConfigAttrib (egl_display, config, EGL_NATIVE_VISUAL_ID, &visual_id);
+	eglGetConfigAttrib(egl_display, config, EGL_NATIVE_VISUAL_ID, &visual_id);
 	XVisualInfo visual_template;
 	visual_template.visualid = visual_id;
 	int num_visuals_returned;
-	XVisualInfo *visual = XGetVisualInfo (display, VisualIDMask, &visual_template, &num_visuals_returned);
+	XVisualInfo *visual = XGetVisualInfo(display, VisualIDMask, &visual_template, &num_visuals_returned);
 
 	// create a window
 	XSetWindowAttributes window_attributes;
 	window_attributes.event_mask = ExposureMask | StructureNotifyMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask | FocusChangeMask;
-	window_attributes.colormap = XCreateColormap (display, RootWindow(display,DefaultScreen(display)), visual->visual, AllocNone);
-	window = XCreateWindow (
+	window_attributes.colormap = XCreateColormap(display, RootWindow(display,DefaultScreen(display)), visual->visual, AllocNone);
+	window = XCreateWindow(
 		display,
 		RootWindow(display, DefaultScreen(display)),
 		0, 0,
@@ -78,27 +78,31 @@ nitro::Window::Window (int width, int height, const char* title): draw_context(g
 	);
 
 	// EGL context and surface
-	//eglBindAPI (EGL_OPENGL_API);
-	//EGLint context_attribs[] = {EGL_NONE};
-	EGLint context_attribs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-	EGLContext context = eglCreateContext (egl_display, config, EGL_NO_CONTEXT, context_attribs);
-	if (context == EGL_NO_CONTEXT) fprintf (stderr, "eglCreateContext error\n");
-	surface = eglCreateWindowSurface (egl_display, config, window, NULL);
-	eglMakeCurrent (egl_display, surface, surface, context);
-	eglSwapInterval (egl_display, 1);
-	glViewport  (0, 0, width, height);
-	glClearColor (0, 0, 0, 0);
-	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable (GL_BLEND);
-	//glEnable (0x809D); // GL_MULTISAMPLE
+	//eglBindAPI(EGL_OPENGL_API);
+	//constexpr EGLint context_attribs[] = {EGL_NONE};
+	constexpr EGLint context_attribs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+	EGLContext context = eglCreateContext(egl_display, config, EGL_NO_CONTEXT, context_attribs);
+	if (context == EGL_NO_CONTEXT) {
+		fprintf(stderr, "eglCreateContext error\n");
+	}
+	//constexpr EGLint window_attribs[] = {EGL_GL_COLORSPACE, EGL_GL_COLORSPACE_SRGB, EGL_NONE};
+	surface = eglCreateWindowSurface(egl_display, config, window, nullptr);
+	eglMakeCurrent(egl_display, surface, surface, context);
+	eglSwapInterval(egl_display, 1);
+	glViewport(0, 0, width, height);
+	glClearColor(0, 0, 0, 0);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+	//glEnable(GL_FRAMEBUFFER_SRGB);
+	//glEnable(0x809D); // GL_MULTISAMPLE
 
-	XFree (visual);
+	XFree(visual);
 
-	XStoreName (display, window, title);
-	XA_WM_DELETE_WINDOW = XInternAtom (display, "WM_DELETE_WINDOW", False);
-	XSetWMProtocols (display, window, &XA_WM_DELETE_WINDOW, 1);
+	XStoreName(display, window, title);
+	XA_WM_DELETE_WINDOW = XInternAtom(display, "WM_DELETE_WINDOW", False);
+	XSetWMProtocols(display, window, &XA_WM_DELETE_WINDOW, 1);
 
-	set_time ();
+	set_time();
 }
 
 void nitro::Window::layout() {
@@ -106,23 +110,23 @@ void nitro::Window::layout() {
 	request_redraw();
 }
 
-void nitro::Window::request_redraw () {
+void nitro::Window::request_redraw() {
 	needs_redraw = true;
 }
 
-void nitro::Window::dispatch_events () {
+void nitro::Window::dispatch_events() {
 	XEvent event;
-	while (XPending (display)) {
-		XNextEvent (display, &event);
+	while (XPending(display)) {
+		XNextEvent(display, &event);
 		switch (event.type) {
 		case MotionNotify:
-			mouse_motion(Point {(float)event.xmotion.x, get_height() - event.xmotion.y});
+			mouse_motion(Point(event.xmotion.x, get_height() - event.xmotion.y));
 			break;
 		case ButtonPress:
-			mouse_button_press(Point {(float)event.xbutton.x, get_height() - event.xbutton.y}, event.xbutton.button);
+			mouse_button_press(Point(event.xbutton.x, get_height() - event.xbutton.y), event.xbutton.button);
 			break;
 		case ButtonRelease:
-			mouse_button_release(Point {(float)event.xbutton.x, get_height() - event.xbutton.y}, event.xbutton.button);
+			mouse_button_release(Point(event.xbutton.x, get_height() - event.xbutton.y), event.xbutton.button);
 			break;
 		case EnterNotify:
 			mouse_enter();
@@ -132,8 +136,8 @@ void nitro::Window::dispatch_events () {
 			break;
 		case ConfigureNotify:
 			set_size(event.xconfigure.width, event.xconfigure.height);
-			glViewport (0, 0, event.xconfigure.width, event.xconfigure.height);
-			draw_context.projection = gles2::project (event.xconfigure.width, event.xconfigure.height);
+			glViewport(0, 0, event.xconfigure.width, event.xconfigure.height);
+			draw_context.projection = gles2::project(event.xconfigure.width, event.xconfigure.height);
 			break;
 		case ClientMessage:
 			if ((Atom)event.xclient.data.l[0] == XA_WM_DELETE_WINDOW) {
@@ -144,26 +148,26 @@ void nitro::Window::dispatch_events () {
 	}
 }
 
-void nitro::Window::run () {
-	XMapWindow (display, window);
+void nitro::Window::run() {
+	XMapWindow(display, window);
 	running = true;
 	while (running) {
-		dispatch_events ();
-		set_time ();
-		Animation::apply_all ();
+		dispatch_events();
+		set_time();
+		Animation::apply_all();
 		if (needs_redraw) {
-			prepare_draw ();
-			glBindFramebuffer (GL_FRAMEBUFFER, 0);
-			glViewport (0, 0, get_width(), get_height());
-			glClear (GL_COLOR_BUFFER_BIT);
-			draw (draw_context);
+			prepare_draw();
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glViewport(0, 0, get_width(), get_height());
+			glClear(GL_COLOR_BUFFER_BIT);
+			draw(draw_context);
 			needs_redraw = false;
-			//glFlush ();
-			eglSwapBuffers (egl_display, surface);
+			//glFlush();
+			eglSwapBuffers(egl_display, surface);
 		}
 		else {
 			struct pollfd fd = {ConnectionNumber(display), POLLIN};
-			poll (&fd, 1, 15);
+			poll(&fd, 1, 15);
 		}
 	}
 }
