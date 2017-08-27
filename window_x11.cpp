@@ -19,6 +19,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <X11/Xlib.h>
 #include <epoxy/egl.h>
 #include <time.h>
+#include <poll.h>
 #include <cstdio>
 
 static Display *display;
@@ -34,7 +35,7 @@ static void set_time () {
 	nitro::Animation::set_time (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }
 
-nitro::Window::Window (int width, int height, const char* title): draw_context(gles2::project(width, height)) {
+nitro::Window::Window (int width, int height, const char* title): draw_context(gles2::project(width, height)), needs_redraw(false) {
 	display = XOpenDisplay (NULL);
 	egl_display = eglGetDisplay (display);
 	eglInitialize (egl_display, NULL, NULL);
@@ -100,6 +101,15 @@ nitro::Window::Window (int width, int height, const char* title): draw_context(g
 	set_time ();
 }
 
+void nitro::Window::layout() {
+	Bin::layout();
+	request_redraw();
+}
+
+void nitro::Window::request_redraw () {
+	needs_redraw = true;
+}
+
 void nitro::Window::dispatch_events () {
 	XEvent event;
 	while (XPending (display)) {
@@ -141,12 +151,19 @@ void nitro::Window::run () {
 		dispatch_events ();
 		set_time ();
 		Animation::apply_all ();
-		prepare_draw ();
-		glBindFramebuffer (GL_FRAMEBUFFER, 0);
-		glViewport (0, 0, get_width(), get_height());
-		glClear (GL_COLOR_BUFFER_BIT);
-		draw (draw_context);
-		//glFlush ();
-		eglSwapBuffers (egl_display, surface);
+		if (needs_redraw) {
+			prepare_draw ();
+			glBindFramebuffer (GL_FRAMEBUFFER, 0);
+			glViewport (0, 0, get_width(), get_height());
+			glClear (GL_COLOR_BUFFER_BIT);
+			draw (draw_context);
+			needs_redraw = false;
+			//glFlush ();
+			eglSwapBuffers (egl_display, surface);
+		}
+		else {
+			struct pollfd fd = {ConnectionNumber(display), POLLIN};
+			poll (&fd, 1, 15);
+		}
 	}
 }

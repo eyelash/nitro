@@ -91,23 +91,36 @@ void nitro::Node::mouse_button_release(const Point& point, int button) {
 		child->mouse_button_release(child_point, button);
 	}
 }
+void nitro::Node::request_redraw() {
+	if (parent) {
+		parent->request_redraw();
+	}
+}
 void nitro::Node::set_parent(Node* parent) {
 	this->parent = parent;
 }
 nitro::Transformation nitro::Node::get_transformation() const {
-	return Transformation {-width/2.f*scale_x+width/2.f+x, -height/2.f*scale_y+height/2.f+y, scale_x, scale_y};
+	return Transformation(-width/2.f*scale_x+width/2.f+x, -height/2.f*scale_y+height/2.f+y, scale_x, scale_y);
 }
 float nitro::Node::get_location_x() const {
 	return x;
 }
 void nitro::Node::set_location_x(float x) {
+	if (x == this->x) {
+		return;
+	}
 	this->x = x;
+	request_redraw();
 }
 float nitro::Node::get_location_y() const {
 	return y;
 }
 void nitro::Node::set_location_y(float y) {
+	if (y == this->y) {
+		return;
+	}
 	this->y = y;
+	request_redraw();
 }
 float nitro::Node::get_width() const {
 	return width;
@@ -142,8 +155,12 @@ void nitro::Node::set_scale_y(float scale_x) {
 	this->scale_y = scale_y;
 }
 void nitro::Node::set_location(float x, float y) {
-	set_location_x(x);
-	set_location_y(y);
+	if (x == this->x && y == this->y) {
+		return;
+	}
+	this->x = x;
+	this->y = y;
+	request_redraw();
 }
 void nitro::Node::set_size(float width, float height) {
 	if (width == this->width && height == this->height) {
@@ -204,22 +221,23 @@ nitro::Node* nitro::SimpleContainer::get_child(size_t index) {
 }
 void nitro::SimpleContainer::add_child(Node* node) {
 	children.push_back(node);
+	node->set_parent(this);
 }
 
 static Program* get_color_program() {
-	static Program program {color_vs_glsl, color_fs_glsl};
+	static Program program(color_vs_glsl, color_fs_glsl);
 	return &program;
 }
 static Program* get_texture_program() {
-	static Program program {texture_vs_glsl, texture_fs_glsl};
+	static Program program(texture_vs_glsl, texture_fs_glsl);
 	return &program;
 }
 static Program* get_color_mask_program() {
-	static Program program {color_mask_vs_glsl, color_mask_fs_glsl};
+	static Program program(color_mask_vs_glsl, color_mask_fs_glsl);
 	return &program;
 }
 static Program* get_texture_mask_program() {
-	static Program program {texture_mask_vs_glsl, texture_mask_fs_glsl};
+	static Program program(texture_mask_vs_glsl, texture_mask_fs_glsl);
 	return &program;
 }
 
@@ -249,7 +267,11 @@ const nitro::Color& nitro::ColorNode::get_color() const {
 	return _color;
 }
 void nitro::ColorNode::set_color(const Color& color) {
+	if (color == _color) {
+		return;
+	}
 	_color = color;
+	request_redraw();
 }
 nitro::Property<nitro::Color> nitro::ColorNode::color() {
 	return Property<Color> {this, [](ColorNode* rectangle) {
@@ -392,7 +414,11 @@ const nitro::Color& nitro::ColorMaskNode::get_color() const {
 	return _color;
 }
 void nitro::ColorMaskNode::set_color(const Color& color) {
+	if (color == _color) {
+		return;
+	}
 	_color = color;
+	request_redraw();
 }
 nitro::Property<nitro::Color> nitro::ColorMaskNode::color() {
 	return Property<Color> {this, [](ColorMaskNode* mask) {
@@ -452,6 +478,7 @@ nitro::Property<float> nitro::TextureMaskNode::alpha() {
 
 // Rectangle
 nitro::Rectangle::Rectangle(const Color& color) {
+	node.set_parent(this);
 	set_color(color);
 }
 nitro::Node* nitro::Rectangle::get_child(size_t index) {
@@ -553,6 +580,14 @@ namespace {
 	}
 }
 nitro::RoundedRectangle::RoundedRectangle(const Color& color, float radius): radius(radius) {
+	bottom_left.set_parent(this);
+	bottom_right.set_parent(this);
+	top_left.set_parent(this);
+	top_right.set_parent(this);
+	bottom.set_parent(this);
+	center.set_parent(this);
+	top.set_parent(this);
+
 	std::shared_ptr<Texture> mask = create_rounded_corner_texture(radius);
 	Quad texcoord (0.f, 0.f, 1.f, 1.f);
 	top_right.set_mask(mask, texcoord);
@@ -618,6 +653,14 @@ nitro::Property<nitro::Color> nitro::RoundedRectangle::color() {
 
 // RoundedImage
 nitro::RoundedImage::RoundedImage(const std::shared_ptr<Texture>& texture, const Quad& texcoord, float radius): texcoord(texcoord), radius(radius) {
+	bottom_left.set_parent(this);
+	bottom_right.set_parent(this);
+	top_left.set_parent(this);
+	top_right.set_parent(this);
+	bottom.set_parent(this);
+	center.set_parent(this);
+	top.set_parent(this);
+
 	std::shared_ptr<Texture> mask = create_rounded_corner_texture(radius);
 	Quad mask_texcoord (0.f, 0.f, 1.f, 1.f);
 	top_right.set_mask(mask, mask_texcoord);
@@ -712,6 +755,15 @@ namespace {
 	}
 }
 nitro::RoundedBorder::RoundedBorder(float border_width, const Color& color, float radius): border_width(border_width), radius(radius) {
+	bottom_left.set_parent(this);
+	bottom_right.set_parent(this);
+	top_left.set_parent(this);
+	top_right.set_parent(this);
+	bottom.set_parent(this);
+	left.set_parent(this);
+	right.set_parent(this);
+	top.set_parent(this);
+
 	std::shared_ptr<Texture> mask = create_rounded_border_texture(radius, border_width);
 	Quad texcoord (0.f, 0.f, 1.f, 1.f);
 	top_right.set_mask(mask, texcoord);
@@ -838,6 +890,16 @@ namespace {
 	}
 }
 nitro::BlurredRectangle::BlurredRectangle(const Color& color, float radius, float blur_radius): radius(radius), blur_radius(blur_radius) {
+	bottom_left.set_parent(this);
+	bottom_right.set_parent(this);
+	top_left.set_parent(this);
+	top_right.set_parent(this);
+	bottom.set_parent(this);
+	left.set_parent(this);
+	right.set_parent(this);
+	top.set_parent(this);
+	center.set_parent(this);
+
 	std::shared_ptr<Texture> mask = create_blurred_corner_texture(radius, blur_radius);
 
 	Quad texcoord (0.f, 0.f, 1.f, 1.f);

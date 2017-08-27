@@ -61,6 +61,9 @@ public:
 	constexpr Color operator *(float x) const {
 		return Color(r*x, g*x, b*x, a*x);
 	}
+	constexpr bool operator ==(const Color& c) const {
+		return r == c.r && g == c.g && b == c.b && a == c.a;
+	}
 };
 
 class BoundingBox {
@@ -168,6 +171,7 @@ public:
 	virtual void mouse_motion(const Point& point);
 	virtual void mouse_button_press(const Point& point, int button);
 	virtual void mouse_button_release(const Point& point, int button);
+	virtual void request_redraw();
 	void set_parent(Node* parent);
 	Transformation get_transformation() const;
 	float get_location_x() const;
@@ -439,9 +443,12 @@ public:
 
 class Window: public Bin {
 	DrawContext draw_context;
+	bool needs_redraw;
 	void dispatch_events();
 public:
 	Window(int width, int height, const char* title);
+	void layout() override;
+	void request_redraw() override;
 	void run();
 };
 
