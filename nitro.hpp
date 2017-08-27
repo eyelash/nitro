@@ -378,6 +378,13 @@ public:
 	void set_color(const Color& color);
 };
 
+struct Glyph {
+	std::shared_ptr<gles2::Texture> texture;
+	Quad texcoord;
+	float x, y;
+	Glyph(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord, float x, float y);
+};
+
 class Font {
 	FT_Face face;
 	hb_font_t* hb_font;
@@ -388,7 +395,7 @@ public:
 	Font& operator =(const Font&) = delete;
 	float get_descender() const;
 	float get_height() const;
-	FT_GlyphSlot load_glyph(unsigned int glyph);
+	Glyph render_glyph(unsigned int glyph);
 	hb_font_t* get_hb_font();
 };
 

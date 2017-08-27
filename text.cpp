@@ -30,6 +30,11 @@ U_CAPI UScriptRun* U_EXPORT2 uscript_openRun(const UChar* src, int32_t length, U
 U_CAPI void U_EXPORT2 uscript_closeRun(UScriptRun* scriptRun);
 U_CAPI UBool U_EXPORT2 uscript_nextRun(UScriptRun* scriptRun, int32_t* pRunStart, int32_t* pRunLimit, UScriptCode *pRunScript);
 
+// Glyph
+nitro::Glyph::Glyph(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord, float x, float y): texture(texture), texcoord(texcoord), x(x), y(y) {
+
+}
+
 // Font
 static FT_Library initialize_freetype() {
 	FT_Library library;
@@ -52,9 +57,11 @@ float nitro::Font::get_descender() const {
 float nitro::Font::get_height() const {
 	return get_descender() + (face->size->metrics.ascender >> 6);
 }
-FT_GlyphSlot nitro::Font::load_glyph(unsigned int glyph) {
-	FT_Load_Glyph(face, glyph, FT_LOAD_RENDER|FT_LOAD_TARGET_LIGHT);
-	return face->glyph;
+nitro::Glyph nitro::Font::render_glyph(unsigned int glyph) {
+	FT_Load_Glyph(face, glyph, FT_LOAD_RENDER | FT_LOAD_TARGET_LIGHT);
+	FT_Bitmap* bitmap = &face->glyph->bitmap;
+	auto texture = std::make_shared<gles2::Texture>(bitmap->width, bitmap->rows, 1, bitmap->buffer);
+	return Glyph(texture, Quad(0, 1, 1, 0), face->glyph->bitmap_left, face->glyph->bitmap_top - bitmap->rows);
 }
 hb_font_t* nitro::Font::get_hb_font() {
 	return hb_font;
@@ -154,15 +161,12 @@ nitro::Text::Text(FontSet* font_set, const char* text_utf8, const Color& color) 
 			hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer, nullptr);
 			hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer, nullptr);
 			for (unsigned int i = 0; i < length; ++i) {
-				FT_GlyphSlot glyph = previous_font->load_glyph(infos[i].codepoint);
-				const int width = glyph->bitmap.width;
-				const int height = glyph->bitmap.rows;
-				auto texture = std::make_shared<gles2::Texture>(width, height, 1, glyph->bitmap.buffer);
+				Glyph glyph = previous_font->render_glyph(infos[i].codepoint);
 				ColorMaskNode* node = new ColorMaskNode();
-				node->set_location(x + glyph->bitmap_left, y + glyph->bitmap_top - height);
-				node->set_size(width, height);
+				node->set_location(x + glyph.x, y + glyph.y);
+				node->set_size(glyph.texture->width, glyph.texture->height);
 				node->set_color(color);
-				node->set_mask(texture,  Quad(0.f, 1.f, 1.f, 0.f));
+				node->set_mask(glyph.texture, glyph.texcoord);
 				glyphs.push_back(node);
 				x += positions[i].x_advance >> 6;
 				y += positions[i].y_advance >> 6;
