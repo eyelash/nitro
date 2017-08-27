@@ -113,6 +113,9 @@ float nitro::Node::get_width() const {
 	return width;
 }
 void nitro::Node::set_width(float width) {
+	if (width == this->width) {
+		return;
+	}
 	this->width = width;
 	layout();
 }
@@ -120,6 +123,9 @@ float nitro::Node::get_height() const {
 	return height;
 }
 void nitro::Node::set_height(float height) {
+	if (height == this->height) {
+		return;
+	}
 	this->height = height;
 	layout();
 }
@@ -140,6 +146,9 @@ void nitro::Node::set_location(float x, float y) {
 	set_location_y(y);
 }
 void nitro::Node::set_size(float width, float height) {
+	if (width == this->width && height == this->height) {
+		return;
+	}
 	this->width = width;
 	this->height = height;
 	layout();
@@ -179,6 +188,9 @@ void nitro::Bin::set_child(Node* node) {
 	Bin::layout();
 }
 void nitro::Bin::set_padding(float padding) {
+	if (padding == this->padding) {
+		return;
+	}
 	this->padding = padding;
 	Bin::layout();
 }
@@ -216,7 +228,9 @@ nitro::ColorNode::ColorNode() {
 
 }
 void nitro::ColorNode::draw(const DrawContext& draw_context) {
-	if (get_width() <= 0.f || get_height() <= 0.f) return;
+	if (get_width() <= 0.f || get_height() <= 0.f) {
+		return;
+	}
 
 	Program* program = get_color_program();
 
@@ -306,7 +320,9 @@ nitro::TextureNode nitro::TextureNode::create_from_file(const char* file_name, f
 	return node;
 }
 void nitro::TextureNode::draw(const DrawContext& draw_context) {
-	if (texture == nullptr) return;
+	if (get_width() <= 0.f || get_height() <= 0.f || texture == nullptr) {
+		return;
+	}
 
 	Program* program = get_texture_program();
 
@@ -353,7 +369,9 @@ nitro::ColorMaskNode nitro::ColorMaskNode::create_from_file(const char* file_nam
 	return node;
 }
 void nitro::ColorMaskNode::draw(const DrawContext& draw_context) {
-	if (mask == nullptr) return;
+	if (get_width() <= 0.f || get_height() <= 0.f || mask == nullptr) {
+		return;
+	}
 
 	Program* program = get_color_mask_program();
 
@@ -393,7 +411,9 @@ nitro::TextureMaskNode::TextureMaskNode(): _alpha(1.f) {
 
 }
 void nitro::TextureMaskNode::draw(const DrawContext& draw_context) {
-	if (texture == nullptr || mask == nullptr) return;
+	if (get_width() <= 0.f || get_height() <= 0.f || texture == nullptr || mask == nullptr) {
+		return;
+	}
 
 	Program* program = get_texture_mask_program();
 
