@@ -1,25 +1,43 @@
 #include <nitro.hpp>
 using namespace nitro;
 
-int main() {
-	Window window {800, 500, "demo"};
+class DemoWidget: public BlurredRectangle {
+	RoundedRectangle rounded_rectangle;
+	RoundedBorder border;
+	TextContainer text;
+	Animator<Color> animator;
+public:
+	DemoWidget(FontSet* font):
+		BlurredRectangle(Color::create(0, 0, 0, 0.2), 8, 20),
+		rounded_rectangle(Color::create(0.2, 0.9, 0.7), 10),
+		border(2, Color::create(0, 0, 0, 0.2), 10),
+		text(font, "some text", Color::create(0, 0, 0, 0.5)),
+		animator(rounded_rectangle.color())
+	{
+		set_child(&rounded_rectangle);
+		rounded_rectangle.set_child(&border);
+		border.set_child(&text);
+	}
+	void mouse_enter() override {
+		BlurredRectangle::mouse_enter();
+		animator.animate(Color::create(0.5, 0.9, 0.4), 200);
+	}
+	void mouse_leave() override {
+		BlurredRectangle::mouse_leave();
+		animator.animate(Color::create(0.2, 0.9, 0.7), 200);
+	}
+};
 
-	Rectangle background {Color::create(0.9, 0.9, 0.9)};
+int main() {
+	Window window(800, 500, "demo");
+	FontSet font("Roboto", 16);
+
+	Rectangle background(Color::create(0.9, 0.9, 0.9));
 	background.set_padding(100);
 	window.set_child(&background);
 
-	BlurredRectangle blurred_rectangle {Color::create(0, 0, 0, 0.2), 8, 20};
-	background.set_child(&blurred_rectangle);
-
-	RoundedRectangle rounded_rectangle {Color::create(0.2, 0.9, 0.7), 10};
-	blurred_rectangle.set_child(&rounded_rectangle);
-
-	RoundedBorder border {2, Color::create(0, 0, 0, 0.2), 10};
-	rounded_rectangle.set_child(&border);
-
-	FontSet font {"Roboto", 16};
-	TextContainer text {&font, "some text", Color::create(0, 0, 0, 0.5)};
-	border.set_child(&text);
+	DemoWidget widget(&font);
+	background.set_child(&widget);
 
 	window.run();
 }
