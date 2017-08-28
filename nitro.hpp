@@ -275,17 +275,6 @@ public:
 	Property<float> alpha();
 };
 
-class Rectangle: public Bin {
-	ColorNode node;
-public:
-	Rectangle(const Color& color);
-	Node* get_child(size_t index) override;
-	void layout() override;
-	const Color& get_color() const;
-	void set_color(const Color& color);
-	Property<Color> color();
-};
-
 class Clip: public Bin {
 	std::shared_ptr<gles2::FramebufferObject> fbo;
 	TextureNode image;
@@ -297,85 +286,6 @@ public:
 	float get_alpha() const;
 	void set_alpha(float alpha);
 	Property<float> alpha();
-};
-
-class RoundedRectangle: public Bin {
-	float radius;
-	ColorMaskNode bottom_left;
-	ColorMaskNode bottom_right;
-	ColorMaskNode top_left;
-	ColorMaskNode top_right;
-	ColorNode bottom;
-	ColorNode center;
-	ColorNode top;
-public:
-	RoundedRectangle(const Color& color, float radius);
-	Node* get_child(size_t index) override;
-	void layout() override;
-	const Color& get_color() const;
-	void set_color(const Color& color);
-	Property<Color> color();
-};
-
-class RoundedImage: public Bin {
-	Quad texcoord;
-	float radius;
-	TextureMaskNode bottom_left;
-	TextureMaskNode bottom_right;
-	TextureMaskNode top_left;
-	TextureMaskNode top_right;
-	TextureNode bottom;
-	TextureNode center;
-	TextureNode top;
-public:
-	RoundedImage(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord, float radius);
-	static RoundedImage create_from_file(const char* file_name, float radius);
-	Node* get_child(size_t index) override;
-	void layout() override;
-	void set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord);
-	float get_alpha() const;
-	void set_alpha(float alpha);
-	Property<float> alpha();
-};
-
-class RoundedBorder: public Bin {
-	float border_width;
-	float radius;
-	ColorMaskNode bottom_left;
-	ColorMaskNode bottom_right;
-	ColorMaskNode top_left;
-	ColorMaskNode top_right;
-	ColorNode bottom;
-	ColorNode left;
-	ColorNode right;
-	ColorNode top;
-public:
-	RoundedBorder(float border_width, const Color& color, float radius);
-	Node* get_child(size_t index) override;
-	void layout() override;
-	const Color& get_color() const;
-	void set_color(const Color& color);
-	Property<Color> color();
-};
-
-class BlurredRectangle: public Bin {
-	float radius;
-	float blur_radius;
-	ColorMaskNode bottom_left;
-	ColorMaskNode bottom_right;
-	ColorMaskNode top_left;
-	ColorMaskNode top_right;
-	ColorMaskNode bottom;
-	ColorMaskNode left;
-	ColorMaskNode right;
-	ColorMaskNode top;
-	ColorNode center;
-public:
-	BlurredRectangle(const Color& color, float radius, float blur_radius);
-	Node* get_child(size_t index) override;
-	void layout() override;
-	const Color& get_color() const;
-	void set_color(const Color& color);
 };
 
 struct Glyph {
@@ -457,6 +367,96 @@ public:
 	void layout() override;
 	void request_redraw() override;
 	void run();
+};
+
+class Rectangle: public Bin {
+	ColorNode node;
+public:
+	Rectangle(const Color& color);
+	Node* get_child(size_t index) override;
+	void layout() override;
+	const Color& get_color() const;
+	void set_color(const Color& color);
+	Property<Color> color();
+};
+
+class RoundedRectangle: public Bin {
+	float radius;
+	ColorMaskNode bottom_left;
+	ColorMaskNode bottom_right;
+	ColorMaskNode top_left;
+	ColorMaskNode top_right;
+	ColorNode bottom;
+	ColorNode center;
+	ColorNode top;
+public:
+	RoundedRectangle(const Color& color, float radius);
+	Node* get_child(size_t index) override;
+	void layout() override;
+	const Color& get_color() const;
+	void set_color(const Color& color);
+	Property<Color> color();
+};
+
+class RoundedImage: public Bin {
+	Quad texcoord;
+	float radius;
+	TextureMaskNode bottom_left;
+	TextureMaskNode bottom_right;
+	TextureMaskNode top_left;
+	TextureMaskNode top_right;
+	TextureNode bottom;
+	TextureNode center;
+	TextureNode top;
+public:
+	RoundedImage(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord, float radius);
+	static RoundedImage create_from_file(const char* file_name, float radius);
+	Node* get_child(size_t index) override;
+	void layout() override;
+	void set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord);
+	float get_alpha() const;
+	void set_alpha(float alpha);
+	Property<float> alpha();
+};
+
+class RoundedBorder: public Bin {
+	float border_width;
+	float radius;
+	ColorMaskNode bottom_left;
+	ColorMaskNode bottom_right;
+	ColorMaskNode top_left;
+	ColorMaskNode top_right;
+	ColorNode bottom;
+	ColorNode left;
+	ColorNode right;
+	ColorNode top;
+public:
+	RoundedBorder(float border_width, const Color& color, float radius);
+	Node* get_child(size_t index) override;
+	void layout() override;
+	const Color& get_color() const;
+	void set_color(const Color& color);
+	Property<Color> color();
+};
+
+class BlurredRectangle: public Bin {
+	float radius;
+	float blur_radius;
+	ColorMaskNode bottom_left;
+	ColorMaskNode bottom_right;
+	ColorMaskNode top_left;
+	ColorMaskNode top_right;
+	ColorMaskNode bottom;
+	ColorMaskNode left;
+	ColorMaskNode right;
+	ColorMaskNode top;
+	ColorNode center;
+public:
+	BlurredRectangle(const Color& color, float radius, float blur_radius);
+	Node* get_child(size_t index) override;
+	void layout() override;
+	const Color& get_color() const;
+	void set_color(const Color& color);
 };
 
 }

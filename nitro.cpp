@@ -476,32 +476,6 @@ nitro::Property<float> nitro::TextureMaskNode::alpha() {
 	return create_property<float, TextureMaskNode, &TextureMaskNode::get_alpha, &TextureMaskNode::set_alpha>(this);
 }
 
-// Rectangle
-nitro::Rectangle::Rectangle(const Color& color) {
-	node.set_parent(this);
-	set_color(color);
-}
-nitro::Node* nitro::Rectangle::get_child(size_t index) {
-	return index == 0 ? &node : Bin::get_child(index-1);
-}
-void nitro::Rectangle::layout() {
-	node.set_size(get_width(), get_height());
-	Bin::layout();
-}
-const nitro::Color& nitro::Rectangle::get_color() const {
-	return node.get_color();
-}
-void nitro::Rectangle::set_color(const Color& color) {
-	node.set_color(color);
-}
-nitro::Property<nitro::Color> nitro::Rectangle::color() {
-	return Property<Color> {this, [](Rectangle* rectangle) {
-		return rectangle->get_color();
-	}, [](Rectangle* rectangle, Color color) {
-		rectangle->set_color(color);
-	}};
-}
-
 // Clip
 nitro::Clip::Clip() {
 
@@ -531,6 +505,32 @@ void nitro::Clip::set_alpha(float alpha) {
 }
 nitro::Property<float> nitro::Clip::alpha() {
 	return image.alpha();
+}
+
+// Rectangle
+nitro::Rectangle::Rectangle(const Color& color) {
+	node.set_parent(this);
+	set_color(color);
+}
+nitro::Node* nitro::Rectangle::get_child(size_t index) {
+	return index == 0 ? &node : Bin::get_child(index-1);
+}
+void nitro::Rectangle::layout() {
+	node.set_size(get_width(), get_height());
+	Bin::layout();
+}
+const nitro::Color& nitro::Rectangle::get_color() const {
+	return node.get_color();
+}
+void nitro::Rectangle::set_color(const Color& color) {
+	node.set_color(color);
+}
+nitro::Property<nitro::Color> nitro::Rectangle::color() {
+	return Property<Color> {this, [](Rectangle* rectangle) {
+		return rectangle->get_color();
+	}, [](Rectangle* rectangle, Color color) {
+		rectangle->set_color(color);
+	}};
 }
 
 // RoundedRectangle
