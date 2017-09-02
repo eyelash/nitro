@@ -30,5 +30,6 @@ dependencies = [
 
 glsl2h = generator(executable('glsl2h', 'glsl2h.c'), output: '@PLAINNAME@.h', arguments: ['@INPUT@', '@OUTPUT@'])
 nitro = library('nitro', sources, glsl2h.process(shaders), dependencies: dependencies, include_directories: include_directories('3rdparty'))
+nitro_dep = declare_dependency(link_with: nitro, dependencies: dependencies, include_directories: include_directories('.'))
 
-executable('demo', 'demo.cpp', link_with: nitro, dependencies: dependencies)
+executable('demo', 'demo.cpp', dependencies: nitro_dep)
