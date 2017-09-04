@@ -298,9 +298,20 @@ static std::shared_ptr<Texture> create_texture_from_file(const char* file_name, 
 	}
 	else {
 		FILE* file = fopen(file_name, "rb");
+		if (file == nullptr) {
+			fprintf(stderr, "error opening file %s\n", file_name);
+			return nullptr;
+		}
+		unsigned char signature[8];
+		fread(signature, 1, 8, file);
+		if (png_sig_cmp(signature, 0, 8)) {
+			fprintf(stderr, "file %s is not a valid PNG file\n", file_name);
+			return nullptr;
+		}
 		png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
 		png_infop info = png_create_info_struct(png);
 		png_init_io(png, file);
+		png_set_sig_bytes(png, 8);
 		png_read_info(png, info);
 		width = png_get_image_width(png, info);
 		height = png_get_image_height(png, info);
