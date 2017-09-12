@@ -119,6 +119,9 @@ void nitro::Window::dispatch_events() {
 	while (XPending(display)) {
 		XNextEvent(display, &event);
 		switch (event.type) {
+		case Expose:
+			needs_redraw = true;
+			break;
 		case MotionNotify:
 			mouse_motion(Point(event.xmotion.x, get_height() - event.xmotion.y));
 			break;
