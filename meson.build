@@ -6,7 +6,6 @@ sources = [
 	'animation.cpp',
 	'text.cpp',
 	'window_x11.cpp',
-	'3rdparty/3rdparty.c',
 ]
 shaders = [
 	'shaders/color.fs.glsl',
@@ -29,7 +28,7 @@ dependencies = [
 ]
 
 glsl2h = generator(executable('glsl2h', 'glsl2h.c'), output: '@PLAINNAME@.h', arguments: ['@INPUT@', '@OUTPUT@'])
-nitro = library('nitro', sources, glsl2h.process(shaders), dependencies: dependencies, include_directories: include_directories('3rdparty'))
+nitro = library('nitro', sources, glsl2h.process(shaders), dependencies: dependencies)
 nitro_dep = declare_dependency(link_with: nitro, dependencies: dependencies, include_directories: include_directories('.'))
 
 executable('demo', 'demo.cpp', dependencies: nitro_dep)

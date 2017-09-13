@@ -18,8 +18,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "nitro.hpp"
 #include <vector>
 #include <png.h>
-#include <nanosvg.h>
-#include <nanosvgrast.h>
 #include <cstring>
 
 #include <color.fs.glsl.h>
@@ -283,61 +281,46 @@ nitro::Property<nitro::Color> nitro::ColorNode::color() {
 
 // TextureNode
 static std::shared_ptr<Texture> create_texture_from_file(const char* file_name, int& width, int& height) {
-	std::shared_ptr<Texture> texture;
-	if (!strcmp(file_name+strlen(file_name)-4, ".svg")) {
-		NSVGimage* svg_image = nsvgParseFromFile(file_name, "px", 96);
-		width = svg_image->width;
-		height = svg_image->height;
-		unsigned char* data = (unsigned char*) malloc(width * height * 4);
-		NSVGrasterizer* rasterizer = nsvgCreateRasterizer();
-		nsvgRasterize(rasterizer, svg_image, 0.f, 0.f, 1.f, data, width, height, width * 4);
-		nsvgDeleteRasterizer(rasterizer);
-		nsvgDelete(svg_image);
-		texture = std::make_shared<Texture>(width, height, 4, data);
-		free(data);
+	FILE* file = fopen(file_name, "rb");
+	if (file == nullptr) {
+		fprintf(stderr, "error opening file %s\n", file_name);
+		return nullptr;
 	}
-	else {
-		FILE* file = fopen(file_name, "rb");
-		if (file == nullptr) {
-			fprintf(stderr, "error opening file %s\n", file_name);
-			return nullptr;
-		}
-		unsigned char signature[8];
-		fread(signature, 1, 8, file);
-		if (png_sig_cmp(signature, 0, 8)) {
-			fprintf(stderr, "file %s is not a valid PNG file\n", file_name);
-			return nullptr;
-		}
-		png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
-		png_infop info = png_create_info_struct(png);
-		png_init_io(png, file);
-		png_set_sig_bytes(png, 8);
-		png_read_info(png, info);
-		width = png_get_image_width(png, info);
-		height = png_get_image_height(png, info);
-		if (png_get_color_type(png, info) == PNG_COLOR_TYPE_PALETTE) {
-			png_set_palette_to_rgb(png);
-		}
-		if (png_get_valid(png, info, PNG_INFO_tRNS)) {
-			png_set_tRNS_to_alpha(png);
-		}
-		if (png_get_color_type(png, info) == PNG_COLOR_TYPE_GRAY && png_get_bit_depth(png, info) < 8) {
-			png_set_expand_gray_1_2_4_to_8(png);
-		}
-		if (png_get_bit_depth(png, info) == 16) {
-			png_set_scale_16(png);
-		}
-		png_read_update_info(png, info);
-		int channels = png_get_channels(png, info);
-		int rowbytes = png_get_rowbytes(png, info);
-		std::vector<unsigned char> data(rowbytes * height);
-		for (int i = 0; i < height; ++i) {
-			png_read_row(png, data.data() + i * rowbytes, nullptr);
-		}
-		texture = std::make_shared<Texture>(width, height, channels, data.data());
-		png_destroy_read_struct(&png, &info, nullptr);
-		fclose(file);
+	unsigned char signature[8];
+	fread(signature, 1, 8, file);
+	if (png_sig_cmp(signature, 0, 8)) {
+		fprintf(stderr, "file %s is not a valid PNG file\n", file_name);
+		return nullptr;
 	}
+	png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+	png_infop info = png_create_info_struct(png);
+	png_init_io(png, file);
+	png_set_sig_bytes(png, 8);
+	png_read_info(png, info);
+	width = png_get_image_width(png, info);
+	height = png_get_image_height(png, info);
+	if (png_get_color_type(png, info) == PNG_COLOR_TYPE_PALETTE) {
+		png_set_palette_to_rgb(png);
+	}
+	if (png_get_valid(png, info, PNG_INFO_tRNS)) {
+		png_set_tRNS_to_alpha(png);
+	}
+	if (png_get_color_type(png, info) == PNG_COLOR_TYPE_GRAY && png_get_bit_depth(png, info) < 8) {
+		png_set_expand_gray_1_2_4_to_8(png);
+	}
+	if (png_get_bit_depth(png, info) == 16) {
+		png_set_scale_16(png);
+	}
+	png_read_update_info(png, info);
+	int channels = png_get_channels(png, info);
+	int rowbytes = png_get_rowbytes(png, info);
+	std::vector<unsigned char> data(rowbytes * height);
+	for (int i = 0; i < height; ++i) {
+		png_read_row(png, data.data() + i * rowbytes, nullptr);
+	}
+	std::shared_ptr<Texture> texture = std::make_shared<Texture>(width, height, channels, data.data());
+	png_destroy_read_struct(&png, &info, nullptr);
+	fclose(file);
 	return texture;
 }
 nitro::TextureNode::TextureNode(): _alpha(1.f) {
