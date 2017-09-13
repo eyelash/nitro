@@ -218,6 +218,7 @@ class TextureAtlas {
 	//bool used[1024];
 public:
 	//TextureAtlas(): Texture(512, 512, 4, nullptr) {}
+	static std::shared_ptr<gles2::Texture> create_texture_from_file(const char* file_name, int& width, int& height);
 };
 
 class ColorNode: public Node {

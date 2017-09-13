@@ -6,6 +6,7 @@ sources = [
 	'animation.cpp',
 	'text.cpp',
 	'window_x11.cpp',
+	'widgets.cpp',
 ]
 shaders = [
 	'shaders/color.fs.glsl',
