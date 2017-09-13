@@ -29,8 +29,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <texture_mask.fs.glsl.h>
 #include <texture_mask.vs.glsl.h>
 
-using namespace gles2;
-
 // Node
 nitro::Node::Node(): parent(nullptr), x(0.f), y(0.f), width(0.f), height(0.f), scale_x(1.f), scale_y(1.f), mouse_inside(false) {
 
@@ -222,20 +220,20 @@ void nitro::SimpleContainer::add_child(Node* node) {
 	node->set_parent(this);
 }
 
-static Program* get_color_program() {
-	static Program program(color_vs_glsl, color_fs_glsl);
+static gles2::Program* get_color_program() {
+	static gles2::Program program(color_vs_glsl, color_fs_glsl);
 	return &program;
 }
-static Program* get_texture_program() {
-	static Program program(texture_vs_glsl, texture_fs_glsl);
+static gles2::Program* get_texture_program() {
+	static gles2::Program program(texture_vs_glsl, texture_fs_glsl);
 	return &program;
 }
-static Program* get_color_mask_program() {
-	static Program program(color_mask_vs_glsl, color_mask_fs_glsl);
+static gles2::Program* get_color_mask_program() {
+	static gles2::Program program(color_mask_vs_glsl, color_mask_fs_glsl);
 	return &program;
 }
-static Program* get_texture_mask_program() {
-	static Program program(texture_mask_vs_glsl, texture_mask_fs_glsl);
+static gles2::Program* get_texture_mask_program() {
+	static gles2::Program program(texture_mask_vs_glsl, texture_mask_fs_glsl);
 	return &program;
 }
 
@@ -248,7 +246,7 @@ void nitro::ColorNode::draw(const DrawContext& draw_context) {
 		return;
 	}
 
-	Program* program = get_color_program();
+	gles2::Program* program = get_color_program();
 
 	Quad vertices (0.f, 0.f, get_width(), get_height());
 
@@ -256,9 +254,9 @@ void nitro::ColorNode::draw(const DrawContext& draw_context) {
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
-		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
-		AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
-		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data())
+		gles2::UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
+		gles2::AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
+		gles2::AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data())
 	);
 }
 const nitro::Color& nitro::ColorNode::get_color() const {
@@ -280,7 +278,7 @@ nitro::Property<nitro::Color> nitro::ColorNode::color() {
 }
 
 // TextureNode
-std::shared_ptr<Texture> nitro::TextureAtlas::create_texture_from_file(const char* file_name, int& width, int& height) {
+std::shared_ptr<gles2::Texture> nitro::TextureAtlas::create_texture_from_file(const char* file_name, int& width, int& height) {
 	FILE* file = fopen(file_name, "rb");
 	if (file == nullptr) {
 		fprintf(stderr, "error opening file %s\n", file_name);
@@ -318,7 +316,7 @@ std::shared_ptr<Texture> nitro::TextureAtlas::create_texture_from_file(const cha
 	for (int i = 0; i < height; ++i) {
 		png_read_row(png, data.data() + i * rowbytes, nullptr);
 	}
-	std::shared_ptr<Texture> texture = std::make_shared<Texture>(width, height, channels, data.data());
+	std::shared_ptr<gles2::Texture> texture = std::make_shared<gles2::Texture>(width, height, channels, data.data());
 	png_destroy_read_struct(&png, &info, nullptr);
 	fclose(file);
 	return texture;
@@ -328,7 +326,7 @@ nitro::TextureNode::TextureNode(): _alpha(1.f) {
 }
 nitro::TextureNode nitro::TextureNode::create_from_file(const char* file_name, float x, float y) {
 	int width, height;
-	std::shared_ptr<Texture> texture = TextureAtlas::create_texture_from_file(file_name, width, height);
+	std::shared_ptr<gles2::Texture> texture = TextureAtlas::create_texture_from_file(file_name, width, height);
 	TextureNode node;
 	node.set_size(width, height);
 	node.set_texture(texture, Quad(0.f, 1.f, 1.f, 0.f));
@@ -340,7 +338,7 @@ void nitro::TextureNode::draw(const DrawContext& draw_context) {
 		return;
 	}
 
-	Program* program = get_texture_program();
+	gles2::Program* program = get_texture_program();
 
 	Quad vertices (0.f, 0.f, get_width(), get_height());
 
@@ -348,17 +346,17 @@ void nitro::TextureNode::draw(const DrawContext& draw_context) {
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
-		TextureState(texture.get(), GL_TEXTURE0, program->get_uniform_location("texture")),
-		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
-		UniformFloat(program->get_uniform_location("alpha"), _alpha),
-		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
-		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.get_data())
+		gles2::TextureState(texture.get(), GL_TEXTURE0, program->get_uniform_location("texture")),
+		gles2::UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
+		gles2::UniformFloat(program->get_uniform_location("alpha"), _alpha),
+		gles2::AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
+		gles2::AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.get_data())
 	);
 }
-std::shared_ptr<Texture> nitro::TextureNode::get_texture() const {
+std::shared_ptr<gles2::Texture> nitro::TextureNode::get_texture() const {
 	return texture;
 }
-void nitro::TextureNode::set_texture(const std::shared_ptr<Texture>& texture, const Quad& texcoord) {
+void nitro::TextureNode::set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord) {
 	this->texture = texture;
 	this->texcoord = texcoord;
 }
@@ -378,7 +376,7 @@ nitro::ColorMaskNode::ColorMaskNode() {
 }
 nitro::ColorMaskNode nitro::ColorMaskNode::create_from_file(const char* file_name, const Color& color) {
 	int width, height;
-	std::shared_ptr<Texture> mask = TextureAtlas::create_texture_from_file(file_name, width, height);
+	std::shared_ptr<gles2::Texture> mask = TextureAtlas::create_texture_from_file(file_name, width, height);
 	ColorMaskNode node;
 	node.set_size(width, height);
 	node.set_mask(mask, Quad(0.f, 1.f, 1.f, 0.f));
@@ -389,7 +387,7 @@ void nitro::ColorMaskNode::draw(const DrawContext& draw_context) {
 		return;
 	}
 
-	Program* program = get_color_mask_program();
+	gles2::Program* program = get_color_mask_program();
 
 	Quad vertices (0.f, 0.f, get_width(), get_height());
 
@@ -397,11 +395,11 @@ void nitro::ColorMaskNode::draw(const DrawContext& draw_context) {
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
-		TextureState(mask.get(), GL_TEXTURE0, program->get_uniform_location("mask")),
-		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
-		AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
-		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
-		AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.get_data())
+		gles2::TextureState(mask.get(), GL_TEXTURE0, program->get_uniform_location("mask")),
+		gles2::UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
+		gles2::AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
+		gles2::AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
+		gles2::AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.get_data())
 	);
 }
 const nitro::Color& nitro::ColorMaskNode::get_color() const {
@@ -421,7 +419,7 @@ nitro::Property<nitro::Color> nitro::ColorMaskNode::color() {
 		mask->set_color(color);
 	}};
 }
-void nitro::ColorMaskNode::set_mask(const std::shared_ptr<Texture>& mask, const Quad& mask_texcoord) {
+void nitro::ColorMaskNode::set_mask(const std::shared_ptr<gles2::Texture>& mask, const Quad& mask_texcoord) {
 	this->mask = mask;
 	this->mask_texcoord = mask_texcoord;
 }
@@ -435,7 +433,7 @@ void nitro::TextureMaskNode::draw(const DrawContext& draw_context) {
 		return;
 	}
 
-	Program* program = get_texture_mask_program();
+	gles2::Program* program = get_texture_mask_program();
 
 	Quad vertices (0.f, 0.f, get_width(), get_height());
 
@@ -443,20 +441,20 @@ void nitro::TextureMaskNode::draw(const DrawContext& draw_context) {
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
-		TextureState(texture.get(), GL_TEXTURE0, program->get_uniform_location("texture")),
-		TextureState(mask.get(), GL_TEXTURE1, program->get_uniform_location("mask")),
-		UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
-		UniformFloat(program->get_uniform_location("alpha"), _alpha),
-		AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
-		AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.get_data()),
-		AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.get_data())
+		gles2::TextureState(texture.get(), GL_TEXTURE0, program->get_uniform_location("texture")),
+		gles2::TextureState(mask.get(), GL_TEXTURE1, program->get_uniform_location("mask")),
+		gles2::UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
+		gles2::UniformFloat(program->get_uniform_location("alpha"), _alpha),
+		gles2::AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
+		gles2::AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.get_data()),
+		gles2::AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.get_data())
 	);
 }
-void nitro::TextureMaskNode::set_texture(const std::shared_ptr<Texture>& texture, const Quad& texcoord) {
+void nitro::TextureMaskNode::set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord) {
 	this->texture = texture;
 	this->texcoord = texcoord;
 }
-void nitro::TextureMaskNode::set_mask(const std::shared_ptr<Texture>& mask, const Quad& mask_texcoord) {
+void nitro::TextureMaskNode::set_mask(const std::shared_ptr<gles2::Texture>& mask, const Quad& mask_texcoord) {
 	this->mask = mask;
 	this->mask_texcoord = mask_texcoord;
 }
@@ -486,7 +484,7 @@ void nitro::Clip::draw(const DrawContext& draw_context) {
 }
 void nitro::Clip::layout() {
 	Bin::layout();
-	fbo = std::make_shared<FramebufferObject>(get_width(), get_height());
+	fbo = std::make_shared<gles2::FramebufferObject>(get_width(), get_height());
 	image.set_texture(fbo->get_texture(), Quad(0.f, 0.f, 1.f, 1.f));
 	image.set_width(get_width());
 	image.set_height(get_height());
