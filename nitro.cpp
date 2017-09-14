@@ -220,22 +220,142 @@ void nitro::SimpleContainer::add_child(Node* node) {
 	node->set_parent(this);
 }
 
-static gles2::Program* get_color_program() {
-	static gles2::Program program(color_vs_glsl, color_fs_glsl);
-	return &program;
-}
-static gles2::Program* get_texture_program() {
-	static gles2::Program program(texture_vs_glsl, texture_fs_glsl);
-	return &program;
-}
-static gles2::Program* get_color_mask_program() {
-	static gles2::Program program(color_mask_vs_glsl, color_mask_fs_glsl);
-	return &program;
-}
-static gles2::Program* get_texture_mask_program() {
-	static gles2::Program program(texture_mask_vs_glsl, texture_mask_fs_glsl);
-	return &program;
-}
+class ColorProgram: public gles2::Program {
+	GLint projection_location;
+	GLint vertex_location;
+	GLint color_location;
+	ColorProgram(): gles2::Program(color_vs_glsl, color_fs_glsl) {
+		projection_location = get_uniform_location("projection");
+		vertex_location = get_attribute_location("vertex");
+		color_location = get_attribute_location("color");
+	}
+public:
+	static ColorProgram* get() {
+		static ColorProgram program;
+		return &program;
+	}
+	GLint get_projection_location() const {
+		return projection_location;
+	}
+	GLint get_vertex_location() const {
+		return vertex_location;
+	}
+	GLint get_color_location() const {
+		return color_location;
+	}
+};
+class TextureProgram: public gles2::Program {
+	GLint projection_location;
+	GLint vertex_location;
+	GLint texcoord_location;
+	GLint texture_location;
+	GLint alpha_location;
+	TextureProgram(): gles2::Program(texture_vs_glsl, texture_fs_glsl) {
+		projection_location = get_uniform_location("projection");
+		vertex_location = get_attribute_location("vertex");
+		texcoord_location = get_attribute_location("texcoord");
+		texture_location = get_uniform_location("texture");
+		alpha_location = get_uniform_location("alpha");
+	}
+public:
+	static TextureProgram* get() {
+		static TextureProgram program;
+		return &program;
+	}
+	GLint get_projection_location() const {
+		return projection_location;
+	}
+	GLint get_vertex_location() const {
+		return vertex_location;
+	}
+	GLint get_texcoord_location() const {
+		return texcoord_location;
+	}
+	GLint get_texture_location() const {
+		return texture_location;
+	}
+	GLint get_alpha_location() const {
+		return alpha_location;
+	}
+};
+class ColorMaskProgram: public gles2::Program {
+	GLint projection_location;
+	GLint vertex_location;
+	GLint color_location;
+	GLint mask_texcoord_location;
+	GLint mask_location;
+	ColorMaskProgram(): gles2::Program(color_mask_vs_glsl, color_mask_fs_glsl) {
+		projection_location = get_uniform_location("projection");
+		vertex_location = get_attribute_location("vertex");
+		color_location = get_attribute_location("color");
+		mask_texcoord_location = get_attribute_location("mask_texcoord");
+		mask_location = get_uniform_location("mask");
+	}
+public:
+	static ColorMaskProgram* get() {
+		static ColorMaskProgram program;
+		return &program;
+	}
+	GLint get_projection_location() const {
+		return projection_location;
+	}
+	GLint get_vertex_location() const {
+		return vertex_location;
+	}
+	GLint get_color_location() const {
+		return color_location;
+	}
+	GLint get_mask_texcoord_location() const {
+		return mask_texcoord_location;
+	}
+	GLint get_mask_location() const {
+		return mask_location;
+	}
+};
+class TextureMaskProgram: public gles2::Program {
+	GLint projection_location;
+	GLint vertex_location;
+	GLint texcoord_location;
+	GLint mask_texcoord_location;
+	GLint texture_location;
+	GLint alpha_location;
+	GLint mask_location;
+	TextureMaskProgram(): gles2::Program(texture_mask_vs_glsl, texture_mask_fs_glsl) {
+		projection_location = get_uniform_location("projection");
+		vertex_location = get_attribute_location("vertex");
+		texcoord_location = get_attribute_location("texcoord");
+		mask_texcoord_location = get_attribute_location("mask_texcoord");
+		texture_location = get_uniform_location("texture");
+		alpha_location = get_uniform_location("alpha");
+		mask_location = get_uniform_location("mask");
+	}
+public:
+	static TextureMaskProgram* get() {
+		static TextureMaskProgram program;
+		return &program;
+	}
+	GLint get_projection_location() const {
+		return projection_location;
+	}
+	GLint get_vertex_location() const {
+		return vertex_location;
+	}
+	GLint get_texcoord_location() const {
+		return texcoord_location;
+	}
+	GLint get_mask_texcoord_location() const {
+		return mask_texcoord_location;
+	}
+	GLint get_texture_location() const {
+		return texture_location;
+	}
+	GLint get_alpha_location() const {
+		return alpha_location;
+	}
+	GLint get_mask_location() const {
+		return mask_location;
+	}
+};
 
 // ColorNode
 nitro::ColorNode::ColorNode() {
@@ -246,7 +366,7 @@ void nitro::ColorNode::draw(const DrawContext& draw_context) {
 		return;
 	}
 
-	gles2::Program* program = get_color_program();
+	ColorProgram* program = ColorProgram::get();
 
 	Quad vertices (0.f, 0.f, get_width(), get_height());
 
@@ -254,9 +374,9 @@ void nitro::ColorNode::draw(const DrawContext& draw_context) {
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
-		gles2::UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
-		gles2::AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
-		gles2::AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data())
+		gles2::UniformMat4(program->get_projection_location(), draw_context.projection),
+		gles2::AttributeVec4(program->get_color_location(), _color.unpremultiply()),
+		gles2::AttributeArray(program->get_vertex_location(), 2, GL_FLOAT, vertices.get_data())
 	);
 }
 const nitro::Color& nitro::ColorNode::get_color() const {
@@ -338,7 +458,7 @@ void nitro::TextureNode::draw(const DrawContext& draw_context) {
 		return;
 	}
 
-	gles2::Program* program = get_texture_program();
+	TextureProgram* program = TextureProgram::get();
 
 	Quad vertices (0.f, 0.f, get_width(), get_height());
 
@@ -346,11 +466,11 @@ void nitro::TextureNode::draw(const DrawContext& draw_context) {
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
-		gles2::TextureState(texture.get(), GL_TEXTURE0, program->get_uniform_location("texture")),
-		gles2::UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
-		gles2::UniformFloat(program->get_uniform_location("alpha"), _alpha),
-		gles2::AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
-		gles2::AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.get_data())
+		gles2::TextureState(texture.get(), GL_TEXTURE0, program->get_texture_location()),
+		gles2::UniformMat4(program->get_projection_location(), draw_context.projection),
+		gles2::UniformFloat(program->get_alpha_location(), _alpha),
+		gles2::AttributeArray(program->get_vertex_location(), 2, GL_FLOAT, vertices.get_data()),
+		gles2::AttributeArray(program->get_texcoord_location(), 2, GL_FLOAT, texcoord.get_data())
 	);
 }
 std::shared_ptr<gles2::Texture> nitro::TextureNode::get_texture() const {
@@ -387,7 +507,7 @@ void nitro::ColorMaskNode::draw(const DrawContext& draw_context) {
 		return;
 	}
 
-	gles2::Program* program = get_color_mask_program();
+	ColorMaskProgram* program = ColorMaskProgram::get();
 
 	Quad vertices (0.f, 0.f, get_width(), get_height());
 
@@ -395,11 +515,11 @@ void nitro::ColorMaskNode::draw(const DrawContext& draw_context) {
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
-		gles2::TextureState(mask.get(), GL_TEXTURE0, program->get_uniform_location("mask")),
-		gles2::UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
-		gles2::AttributeVec4(program->get_attribute_location("color"), _color.unpremultiply()),
-		gles2::AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
-		gles2::AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.get_data())
+		gles2::TextureState(mask.get(), GL_TEXTURE0, program->get_mask_location()),
+		gles2::UniformMat4(program->get_projection_location(), draw_context.projection),
+		gles2::AttributeVec4(program->get_color_location(), _color.unpremultiply()),
+		gles2::AttributeArray(program->get_vertex_location(), 2, GL_FLOAT, vertices.get_data()),
+		gles2::AttributeArray(program->get_mask_texcoord_location(), 2, GL_FLOAT, mask_texcoord.get_data())
 	);
 }
 const nitro::Color& nitro::ColorMaskNode::get_color() const {
@@ -433,7 +553,7 @@ void nitro::TextureMaskNode::draw(const DrawContext& draw_context) {
 		return;
 	}
 
-	gles2::Program* program = get_texture_mask_program();
+	TextureMaskProgram* program = TextureMaskProgram::get();
 
 	Quad vertices (0.f, 0.f, get_width(), get_height());
 
@@ -441,13 +561,13 @@ void nitro::TextureMaskNode::draw(const DrawContext& draw_context) {
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
-		gles2::TextureState(texture.get(), GL_TEXTURE0, program->get_uniform_location("texture")),
-		gles2::TextureState(mask.get(), GL_TEXTURE1, program->get_uniform_location("mask")),
-		gles2::UniformMat4(program->get_uniform_location("projection"), draw_context.projection),
-		gles2::UniformFloat(program->get_uniform_location("alpha"), _alpha),
-		gles2::AttributeArray(program->get_attribute_location("vertex"), 2, GL_FLOAT, vertices.get_data()),
-		gles2::AttributeArray(program->get_attribute_location("texcoord"), 2, GL_FLOAT, texcoord.get_data()),
-		gles2::AttributeArray(program->get_attribute_location("mask_texcoord"), 2, GL_FLOAT, mask_texcoord.get_data())
+		gles2::TextureState(texture.get(), GL_TEXTURE0, program->get_texture_location()),
+		gles2::TextureState(mask.get(), GL_TEXTURE1, program->get_mask_location()),
+		gles2::UniformMat4(program->get_projection_location(), draw_context.projection),
+		gles2::UniformFloat(program->get_alpha_location(), _alpha),
+		gles2::AttributeArray(program->get_vertex_location(), 2, GL_FLOAT, vertices.get_data()),
+		gles2::AttributeArray(program->get_texcoord_location(), 2, GL_FLOAT, texcoord.get_data()),
+		gles2::AttributeArray(program->get_mask_texcoord_location(), 2, GL_FLOAT, mask_texcoord.get_data())
 	);
 }
 void nitro::TextureMaskNode::set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord) {
