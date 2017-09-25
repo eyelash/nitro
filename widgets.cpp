@@ -183,8 +183,8 @@ nitro::RoundedImage::RoundedImage(const std::shared_ptr<gles2::Texture>& texture
 }
 nitro::RoundedImage nitro::RoundedImage::create_from_file(const char* file_name, float radius) {
 	int width, height;
-	std::shared_ptr<gles2::Texture> texture = TextureAtlas::create_texture_from_file(file_name, width, height);
-	RoundedImage rounded_image (texture, Quad(0.f, 1.f, 1.f, 0.f), radius);
+	Texture texture = Texture::create_from_file(file_name, width, height);
+	RoundedImage rounded_image(texture.texture, texture.texcoord, radius);
 	rounded_image.set_size(width, height);
 	return rounded_image;
 }

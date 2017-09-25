@@ -29,6 +29,57 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <texture_mask.fs.glsl.h>
 #include <texture_mask.vs.glsl.h>
 
+// Texture
+nitro::Texture::Texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord): texture(texture), texcoord(texcoord) {
+
+}
+nitro::Texture nitro::Texture::create_from_data(int width, int height, int depth, const unsigned char* data) {
+	return Texture(std::make_shared<gles2::Texture>(width, height, depth, data), Quad(0, 0, 1, 1));
+}
+nitro::Texture nitro::Texture::create_from_file(const char* file_name, int& width, int& height) {
+	FILE* file = fopen(file_name, "rb");
+	if (file == nullptr) {
+		fprintf(stderr, "error opening file %s\n", file_name);
+		return Texture(nullptr, Quad());
+	}
+	unsigned char signature[8];
+	fread(signature, 1, 8, file);
+	if (png_sig_cmp(signature, 0, 8)) {
+		fprintf(stderr, "file %s is not a valid PNG file\n", file_name);
+		return Texture(nullptr, Quad());
+	}
+	png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+	png_infop info = png_create_info_struct(png);
+	png_init_io(png, file);
+	png_set_sig_bytes(png, 8);
+	png_read_info(png, info);
+	width = png_get_image_width(png, info);
+	height = png_get_image_height(png, info);
+	if (png_get_color_type(png, info) == PNG_COLOR_TYPE_PALETTE) {
+		png_set_palette_to_rgb(png);
+	}
+	if (png_get_valid(png, info, PNG_INFO_tRNS)) {
+		png_set_tRNS_to_alpha(png);
+	}
+	if (png_get_color_type(png, info) == PNG_COLOR_TYPE_GRAY && png_get_bit_depth(png, info) < 8) {
+		png_set_expand_gray_1_2_4_to_8(png);
+	}
+	if (png_get_bit_depth(png, info) == 16) {
+		png_set_scale_16(png);
+	}
+	png_read_update_info(png, info);
+	int channels = png_get_channels(png, info);
+	int rowbytes = png_get_rowbytes(png, info);
+	std::vector<unsigned char> data(rowbytes * height);
+	for (int i = 0; i < height; ++i) {
+		png_read_row(png, data.data() + i * rowbytes, nullptr);
+	}
+	std::shared_ptr<gles2::Texture> texture = std::make_shared<gles2::Texture>(width, height, channels, data.data());
+	png_destroy_read_struct(&png, &info, nullptr);
+	fclose(file);
+	return Texture(texture, Quad(0.f, 1.f, 1.f, 0.f));
+}
+
 // Node
 nitro::Node::Node(): parent(nullptr), x(0.f), y(0.f), width(0.f), height(0.f), scale_x(1.f), scale_y(1.f), mouse_inside(false) {
 
@@ -398,58 +449,15 @@ nitro::Property<nitro::Color> nitro::ColorNode::color() {
 }
 
 // TextureNode
-std::shared_ptr<gles2::Texture> nitro::TextureAtlas::create_texture_from_file(const char* file_name, int& width, int& height) {
-	FILE* file = fopen(file_name, "rb");
-	if (file == nullptr) {
-		fprintf(stderr, "error opening file %s\n", file_name);
-		return nullptr;
-	}
-	unsigned char signature[8];
-	fread(signature, 1, 8, file);
-	if (png_sig_cmp(signature, 0, 8)) {
-		fprintf(stderr, "file %s is not a valid PNG file\n", file_name);
-		return nullptr;
-	}
-	png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
-	png_infop info = png_create_info_struct(png);
-	png_init_io(png, file);
-	png_set_sig_bytes(png, 8);
-	png_read_info(png, info);
-	width = png_get_image_width(png, info);
-	height = png_get_image_height(png, info);
-	if (png_get_color_type(png, info) == PNG_COLOR_TYPE_PALETTE) {
-		png_set_palette_to_rgb(png);
-	}
-	if (png_get_valid(png, info, PNG_INFO_tRNS)) {
-		png_set_tRNS_to_alpha(png);
-	}
-	if (png_get_color_type(png, info) == PNG_COLOR_TYPE_GRAY && png_get_bit_depth(png, info) < 8) {
-		png_set_expand_gray_1_2_4_to_8(png);
-	}
-	if (png_get_bit_depth(png, info) == 16) {
-		png_set_scale_16(png);
-	}
-	png_read_update_info(png, info);
-	int channels = png_get_channels(png, info);
-	int rowbytes = png_get_rowbytes(png, info);
-	std::vector<unsigned char> data(rowbytes * height);
-	for (int i = 0; i < height; ++i) {
-		png_read_row(png, data.data() + i * rowbytes, nullptr);
-	}
-	std::shared_ptr<gles2::Texture> texture = std::make_shared<gles2::Texture>(width, height, channels, data.data());
-	png_destroy_read_struct(&png, &info, nullptr);
-	fclose(file);
-	return texture;
-}
 nitro::TextureNode::TextureNode(): _alpha(1.f) {
 
 }
 nitro::TextureNode nitro::TextureNode::create_from_file(const char* file_name, float x, float y) {
 	int width, height;
-	std::shared_ptr<gles2::Texture> texture = TextureAtlas::create_texture_from_file(file_name, width, height);
+	Texture texture = Texture::create_from_file(file_name, width, height);
 	TextureNode node;
 	node.set_size(width, height);
-	node.set_texture(texture, Quad(0.f, 1.f, 1.f, 0.f));
+	node.set_texture(texture.texture, texture.texcoord);
 	node.set_location(x, y);
 	return node;
 }
@@ -496,10 +504,10 @@ nitro::ColorMaskNode::ColorMaskNode() {
 }
 nitro::ColorMaskNode nitro::ColorMaskNode::create_from_file(const char* file_name, const Color& color) {
 	int width, height;
-	std::shared_ptr<gles2::Texture> mask = TextureAtlas::create_texture_from_file(file_name, width, height);
+	Texture mask = Texture::create_from_file(file_name, width, height);
 	ColorMaskNode node;
 	node.set_size(width, height);
-	node.set_mask(mask, Quad(0.f, 1.f, 1.f, 0.f));
+	node.set_mask(mask.texture, mask.texcoord);
 	return node;
 }
 void nitro::ColorMaskNode::draw(const DrawContext& draw_context) {

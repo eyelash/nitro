@@ -148,6 +148,14 @@ public:
 	}
 };
 
+struct Texture {
+	std::shared_ptr<gles2::Texture> texture;
+	Quad texcoord;
+	Texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord);
+	static Texture create_from_data(int width, int height, int depth, const unsigned char* data);
+	static Texture create_from_file(const char* file_name, int& width, int& height);
+};
+
 struct DrawContext {
 	gles2::mat4 projection;
 	constexpr DrawContext(const gles2::mat4& projection): projection(projection) {}
@@ -211,14 +219,6 @@ public:
 	SimpleContainer();
 	Node* get_child(size_t index) override;
 	void add_child(Node* node);
-};
-
-class TextureAtlas {
-	//Texture texture;
-	//bool used[1024];
-public:
-	//TextureAtlas(): Texture(512, 512, 4, nullptr) {}
-	static std::shared_ptr<gles2::Texture> create_texture_from_file(const char* file_name, int& width, int& height);
 };
 
 class ColorNode: public Node {
