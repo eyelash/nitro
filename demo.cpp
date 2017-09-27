@@ -33,11 +33,12 @@ int main() {
 	FontSet font("Roboto", 16);
 
 	Rectangle background(Color::create(0.9, 0.9, 0.9));
-	background.set_padding(100);
 	window.set_child(&background);
+	Padding padding(100);
+	background.set_child(&padding);
 
 	DemoWidget widget(&font);
-	background.set_child(&widget);
+	padding.set_child(&widget);
 
 	window.run();
 }

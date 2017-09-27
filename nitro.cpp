@@ -232,7 +232,7 @@ nitro::Property<float> nitro::Node::position_y() {
 }
 
 // Bin
-nitro::Bin::Bin(): child(nullptr), padding(0.f) {
+nitro::Bin::Bin(): child(nullptr) {
 
 }
 nitro::Node* nitro::Bin::get_child(size_t index) {
@@ -240,23 +240,21 @@ nitro::Node* nitro::Bin::get_child(size_t index) {
 }
 void nitro::Bin::layout() {
 	if (child) {
-		child->set_location(padding, padding);
-		child->set_size(get_width() - 2.f * padding, get_height() - 2.f * padding);
+		child->set_size(get_width(), get_height());
 	}
 }
-void nitro::Bin::set_child(Node* node) {
-	child = node;
+nitro::Node* nitro::Bin::get_child() {
+	return child;
+}
+void nitro::Bin::set_child(Node* child) {
+	if (child == this->child) {
+		return;
+	}
+	this->child = child;
 	if (child) {
 		child->set_parent(this);
 	}
-	Bin::layout();
-}
-void nitro::Bin::set_padding(float padding) {
-	if (padding == this->padding) {
-		return;
-	}
-	this->padding = padding;
-	Bin::layout();
+	layout();
 }
 
 // SimpleContainer

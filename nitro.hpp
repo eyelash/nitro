@@ -204,13 +204,12 @@ public:
 
 class Bin: public Node {
 	Node* child;
-	float padding;
 public:
 	Bin();
 	Node* get_child(size_t index) override;
 	void layout() override;
-	void set_child(Node* node);
-	void set_padding(float padding);
+	Node* get_child();
+	void set_child(Node* child);
 };
 
 class SimpleContainer: public Node {
@@ -368,6 +367,15 @@ public:
 	void layout() override;
 	void request_redraw() override;
 	void run();
+};
+
+class Padding: public Bin {
+	float padding;
+public:
+	Padding(float padding);
+	void layout() override;
+	float get_padding() const;
+	void set_padding(float padding);
 };
 
 class Rectangle: public Bin {

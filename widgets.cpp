@@ -17,6 +17,27 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "nitro.hpp"
 
+// Padding
+nitro::Padding::Padding(float padding): padding(padding) {
+
+}
+void nitro::Padding::layout() {
+	if (Node* child = get_child()) {
+		child->set_location(padding, padding);
+		child->set_size(get_width() - 2.f * padding, get_height() - 2.f * padding);
+	}
+}
+float nitro::Padding::get_padding() const {
+	return padding;
+}
+void nitro::Padding::set_padding(float padding) {
+	if (padding == this->padding) {
+		return;
+	}
+	this->padding = padding;
+	Padding::layout();
+}
+
 // Rectangle
 nitro::Rectangle::Rectangle(const Color& color) {
 	node.set_parent(this);
