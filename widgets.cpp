@@ -38,6 +38,55 @@ void nitro::Padding::set_padding(float padding) {
 	Padding::layout();
 }
 
+// Alignment
+nitro::Alignment::Alignment(HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): horizontal_alignment(horizontal_alignment), vertical_alignment(vertical_alignment) {
+
+}
+void nitro::Alignment::layout() {
+	Node* child = get_child();
+	if (child == nullptr) {
+		return;
+	}
+	float x, y;
+	switch (horizontal_alignment) {
+	case HorizontalAlignment::LEFT:
+		x = 0.f;
+		break;
+	case HorizontalAlignment::CENTER:
+		x = roundf((get_width() - child->get_width()) / 2.f);
+		break;
+	case HorizontalAlignment::RIGHT:
+		x = roundf(get_width() - child->get_width());
+		break;
+	}
+	switch (vertical_alignment) {
+	case VerticalAlignment::BOTTOM:
+		y = 0.f;
+		break;
+	case VerticalAlignment::CENTER:
+		y = roundf((get_height() - child->get_height()) / 2.f);
+		break;
+	case VerticalAlignment::TOP:
+		y = roundf(get_height() - child->get_height());
+		break;
+	}
+	child->set_location(x, y);
+}
+nitro::HorizontalAlignment nitro::Alignment::get_horizontal_alignment() const {
+	return horizontal_alignment;
+}
+nitro::VerticalAlignment nitro::Alignment::get_vertical_alignment() const {
+	return vertical_alignment;
+}
+void nitro::Alignment::set_alignment(HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment) {
+	if (horizontal_alignment == this->horizontal_alignment && vertical_alignment == this->vertical_alignment) {
+		return;
+	}
+	this->horizontal_alignment = horizontal_alignment;
+	this->vertical_alignment = vertical_alignment;
+	layout();
+}
+
 // Rectangle
 nitro::Rectangle::Rectangle(const Color& color) {
 	node.set_parent(this);

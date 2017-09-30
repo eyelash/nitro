@@ -1,22 +1,26 @@
 #include <nitro.hpp>
+
 using namespace nitro;
 
 class DemoWidget: public BlurredRectangle {
 	RoundedRectangle rounded_rectangle;
 	RoundedBorder border;
-	TextContainer text;
+	Alignment alignment;
+	Text text;
 	Animator<Color> animator;
 public:
 	DemoWidget(FontSet* font):
 		BlurredRectangle(Color::create(0, 0, 0, 0.2), 8, 20),
 		rounded_rectangle(Color::create(0.2, 0.9, 0.7), 10),
 		border(2, Color::create(0, 0, 0, 0.2), 10),
+		alignment(HorizontalAlignment::CENTER, VerticalAlignment::CENTER),
 		text(font, "some text", Color::create(0, 0, 0, 0.5)),
 		animator(rounded_rectangle.color())
 	{
 		set_child(&rounded_rectangle);
 		rounded_rectangle.set_child(&border);
-		border.set_child(&text);
+		border.set_child(&alignment);
+		alignment.set_child(&text);
 	}
 	void mouse_enter() override {
 		BlurredRectangle::mouse_enter();

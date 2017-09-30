@@ -378,6 +378,17 @@ public:
 	void set_padding(float padding);
 };
 
+class Alignment: public Bin {
+	HorizontalAlignment horizontal_alignment;
+	VerticalAlignment vertical_alignment;
+public:
+	Alignment(HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment);
+	void layout() override;
+	HorizontalAlignment get_horizontal_alignment() const;
+	VerticalAlignment get_vertical_alignment() const;
+	void set_alignment(HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment);
+};
+
 class Rectangle: public Bin {
 	ColorNode node;
 public:
