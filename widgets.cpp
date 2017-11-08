@@ -148,14 +148,14 @@ static float rounded_corner(float radius, float x, float y, float w = 1.f, float
 	h = h / radius;
 	return rounded_corner_area(x/radius, y/radius, w, h) / (w * h);
 }
-static std::shared_ptr<gles2::Texture> create_rounded_corner_texture(int radius) {
+static nitro::Texture create_rounded_corner_texture(int radius) {
 	std::vector<unsigned char> data (radius * radius);
 	for (int y = 0; y < radius; ++y) {
 		for (int x = 0; x < radius; ++x) {
 			data[y*radius+x] = rounded_corner((float)radius, (float)x, (float)y) * 255.f + 0.5f;
 		}
 	}
-	return std::make_shared<gles2::Texture>(radius, radius, 1, data.data());
+	return nitro::Texture::create_from_data(radius, radius, 1, data.data());
 }
 nitro::RoundedRectangle::RoundedRectangle(const Color& color, float radius): radius(radius) {
 	bottom_left.set_parent(this);
@@ -166,15 +166,15 @@ nitro::RoundedRectangle::RoundedRectangle(const Color& color, float radius): rad
 	center.set_parent(this);
 	top.set_parent(this);
 
-	std::shared_ptr<gles2::Texture> mask = create_rounded_corner_texture(radius);
+	Texture mask = create_rounded_corner_texture(radius);
 	Quad texcoord (0.f, 0.f, 1.f, 1.f);
-	top_right.set_mask(mask, texcoord);
+	top_right.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	top_left.set_mask(mask, texcoord);
+	top_left.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	bottom_left.set_mask(mask, texcoord);
+	bottom_left.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	bottom_right.set_mask(mask, texcoord);
+	bottom_right.set_mask(mask * texcoord);
 
 	set_color(color);
 }
@@ -230,7 +230,7 @@ nitro::Property<nitro::Color> nitro::RoundedRectangle::color() {
 }
 
 // RoundedImage
-nitro::RoundedImage::RoundedImage(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord, float radius): texcoord(texcoord), radius(radius) {
+nitro::RoundedImage::RoundedImage(float radius): radius(radius) {
 	bottom_left.set_parent(this);
 	bottom_right.set_parent(this);
 	top_left.set_parent(this);
@@ -239,22 +239,21 @@ nitro::RoundedImage::RoundedImage(const std::shared_ptr<gles2::Texture>& texture
 	center.set_parent(this);
 	top.set_parent(this);
 
-	std::shared_ptr<gles2::Texture> mask = create_rounded_corner_texture(radius);
+	Texture mask = create_rounded_corner_texture(radius);
 	Quad mask_texcoord (0.f, 0.f, 1.f, 1.f);
-	top_right.set_mask(mask, mask_texcoord);
+	top_right.set_mask(mask * mask_texcoord);
 	mask_texcoord = mask_texcoord.rotate();
-	top_left.set_mask(mask, mask_texcoord);
+	top_left.set_mask(mask * mask_texcoord);
 	mask_texcoord = mask_texcoord.rotate();
-	bottom_left.set_mask(mask, mask_texcoord);
+	bottom_left.set_mask(mask * mask_texcoord);
 	mask_texcoord = mask_texcoord.rotate();
-	bottom_right.set_mask(mask, mask_texcoord);
-
-	set_texture(texture, texcoord);
+	bottom_right.set_mask(mask * mask_texcoord);
 }
 nitro::RoundedImage nitro::RoundedImage::create_from_file(const char* file_name, float radius) {
 	int width, height;
 	Texture texture = Texture::create_from_file(file_name, width, height);
-	RoundedImage rounded_image(texture.texture, texture.texcoord, radius);
+	RoundedImage rounded_image(radius);
+	rounded_image.set_texture(texture);
 	rounded_image.set_size(width, height);
 	return rounded_image;
 }
@@ -287,21 +286,21 @@ void nitro::RoundedImage::layout() {
 	top.set_location(radius, get_height() - radius);
 	top.set_size(get_width() - 2.f * radius, radius);
 
-	set_texture(center.get_texture(), texcoord);
+	set_texture(texture);
 
 	Bin::layout();
 }
-void nitro::RoundedImage::set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord) {
-	this->texcoord = texcoord;
+void nitro::RoundedImage::set_texture(const Texture& texture) {
+	this->texture = texture;
 	const float width = get_width();
 	const float height = get_height();
-	bottom_left.set_texture(texture, texcoord*Quad(0, 0, radius/width, radius/height));
-	bottom_right.set_texture(texture, texcoord*Quad(1-radius/width, 0, 1, radius/height));
-	top_left.set_texture(texture, texcoord*Quad(0, 1-radius/height, radius/width, 1));
-	top_right.set_texture(texture, texcoord*Quad(1-radius/width, 1-radius/height, 1, 1));
-	bottom.set_texture(texture, texcoord*Quad(radius/width, 0, 1-radius/width, radius/height));
-	center.set_texture(texture, texcoord*Quad(0, radius/height, 1, 1-radius/height));
-	top.set_texture(texture, texcoord*Quad(radius/width, 1-radius/height, 1-radius/width, 1));
+	bottom_left.set_texture(texture * Quad(0, 0, radius/width, radius/height));
+	bottom_right.set_texture(texture * Quad(1-radius/width, 0, 1, radius/height));
+	top_left.set_texture(texture * Quad(0, 1-radius/height, radius/width, 1));
+	top_right.set_texture(texture * Quad(1-radius/width, 1-radius/height, 1, 1));
+	bottom.set_texture(texture * Quad(radius/width, 0, 1-radius/width, radius/height));
+	center.set_texture(texture * Quad(0, radius/height, 1, 1-radius/height));
+	top.set_texture(texture * Quad(radius/width, 1-radius/height, 1-radius/width, 1));
 }
 float nitro::RoundedImage::get_alpha() const {
 	return center.get_alpha();
@@ -320,7 +319,7 @@ nitro::Property<float> nitro::RoundedImage::alpha() {
 }
 
 // RoundedBorder
-static std::shared_ptr<gles2::Texture> create_rounded_border_texture(int radius, int width) {
+static nitro::Texture create_rounded_border_texture(int radius, int width) {
 	std::vector<unsigned char> data (radius * radius);
 	for (int y = 0; y < radius; ++y) {
 		for (int x = 0; x < radius; ++x) {
@@ -328,7 +327,7 @@ static std::shared_ptr<gles2::Texture> create_rounded_border_texture(int radius,
 			data[y*radius+x] = value * 255.f + 0.5f;
 		}
 	}
-	return std::make_shared<gles2::Texture>(radius, radius, 1, data.data());
+	return nitro::Texture::create_from_data(radius, radius, 1, data.data());
 }
 nitro::RoundedBorder::RoundedBorder(float border_width, const Color& color, float radius): border_width(border_width), radius(radius) {
 	bottom_left.set_parent(this);
@@ -340,15 +339,15 @@ nitro::RoundedBorder::RoundedBorder(float border_width, const Color& color, floa
 	right.set_parent(this);
 	top.set_parent(this);
 
-	std::shared_ptr<gles2::Texture> mask = create_rounded_border_texture(radius, border_width);
+	Texture mask = create_rounded_border_texture(radius, border_width);
 	Quad texcoord (0.f, 0.f, 1.f, 1.f);
-	top_right.set_mask(mask, texcoord);
+	top_right.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	top_left.set_mask(mask, texcoord);
+	top_left.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	bottom_left.set_mask(mask, texcoord);
+	bottom_left.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	bottom_right.set_mask(mask, texcoord);
+	bottom_right.set_mask(mask * texcoord);
 
 	set_color(color);
 }
@@ -444,7 +443,7 @@ static void blur(const std::vector<float>& kernel, std::vector<unsigned char>& b
 		}
 	}
 }
-static std::shared_ptr<gles2::Texture> create_blurred_corner_texture(int radius, int blur_radius) {
+static nitro::Texture create_blurred_corner_texture(int radius, int blur_radius) {
 	int size = radius + blur_radius * 2;
 	std::vector<unsigned char> buffer (size * size);
 	for (int y = 0; y < size; ++y) {
@@ -461,7 +460,7 @@ static std::shared_ptr<gles2::Texture> create_blurred_corner_texture(int radius,
 		}
 	}
 	blur(create_gaussian_kernel(blur_radius), buffer, size, size);
-	return std::make_shared<gles2::Texture>(size, size, 1, buffer.data());
+	return nitro::Texture::create_from_data(size, size, 1, buffer.data());
 }
 nitro::BlurredRectangle::BlurredRectangle(const Color& color, float radius, float blur_radius): radius(radius), blur_radius(blur_radius) {
 	bottom_left.set_parent(this);
@@ -474,25 +473,25 @@ nitro::BlurredRectangle::BlurredRectangle(const Color& color, float radius, floa
 	top.set_parent(this);
 	center.set_parent(this);
 
-	std::shared_ptr<gles2::Texture> mask = create_blurred_corner_texture(radius, blur_radius);
+	Texture mask = create_blurred_corner_texture(radius, blur_radius);
 
 	Quad texcoord (0.f, 0.f, 1.f, 1.f);
-	top_right.set_mask(mask, texcoord);
+	top_right.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	top_left.set_mask(mask, texcoord);
+	top_left.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	bottom_left.set_mask(mask, texcoord);
+	bottom_left.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	bottom_right.set_mask(mask, texcoord);
+	bottom_right.set_mask(mask * texcoord);
 
 	texcoord = Quad(0.f, 0.f, 0.f, 1.f);
-	top.set_mask(mask, texcoord);
+	top.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	left.set_mask(mask, texcoord);
+	left.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	bottom.set_mask(mask, texcoord);
+	bottom.set_mask(mask * texcoord);
 	texcoord = texcoord.rotate();
-	right.set_mask(mask, texcoord);
+	right.set_mask(mask * texcoord);
 
 	set_color(color);
 }

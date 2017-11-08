@@ -30,11 +30,14 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <texture_mask.vs.glsl.h>
 
 // Texture
+nitro::Texture::Texture() {
+
+}
 nitro::Texture::Texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord): texture(texture), texcoord(texcoord) {
 
 }
-nitro::Texture nitro::Texture::create_from_data(int width, int height, int depth, const unsigned char* data) {
-	return Texture(std::make_shared<gles2::Texture>(width, height, depth, data), Quad(0, 0, 1, 1));
+nitro::Texture nitro::Texture::create_from_data(int width, int height, int depth, const unsigned char* data, bool mirror_y) {
+	return Texture(std::make_shared<gles2::Texture>(width, height, depth, data), mirror_y ? Quad(0, 1, 1, 0) : Quad(0, 0, 1, 1));
 }
 nitro::Texture nitro::Texture::create_from_file(const char* file_name, int& width, int& height) {
 	FILE* file = fopen(file_name, "rb");
@@ -74,10 +77,12 @@ nitro::Texture nitro::Texture::create_from_file(const char* file_name, int& widt
 	for (int i = 0; i < height; ++i) {
 		png_read_row(png, data.data() + i * rowbytes, nullptr);
 	}
-	std::shared_ptr<gles2::Texture> texture = std::make_shared<gles2::Texture>(width, height, channels, data.data());
 	png_destroy_read_struct(&png, &info, nullptr);
 	fclose(file);
-	return Texture(texture, Quad(0.f, 1.f, 1.f, 0.f));
+	return create_from_data(width, height, channels, data.data(), true);
+}
+nitro::Texture nitro::Texture::operator *(const Quad& t) const {
+	return Texture(texture, texcoord * t);
 }
 
 // Node
@@ -455,12 +460,12 @@ nitro::TextureNode nitro::TextureNode::create_from_file(const char* file_name, f
 	Texture texture = Texture::create_from_file(file_name, width, height);
 	TextureNode node;
 	node.set_size(width, height);
-	node.set_texture(texture.texture, texture.texcoord);
+	node.set_texture(texture);
 	node.set_location(x, y);
 	return node;
 }
 void nitro::TextureNode::draw(const DrawContext& draw_context) {
-	if (get_width() <= 0.f || get_height() <= 0.f || texture == nullptr) {
+	if (get_width() <= 0.f || get_height() <= 0.f || texture.texture == nullptr) {
 		return;
 	}
 
@@ -472,19 +477,15 @@ void nitro::TextureNode::draw(const DrawContext& draw_context) {
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
-		gles2::TextureState(texture.get(), GL_TEXTURE0, program->get_texture_location()),
+		gles2::TextureState(texture.texture.get(), GL_TEXTURE0, program->get_texture_location()),
 		gles2::UniformMat4(program->get_projection_location(), draw_context.projection),
 		gles2::UniformFloat(program->get_alpha_location(), _alpha),
 		gles2::AttributeArray(program->get_vertex_location(), 2, GL_FLOAT, vertices.get_data()),
-		gles2::AttributeArray(program->get_texcoord_location(), 2, GL_FLOAT, texcoord.get_data())
+		gles2::AttributeArray(program->get_texcoord_location(), 2, GL_FLOAT, texture.texcoord.get_data())
 	);
 }
-std::shared_ptr<gles2::Texture> nitro::TextureNode::get_texture() const {
-	return texture;
-}
-void nitro::TextureNode::set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord) {
+void nitro::TextureNode::set_texture(const Texture& texture) {
 	this->texture = texture;
-	this->texcoord = texcoord;
 }
 float nitro::TextureNode::get_alpha() const {
 	return _alpha;
@@ -505,11 +506,11 @@ nitro::ColorMaskNode nitro::ColorMaskNode::create_from_file(const char* file_nam
 	Texture mask = Texture::create_from_file(file_name, width, height);
 	ColorMaskNode node;
 	node.set_size(width, height);
-	node.set_mask(mask.texture, mask.texcoord);
+	node.set_mask(mask);
 	return node;
 }
 void nitro::ColorMaskNode::draw(const DrawContext& draw_context) {
-	if (get_width() <= 0.f || get_height() <= 0.f || mask == nullptr) {
+	if (get_width() <= 0.f || get_height() <= 0.f || mask.texture == nullptr) {
 		return;
 	}
 
@@ -521,11 +522,11 @@ void nitro::ColorMaskNode::draw(const DrawContext& draw_context) {
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
-		gles2::TextureState(mask.get(), GL_TEXTURE0, program->get_mask_location()),
+		gles2::TextureState(mask.texture.get(), GL_TEXTURE0, program->get_mask_location()),
 		gles2::UniformMat4(program->get_projection_location(), draw_context.projection),
 		gles2::AttributeVec4(program->get_color_location(), _color.unpremultiply()),
 		gles2::AttributeArray(program->get_vertex_location(), 2, GL_FLOAT, vertices.get_data()),
-		gles2::AttributeArray(program->get_mask_texcoord_location(), 2, GL_FLOAT, mask_texcoord.get_data())
+		gles2::AttributeArray(program->get_mask_texcoord_location(), 2, GL_FLOAT, mask.texcoord.get_data())
 	);
 }
 const nitro::Color& nitro::ColorMaskNode::get_color() const {
@@ -545,9 +546,8 @@ nitro::Property<nitro::Color> nitro::ColorMaskNode::color() {
 		mask->set_color(color);
 	}};
 }
-void nitro::ColorMaskNode::set_mask(const std::shared_ptr<gles2::Texture>& mask, const Quad& mask_texcoord) {
+void nitro::ColorMaskNode::set_mask(const Texture& mask) {
 	this->mask = mask;
-	this->mask_texcoord = mask_texcoord;
 }
 
 // TextureMaskNode
@@ -555,7 +555,7 @@ nitro::TextureMaskNode::TextureMaskNode(): _alpha(1.f) {
 
 }
 void nitro::TextureMaskNode::draw(const DrawContext& draw_context) {
-	if (get_width() <= 0.f || get_height() <= 0.f || texture == nullptr || mask == nullptr) {
+	if (get_width() <= 0.f || get_height() <= 0.f || texture.texture == nullptr || mask.texture == nullptr) {
 		return;
 	}
 
@@ -567,22 +567,20 @@ void nitro::TextureMaskNode::draw(const DrawContext& draw_context) {
 		program,
 		GL_TRIANGLE_STRIP,
 		4,
-		gles2::TextureState(texture.get(), GL_TEXTURE0, program->get_texture_location()),
-		gles2::TextureState(mask.get(), GL_TEXTURE1, program->get_mask_location()),
+		gles2::TextureState(texture.texture.get(), GL_TEXTURE0, program->get_texture_location()),
+		gles2::TextureState(mask.texture.get(), GL_TEXTURE1, program->get_mask_location()),
 		gles2::UniformMat4(program->get_projection_location(), draw_context.projection),
 		gles2::UniformFloat(program->get_alpha_location(), _alpha),
 		gles2::AttributeArray(program->get_vertex_location(), 2, GL_FLOAT, vertices.get_data()),
-		gles2::AttributeArray(program->get_texcoord_location(), 2, GL_FLOAT, texcoord.get_data()),
-		gles2::AttributeArray(program->get_mask_texcoord_location(), 2, GL_FLOAT, mask_texcoord.get_data())
+		gles2::AttributeArray(program->get_texcoord_location(), 2, GL_FLOAT, texture.texcoord.get_data()),
+		gles2::AttributeArray(program->get_mask_texcoord_location(), 2, GL_FLOAT, mask.texcoord.get_data())
 	);
 }
-void nitro::TextureMaskNode::set_texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord) {
+void nitro::TextureMaskNode::set_texture(const Texture& texture) {
 	this->texture = texture;
-	this->texcoord = texcoord;
 }
-void nitro::TextureMaskNode::set_mask(const std::shared_ptr<gles2::Texture>& mask, const Quad& mask_texcoord) {
+void nitro::TextureMaskNode::set_mask(const Texture& mask) {
 	this->mask = mask;
-	this->mask_texcoord = mask_texcoord;
 }
 float nitro::TextureMaskNode::get_alpha() const {
 	return _alpha;
@@ -611,7 +609,7 @@ void nitro::Clip::draw(const DrawContext& draw_context) {
 void nitro::Clip::layout() {
 	Bin::layout();
 	fbo = std::make_shared<gles2::FramebufferObject>(get_width(), get_height());
-	image.set_texture(fbo->get_texture(), Quad(0.f, 0.f, 1.f, 1.f));
+	image.set_texture(Texture(fbo->get_texture(), Quad(0.f, 0.f, 1.f, 1.f)));
 	image.set_width(get_width());
 	image.set_height(get_height());
 }

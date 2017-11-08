@@ -31,7 +31,7 @@ U_CAPI void U_EXPORT2 uscript_closeRun(UScriptRun* scriptRun);
 U_CAPI UBool U_EXPORT2 uscript_nextRun(UScriptRun* scriptRun, int32_t* pRunStart, int32_t* pRunLimit, UScriptCode *pRunScript);
 
 // Glyph
-nitro::Glyph::Glyph(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord, float x, float y): texture(texture), texcoord(texcoord), x(x), y(y) {
+nitro::Glyph::Glyph(const Texture& texture, float x, float y): texture(texture), x(x), y(y) {
 
 }
 
@@ -60,8 +60,8 @@ float nitro::Font::get_height() const {
 nitro::Glyph nitro::Font::render_glyph(unsigned int glyph) {
 	FT_Load_Glyph(face, glyph, FT_LOAD_RENDER | FT_LOAD_TARGET_LIGHT);
 	FT_Bitmap* bitmap = &face->glyph->bitmap;
-	auto texture = std::make_shared<gles2::Texture>(bitmap->width, bitmap->rows, 1, bitmap->buffer);
-	return Glyph(texture, Quad(0, 1, 1, 0), face->glyph->bitmap_left, face->glyph->bitmap_top - bitmap->rows);
+	Texture texture = Texture::create_from_data(bitmap->width, bitmap->rows, 1, bitmap->buffer, true);
+	return Glyph(texture, face->glyph->bitmap_left, face->glyph->bitmap_top - bitmap->rows);
 }
 hb_font_t* nitro::Font::get_hb_font() {
 	return hb_font;
@@ -164,9 +164,9 @@ nitro::Text::Text(FontSet* font_set, const char* text_utf8, const Color& color) 
 				Glyph glyph = previous_font->render_glyph(infos[i].codepoint);
 				ColorMaskNode* node = new ColorMaskNode();
 				node->set_location(x + glyph.x, y + glyph.y);
-				node->set_size(glyph.texture->width, glyph.texture->height);
+				node->set_size(glyph.texture.texture->width, glyph.texture.texture->height);
 				node->set_color(color);
-				node->set_mask(glyph.texture, glyph.texcoord);
+				node->set_mask(glyph.texture);
 				glyphs.push_back(node);
 				x += positions[i].x_advance >> 6;
 				y += positions[i].y_advance >> 6;
