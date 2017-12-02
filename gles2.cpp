@@ -81,7 +81,7 @@ GLint Program::get_uniform_location(const char* name) {
 }
 
 // Texture
-Texture::Texture(int width, int height, int depth, const unsigned char* data): width(width), height(height) {
+Texture::Texture(int width, int height, int depth, const unsigned char* data) {
 	glGenTextures(1, &identifier);
 	glBindTexture(GL_TEXTURE_2D, identifier);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

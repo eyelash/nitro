@@ -288,7 +288,8 @@ public:
 struct Glyph {
 	Texture texture;
 	float x, y;
-	Glyph(const Texture& texture, float x, float y);
+	float width, height;
+	Glyph(const Texture& texture, float x, float y, float width, float height);
 };
 
 class Font {

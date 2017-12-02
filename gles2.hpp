@@ -180,7 +180,6 @@ public:
 class Texture {
 public:
 	GLuint identifier;
-	int width, height;
 	Texture(int width, int height, int depth, const unsigned char* data);
 	Texture(const Texture&) = delete;
 	~Texture();
