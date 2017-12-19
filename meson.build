@@ -1,4 +1,4 @@
-project('nitro', 'cpp', 'c', default_options: ['cpp_std=c++11'])
+project('nitro', 'cpp', default_options: ['cpp_std=c++11'])
 
 sources = [
 	'nitro.cpp',
@@ -28,7 +28,7 @@ dependencies = [
 	dependency('fontconfig'),
 ]
 
-glsl2h = generator(executable('glsl2h', 'glsl2h.c'), output: '@PLAINNAME@.h', arguments: ['@INPUT@', '@OUTPUT@'])
+glsl2h = generator(executable('glsl2h', 'glsl2h.cpp'), output: '@PLAINNAME@.h', arguments: ['@INPUT@', '@OUTPUT@'])
 nitro = library('nitro', sources, glsl2h.process(shaders), dependencies: dependencies)
 nitro_dep = declare_dependency(link_with: nitro, dependencies: dependencies, include_directories: include_directories('.'))
 

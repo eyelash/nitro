@@ -15,47 +15,52 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 */
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <fstream>
 
-#define LINE_START "\t\""
-#define LINE_END "\\n\"\n"
+constexpr const char* LINE_START = "\t\"";
+constexpr const char* LINE_END = "\\n\"\n";
 
-static char *create_name(char *path) {
-	char *c = path;
-	while (*c) c++;
-	c--;
-	while (c >= path && *c != '/') {
-		if (*c == '.' || *c == '-') *c = '_';
-		c--;
+class Name {
+	const char* c;
+public:
+	Name(const char* path): c(path) {
+		while (*path) {
+			if (*path == '/') {
+				c = path + 1;
+			}
+			++path;
+		}
 	}
-	return c + 1;
-}
+	friend std::ostream& operator <<(std::ostream& os, const Name& name) {
+		for (const char* c = name.c; *c; ++c) {
+			if (*c == '.' || *c == '-') os << '_';
+			else os.put(*c);
+		}
+		return os;
+	}
+};
 
-int main(int argc, char **argv) {
-	if (argc <= 2) exit(EXIT_FAILURE);
-	FILE *input = fopen(argv[1], "r");
-	FILE *output = fopen(argv[2], "w");
-	char *name = create_name(argv[1]);
-	fprintf(output, "static const char *%s =\n", name);
-	fputs(LINE_START, output);
-	int c = getc(input);
-	while (c != EOF) {
+int main(int argc, char** argv) {
+	if (argc <= 2) {
+		return 1;
+	}
+	std::ifstream input(argv[1]);
+	std::ofstream output(argv[2]);
+	output << "constexpr const char* " << Name(argv[1]) << " =\n";
+	output << LINE_START;
+	char c;
+	while (input.get(c)) {
 		if (c == '\n') {
-			fputs(LINE_END, output);
-			fputs(LINE_START, output);
+			output << LINE_END;
+			output << LINE_START;
 		}
 		else {
 			if (c == '"' || c == '\\') {
-				fputc('\\', output);
+				output << '\\';
 			}
-			fputc(c, output);
+			output.put(c);
 		}
-		c = getc(input);
 	}
-	fputs(LINE_END, output);
-	fputs(";\n", output);
-	fclose(input);
-	fclose(output);
-	return 0;
+	output << LINE_END;
+	output << ";\n";
 }
