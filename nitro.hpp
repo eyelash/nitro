@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017, Elias Aebi
+Copyright (c) 2016-2018, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -44,77 +44,6 @@ public:
 	}
 };
 
-class Color {
-	float r, g, b, a;
-	constexpr Color(float r, float g, float b, float a): r(r), g(g), b(b), a(a) {}
-public:
-	constexpr Color(): Color(0.f, 0.f, 0.f, 0.f) {}
-	static constexpr Color create(float r, float g, float b, float a = 1.f) {
-		return Color(r*a, g*a, b*a, a);
-	}
-	constexpr gles2::vec4 unpremultiply() const {
-		return a == 0.f ? gles2::vec4 {0.f, 0.f, 0.f, 0.f} : gles2::vec4 {r/a, g/a, b/a, a};
-	}
-	constexpr Color operator +(const Color& c) const {
-		return Color(r+c.r, g+c.g, b+c.b, a+c.a);
-	}
-	constexpr Color operator *(float x) const {
-		return Color(r*x, g*x, b*x, a*x);
-	}
-	constexpr bool operator ==(const Color& c) const {
-		return r == c.r && g == c.g && b == c.b && a == c.a;
-	}
-};
-
-class BoundingBox {
-	Point bottom_left;
-	Point top_right;
-	static constexpr float min(float x, float y) {
-		return x < y ? x : y;
-	}
-	static constexpr float max(float x, float y) {
-		return x < y ? y : x;
-	}
-	static constexpr Point min(const Point& p0, const Point& p1) {
-		return Point(min(p0.x, p1.x), min(p0.y, p1.y));
-	}
-	static constexpr Point max(const Point& p0, const Point& p1) {
-		return Point(max(p0.x, p1.x), max(p0.y, p1.y));
-	}
-public:
-	constexpr BoundingBox(const Point& bottom_left, const Point& top_right): bottom_left(bottom_left), top_right(top_right) {}
-	friend constexpr BoundingBox intersect(const BoundingBox& b0, const BoundingBox& b1) {
-		return BoundingBox(max(b0.bottom_left, b1.bottom_left), min(b0.top_right, b1.top_right));
-	}
-	friend constexpr BoundingBox _union(const BoundingBox& b0, const BoundingBox& b1) {
-		return BoundingBox(min(b0.bottom_left, b1.bottom_left), max(b0.top_right, b1.top_right));
-	}
-};
-
-class Transformation {
-	float tx, ty;
-	float sx, sy;
-public:
-	constexpr Transformation(float tx, float ty, float sx = 1.f, float sy = 1.f): tx(tx), ty(ty), sx(sx), sy(sy) {}
-	constexpr Transformation get_inverse() const {
-		return Transformation(-tx/sx, -ty/sy, 1.f/sx, 1.f/sy);
-	}
-	constexpr gles2::mat4 get_matrix() const {
-		return gles2::mat4(
-			gles2::vec4(sx, 0.f, 0.f, 0.f),
-			gles2::vec4(0.f, sy, 0.f, 0.f),
-			gles2::vec4(0.f, 0.f, 1.f, 0.f),
-			gles2::vec4(tx, ty, 0.f, 1.f)
-		);
-	}
-	constexpr Point operator *(const Point& p) const {
-		return Point(sx * p.x + tx, sy * p.y + ty);
-	}
-	constexpr Transformation operator *(const Transformation& t) const {
-		return Transformation(sx * t.tx + tx, sy * t.ty + ty, sx * t.sx, sy * t.sy);
-	}
-};
-
 class Quad {
 	Point origin;
 	Point x;
@@ -145,6 +74,75 @@ public:
 			y.x, y.y,
 			x.x+y.x-origin.x, x.y+y.y-origin.y
 		};
+	}
+};
+
+class Color {
+	float r, g, b, a;
+	constexpr Color(float r, float g, float b, float a): r(r), g(g), b(b), a(a) {}
+public:
+	constexpr Color(): Color(0.f, 0.f, 0.f, 0.f) {}
+	static constexpr Color create(float r, float g, float b, float a = 1.f) {
+		return Color(r*a, g*a, b*a, a);
+	}
+	constexpr gles2::vec4 unpremultiply() const {
+		return a == 0.f ? gles2::vec4 {0.f, 0.f, 0.f, 0.f} : gles2::vec4 {r/a, g/a, b/a, a};
+	}
+	constexpr Color operator +(const Color& c) const {
+		return Color(r+c.r, g+c.g, b+c.b, a+c.a);
+	}
+	constexpr Color operator *(float x) const {
+		return Color(r*x, g*x, b*x, a*x);
+	}
+	constexpr bool operator ==(const Color& c) const {
+		return r == c.r && g == c.g && b == c.b && a == c.a;
+	}
+};
+
+class Rectangle {
+	static constexpr float min(float x, float y) {
+		return y < x ? y : x;
+	}
+	static constexpr float max(float x, float y) {
+		return x < y ? y : x;
+	}
+public:
+	float x0, y0, x1, y1;
+	constexpr Rectangle(float x0, float y0, float x1, float y1): x0(x0), y0(y0), x1(x1), y1(y1) {}
+	// union
+	constexpr Rectangle operator |(const Rectangle& r) const {
+		return Rectangle(min(x0, r.x0), min(y0, r.y0), max(x1, r.x1), max(y1, r.y1));
+	}
+	// intersect
+	constexpr Rectangle operator &(const Rectangle& r) const {
+		return Rectangle(max(x0, r.x0), max(y0, r.y0), min(x1, r.x1), min(y1, r.y1));
+	}
+	constexpr Quad get_quad() const {
+		return Quad(x0, y0, x1, y1);
+	}
+};
+
+class Transformation {
+	float tx, ty;
+	float sx, sy;
+public:
+	constexpr Transformation(float tx, float ty, float sx = 1.f, float sy = 1.f): tx(tx), ty(ty), sx(sx), sy(sy) {}
+	constexpr Transformation get_inverse() const {
+		return Transformation(-tx/sx, -ty/sy, 1.f/sx, 1.f/sy);
+	}
+	constexpr gles2::mat4 get_matrix() const {
+		return gles2::mat4(
+			gles2::vec4(sx, 0.f, 0.f, 0.f),
+			gles2::vec4(0.f, sy, 0.f, 0.f),
+			gles2::vec4(0.f, 0.f, 1.f, 0.f),
+			gles2::vec4(tx, ty, 0.f, 1.f)
+		);
+	}
+	constexpr Point operator *(const Point& p) const {
+		return Point(sx * p.x + tx, sy * p.y + ty);
+	}
+	constexpr Transformation operator *(const Transformation& t) const {
+		return Transformation(sx * t.tx + tx, sy * t.ty + ty, sx * t.sx, sy * t.sy);
 	}
 };
 
