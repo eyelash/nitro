@@ -94,6 +94,9 @@ public:
 	constexpr Color operator *(float x) const {
 		return Color(r*x, g*x, b*x, a*x);
 	}
+	constexpr operator bool() const {
+		return a != 0.f;
+	}
 	constexpr bool operator ==(const Color& c) const {
 		return r == c.r && g == c.g && b == c.b && a == c.a;
 	}
@@ -153,7 +156,27 @@ struct Texture {
 	Texture(const std::shared_ptr<gles2::Texture>& texture, const Quad& texcoord);
 	static Texture create_from_data(int width, int height, int depth, const unsigned char* data, bool mirror_y = false);
 	static Texture create_from_file(const char* file_name, int& width, int& height);
+	operator bool() const;
 	Texture operator *(const Quad& t) const;
+};
+
+class Canvas {
+	struct Element: Rectangle {
+		Color color;
+		Texture texture;
+		Texture mask;
+		Texture inverted_mask;
+		Element(float x0, float y0, float x1, float y1, const Color& color, const Texture& texture, const Texture& mask, const Texture& inverted_mask);
+	};
+	std::vector<Element> elements;
+public:
+	void clear();
+	void set_color(float x, float y, float width, float height, const Color& color);
+	void set_texture(float x, float y, float width, float height, const Texture& texture);
+	void set_mask(float x, float y, float width, float height, const Texture& mask);
+	void set_inverted_mask(float x, float y, float width, float height, const Texture& inverted_mask);
+	void prepare();
+	void draw(const gles2::mat4& projection) const;
 };
 
 struct DrawContext {

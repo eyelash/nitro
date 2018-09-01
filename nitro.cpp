@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017, Elias Aebi
+Copyright (c) 2016-2018, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -80,6 +80,9 @@ nitro::Texture nitro::Texture::create_from_file(const char* file_name, int& widt
 	png_destroy_read_struct(&png, &info, nullptr);
 	fclose(file);
 	return create_from_data(width, height, channels, data.data(), true);
+}
+nitro::Texture::operator bool() const {
+	return texture != nullptr;
 }
 nitro::Texture nitro::Texture::operator *(const Quad& t) const {
 	return Texture(texture, texcoord * t);

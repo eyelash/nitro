@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017, Elias Aebi
+Copyright (c) 2016-2018, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -233,7 +233,7 @@ class TextureState {
 	GLenum unit;
 	GLint location;
 public:
-	TextureState(Texture* texture, GLenum unit, GLint location): identifier(texture->identifier), unit(unit), location(location) {
+	TextureState(Texture* texture, GLenum unit, GLint location): identifier(texture ? texture->identifier : 0), unit(unit), location(location) {
 
 	}
 	void enable() const {
@@ -256,6 +256,21 @@ public:
 	}
 	void enable() const {
 		glUniform1f(location, value);
+	}
+	void disable() const {
+
+	}
+};
+
+class UniformBool {
+	GLint location;
+	bool value;
+public:
+	UniformBool(GLint location, bool value): location(location), value(value) {
+
+	}
+	void enable() const {
+		glUniform1i(location, value);
 	}
 	void disable() const {
 

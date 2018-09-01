@@ -3,12 +3,15 @@ project('nitro', 'cpp', default_options: ['cpp_std=c++11'])
 sources = [
 	'nitro.cpp',
 	'gles2.cpp',
+	'canvas.cpp',
 	'animation.cpp',
 	'text.cpp',
 	'window_x11.cpp',
 	'widgets.cpp',
 ]
 shaders = [
+	'shaders/canvas.vs.glsl',
+	'shaders/canvas.fs.glsl',
 	'shaders/color.fs.glsl',
 	'shaders/color.vs.glsl',
 	'shaders/texture.fs.glsl',
