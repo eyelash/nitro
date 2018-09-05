@@ -447,11 +447,7 @@ void nitro::ColorNode::set_color(const Color& color) {
 	request_redraw();
 }
 nitro::Property<nitro::Color> nitro::ColorNode::color() {
-	return Property<Color> {this, [](ColorNode* rectangle) {
-		return rectangle->_color;
-	}, [](ColorNode* rectangle, Color color) {
-		rectangle->_color = color;
-	}};
+	return create_property<Color, ColorNode, &ColorNode::get_color, &ColorNode::set_color>(this);
 }
 
 // TextureNode
@@ -543,11 +539,7 @@ void nitro::ColorMaskNode::set_color(const Color& color) {
 	request_redraw();
 }
 nitro::Property<nitro::Color> nitro::ColorMaskNode::color() {
-	return Property<Color> {this, [](ColorMaskNode* mask) {
-		return mask->get_color();
-	}, [](ColorMaskNode* mask, Color color) {
-		mask->set_color(color);
-	}};
+	return create_property<Color, ColorMaskNode, &ColorMaskNode::get_color, &ColorMaskNode::set_color>(this);
 }
 void nitro::ColorMaskNode::set_mask(const Texture& mask) {
 	this->mask = mask;

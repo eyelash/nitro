@@ -82,6 +82,7 @@ class Color {
 	constexpr Color(float r, float g, float b, float a): r(r), g(g), b(b), a(a) {}
 public:
 	constexpr Color(): Color(0.f, 0.f, 0.f, 0.f) {}
+	constexpr Color(float r, float g, float b): Color(r, g, b, 1.f) {}
 	static constexpr Color create(float r, float g, float b, float a = 1.f) {
 		return Color(r*a, g*a, b*a, a);
 	}

@@ -152,7 +152,7 @@ static std::vector<float> create_gaussian_kernel(int radius) {
 	}
 	return kernel;
 }
-static void blur(const std::vector<float>& kernel, std::vector<unsigned char>& buffer, float w, float h) {
+static void blur(const std::vector<float>& kernel, std::vector<unsigned char>& buffer, int w, int h) {
 	const int center = kernel.size() / 2;
 	std::vector<unsigned char> tmp (buffer.size());
 	for (int y = 0; y < h; ++y) {

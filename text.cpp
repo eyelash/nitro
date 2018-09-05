@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017, Elias Aebi
+Copyright (c) 2016-2018, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -198,11 +198,7 @@ void nitro::Text::set_color(const Color& color) {
 	}
 }
 nitro::Property<nitro::Color> nitro::Text::color() {
-	return Property<Color> {this, [](Text* text) {
-		return text->get_color();
-	}, [](Text* text, Color color) {
-		text->set_color(color);
-	}};
+	return create_property<Color, Text, &Text::get_color, &Text::set_color>(this);
 }
 
 // TextContainer

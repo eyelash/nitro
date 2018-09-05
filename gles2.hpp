@@ -355,7 +355,7 @@ template <class T0, class... T> void disable_state(const T0& state0, const T&...
 	state0.disable();
 }
 
-template <class... T> void draw(Program* program, GLenum mode, GLsizei count, const T&... state) {
+template <class... T> void draw(const Program* program, GLenum mode, GLsizei count, const T&... state) {
 	glUseProgram(program->identifier);
 	enable_state(state...);
 	glDrawArrays(mode, 0, count);

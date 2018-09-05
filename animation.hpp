@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017, Elias Aebi
+Copyright (c) 2016-2018, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -19,38 +19,36 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 namespace nitro {
 
-template <class T> struct _Identity {
-	using type = T;
-};
-template <class T> using nondeduced = typename _Identity<T>::type;
-
 template <class T> class Property {
 	void* object;
 	using Getter = T (*)(void*);
 	using Setter = void (*)(void*, T);
 	Getter getter;
-	void (*setter)(void* object, T value);
+	Setter setter;
 public:
-	template <class C> Property(C* object, nondeduced<T(*)(C*)> getter, nondeduced<void(*)(C*,T)> setter): object(object), getter(reinterpret_cast<Getter>(getter)), setter(reinterpret_cast<Setter>(setter)) {
-
-	}
-	T get() {
+	Property(void* object, Getter getter, Setter setter): object(object), getter(getter), setter(setter) {}
+	T get() const {
 		return getter(object);
 	}
-	void set(T value) {
+	void set(T value) const {
 		setter(object, value);
 	}
 };
 
 // create properties from getter and setter methods
-template <class T, class C, T (C::*Get)() const> T _get(C* object) {
-	return (object->*Get)();
-}
-template <class T, class C, void (C::*Set)(T)> void _set(C* object, T value) {
-	(object->*Set)(value);
-}
 template <class T, class C, T (C::*Get)() const, void (C::*Set)(T)> Property<T> create_property(C* object) {
-	return Property<T>(object, &_get<T, C, Get>, &_set<T, C, Set>);
+	return Property<T>(object, [](void* object) -> T {
+		return (static_cast<C*>(object)->*Get)();
+	}, [](void* object, T value) {
+		(static_cast<C*>(object)->*Set)(value);
+	});
+}
+template <class T, class C, const T& (C::*Get)() const, void (C::*Set)(const T&)> Property<T> create_property(C* object) {
+	return Property<T>(object, [](void* object) -> T {
+		return (static_cast<C*>(object)->*Get)();
+	}, [](void* object, T value) {
+		(static_cast<C*>(object)->*Set)(value);
+	});
 }
 
 template <class T> constexpr T linear(const T& v1, const T& v2, float x) {
