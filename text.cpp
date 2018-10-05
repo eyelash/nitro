@@ -16,19 +16,35 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "nitro.hpp"
-#include <unicode/utypes.h>
-#include <unicode/ustring.h>
-#include <unicode/ubidi.h>
-#include <unicode/uscript.h>
-#include <unicode/uchriter.h>
-#include <hb-icu.h>
 #include <hb-ft.h>
 
-// private ICU API
-struct UScriptRun;
-U_CAPI UScriptRun* U_EXPORT2 uscript_openRun(const UChar* src, int32_t length, UErrorCode* pErrorCode);
-U_CAPI void U_EXPORT2 uscript_closeRun(UScriptRun* scriptRun);
-U_CAPI UBool U_EXPORT2 uscript_nextRun(UScriptRun* scriptRun, int32_t* pRunStart, int32_t* pRunLimit, UScriptCode *pRunScript);
+static hb_codepoint_t utf8_get_next(const char*& c) {
+	hb_codepoint_t result = 0;
+	if ((c[0] & 0x80) == 0x00) {
+		result = c[0];
+		c += 1;
+	}
+	else if ((c[0] & 0xE0) == 0xC0) {
+		result = (c[0] & 0x1F) << 6 | (c[1] & 0x3F);
+		c += 2;
+	}
+	else if ((c[0] & 0xF0) == 0xE0) {
+		result = (c[0] & 0x0F) << 12 | (c[1] & 0x3F) << 6 | (c[2] & 0x3F);
+		c += 3;
+	}
+	else if ((c[0] & 0xF8) == 0xF0) {
+		result = (c[0] & 0x07) << 18 | (c[1] & 0x3F) << 12 | (c[2] & 0x3F) << 6 | (c[3] & 0x3F);
+		c += 4;
+	}
+	return result;
+}
+
+static bool script_is_real(hb_script_t script) {
+	return script != HB_SCRIPT_COMMON && script != HB_SCRIPT_INHERITED && script != HB_SCRIPT_UNKNOWN;
+}
+static bool compare_scripts(hb_script_t script1, hb_script_t script2) {
+	return script_is_real(script1) && script_is_real(script2) && script1 != script2;
+}
 
 // Glyph
 nitro::Glyph::Glyph(const Texture& texture, float x, float y, float width, float height): texture(texture), x(x), y(y), width(width), height(height) {
@@ -118,50 +134,31 @@ nitro::Font* nitro::FontSet::get_font(uint32_t character) {
 }
 
 // Text
-nitro::Text::Text(FontSet* font_set, const char* text_utf8, const Color& color) {
-	UErrorCode status = U_ZERO_ERROR;
-	// convert UTF-8 to UTF-16
-	int32_t text_length;
-	u_strFromUTF8(nullptr, 0, &text_length, text_utf8, -1, &status);
-	status = U_ZERO_ERROR;
-	std::vector<UChar> text(text_length);
-	u_strFromUTF8(text.data(), text.size(), nullptr, text_utf8, -1, &status);
-	if (U_FAILURE(status)) {
-		fprintf(stderr, "error: %s\n", u_errorName(status));
-	}
-	// BiDi iterator
-	UBiDi* bidi = ubidi_openSized(text.size(), 0, &status);
-	ubidi_setPara(bidi, text.data(), text.size(), UBIDI_DEFAULT_LTR, nullptr, &status);
-	int32_t bidi_limit;
-	UBiDiLevel bidi_level;
-	ubidi_getLogicalRun(bidi, 0, &bidi_limit, &bidi_level);
-	// script iterator
-	UScriptRun* script_iterator = uscript_openRun(text.data(), text.size(), &status);
-	int32_t script_limit;
-	UScriptCode script;
-	uscript_nextRun(script_iterator, nullptr, &script_limit, &script);
-	// iterate code points
+nitro::Text::Text(FontSet* font_set, const char* text, const Color& color) {
+	// TODO: handle bidirectional text
+	hb_unicode_funcs_t* funcs = hb_unicode_funcs_get_default();
 	float x = 0.f;
 	float y = font_set->get_descender();
-	icu::UCharCharacterIterator iter(text.data(), text.size());
-	int32_t previous_index = 0;
-	Font* previous_font = font_set->get_font(iter.first32());
-	while (iter.hasNext()) {
-		const UChar32 c = iter.next32();
-		const int32_t index = iter.getIndex();
-		Font* font = font_set->get_font(c);
-		if (index == bidi_limit || index == script_limit || font != previous_font) {
+	const char* text_start = text;
+	uint32_t codepoint = utf8_get_next(text);
+	hb_script_t script = hb_unicode_script(funcs, codepoint);
+	Font* font = font_set->get_font(codepoint);
+	while (codepoint) {
+		const char* text_end = text;
+		uint32_t next_codepoint = utf8_get_next(text);
+		hb_script_t next_script = hb_unicode_script(funcs, next_codepoint);
+		Font* next_font = font_set->get_font(next_codepoint);
+		if (next_codepoint == 0 || compare_scripts(next_script, script) || next_font != font) {
 			hb_buffer_t* buffer = hb_buffer_create();
-			hb_buffer_add_utf16(buffer, reinterpret_cast<uint16_t*>(text.data()), text.size(), previous_index, index-previous_index);
-			hb_buffer_set_direction(buffer, (bidi_level & 1) ? HB_DIRECTION_RTL : HB_DIRECTION_LTR);
-			hb_buffer_set_script(buffer, hb_icu_script_to_script(script));
+			hb_buffer_add_utf8(buffer, text_start, text_end - text_start, 0, -1);
 			hb_buffer_guess_segment_properties(buffer);
-			hb_shape(previous_font->get_hb_font(), buffer, nullptr, 0);
+			text_start = text_end;
+			hb_shape(font->get_hb_font(), buffer, nullptr, 0);
 			const unsigned int length = hb_buffer_get_length(buffer);
 			hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer, nullptr);
 			hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer, nullptr);
 			for (unsigned int i = 0; i < length; ++i) {
-				Glyph glyph = previous_font->render_glyph(infos[i].codepoint);
+				Glyph glyph = font->render_glyph(infos[i].codepoint);
 				ColorMaskNode* node = new ColorMaskNode();
 				node->set_location(x + glyph.x, y + glyph.y);
 				node->set_size(glyph.width, glyph.height);
@@ -172,18 +169,13 @@ nitro::Text::Text(FontSet* font_set, const char* text_utf8, const Color& color) 
 				y += positions[i].y_advance >> 6;
 			}
 			hb_buffer_destroy(buffer);
-			previous_index = index;
-			previous_font = font;
-			if (index == bidi_limit) {
-				ubidi_getLogicalRun(bidi, index, &bidi_limit, &bidi_level);
-			}
-			if (index == script_limit) {
-				uscript_nextRun(script_iterator, nullptr, &script_limit, &script);
-			}
 		}
+		codepoint = next_codepoint;
+		if (script_is_real(next_script)) {
+			script = next_script;
+		}
+		font = next_font;
 	}
-	ubidi_close(bidi);
-	uscript_closeRun(script_iterator);
 	set_size(x, font_set->get_height());
 }
 nitro::Node* nitro::Text::get_child(size_t index) {

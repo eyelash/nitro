@@ -25,8 +25,7 @@ dependencies = [
 	dependency('epoxy'),
 	dependency('x11'),
 	dependency('libpng', version: '>= 1.5.4'),
-	dependency('icu-uc'),
-	dependency('harfbuzz-icu'),
+	dependency('harfbuzz'),
 	dependency('freetype2'),
 	dependency('fontconfig'),
 ]
