@@ -408,4 +408,14 @@ public:
 	void set_alignment(HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment);
 };
 
+class RoundedRectangle: public Node {
+	Canvas canvas;
+	Color color;
+	float radius;
+public:
+	RoundedRectangle(const Color& color, float radius);
+	void draw(const DrawContext& draw_context) override;
+	void layout() override;
+};
+
 }

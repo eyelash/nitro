@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017, Elias Aebi
+Copyright (c) 2016-2018, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -129,6 +129,28 @@ static nitro::Texture create_rounded_corner_texture(int radius) {
 		}
 	}
 	return nitro::Texture::create_from_data(radius, radius, 1, data.data());
+}
+
+// RoundedRectangle
+nitro::RoundedRectangle::RoundedRectangle(const Color& color, float radius): color(color), radius(radius) {
+
+}
+void nitro::RoundedRectangle::draw(const DrawContext& draw_context) {
+	canvas.draw(draw_context.projection);
+}
+void nitro::RoundedRectangle::layout() {
+	canvas.clear();
+	canvas.set_color(0, 0, get_width(), get_height(), color);
+	Texture mask = create_rounded_corner_texture(radius);
+	Quad texcoord;
+	canvas.set_mask(get_width() - radius, get_height() - radius, radius, radius, mask * texcoord);
+	texcoord = texcoord.rotate();
+	canvas.set_mask(0, get_height() - radius, radius, radius, mask * texcoord);
+	texcoord = texcoord.rotate();
+	canvas.set_mask(0, 0, radius, radius, mask * texcoord);
+	texcoord = texcoord.rotate();
+	canvas.set_mask(get_width() - radius, 0, radius, radius, mask * texcoord);
+	canvas.prepare();
 }
 
 static nitro::Texture create_rounded_border_texture(int radius, int width) {
