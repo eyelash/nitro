@@ -77,7 +77,7 @@ nitro::Glyph nitro::Font::render_glyph(unsigned int glyph) {
 	FT_Load_Glyph(face, glyph, FT_LOAD_RENDER | FT_LOAD_TARGET_LIGHT);
 	FT_Bitmap* bitmap = &face->glyph->bitmap;
 	Texture texture = Texture::create_from_data(bitmap->width, bitmap->rows, 1, bitmap->buffer, true);
-	return Glyph(texture, face->glyph->bitmap_left, face->glyph->bitmap_top - bitmap->rows, bitmap->width, bitmap->rows);
+	return Glyph(texture, face->glyph->bitmap_left, face->glyph->bitmap_top - static_cast<int>(bitmap->rows), bitmap->width, bitmap->rows);
 }
 hb_font_t* nitro::Font::get_hb_font() {
 	return hb_font;
@@ -160,13 +160,13 @@ nitro::Text::Text(FontSet* font_set, const char* text, const Color& color) {
 			for (unsigned int i = 0; i < length; ++i) {
 				Glyph glyph = font->render_glyph(infos[i].codepoint);
 				ColorMaskNode* node = new ColorMaskNode();
-				node->set_location(x + glyph.x, y + glyph.y);
+				node->set_location(x + positions[i].x_offset / 64 + glyph.x, y + positions[i].y_offset / 64 + glyph.y);
 				node->set_size(glyph.width, glyph.height);
 				node->set_color(color);
 				node->set_mask(glyph.texture);
 				glyphs.push_back(node);
-				x += positions[i].x_advance >> 6;
-				y += positions[i].y_advance >> 6;
+				x += positions[i].x_advance / 64;
+				y += positions[i].y_advance / 64;
 			}
 			hb_buffer_destroy(buffer);
 		}

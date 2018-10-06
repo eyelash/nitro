@@ -101,7 +101,6 @@ void nitro::Canvas::prepare() {
 		ElementStack(const Element* element, float x0, float x1): y0(element->y0), x0(x0), x1(x1) {
 			elements.insert(element);
 		}
-		ElementStack(const Element* element): ElementStack(element, element->x0, element->x1) {}
 		void insert(const Element* element) const {
 			elements.insert(element);
 		}
@@ -177,12 +176,9 @@ void nitro::Canvas::prepare() {
 			return stack.x0 < x;
 		});
 		if (event.type == Event::Type::START) {
-			if (i0 == i1) {
-				stacks.insert(ElementStack(element));
-			}
-			else {
-				assert(i0 != stacks.end());
-				// split the first and the last stacks if necessary
+			float x = element->x0;
+			while (i0 != i1) {
+				assert(i0->x1 > element->x0 && i0->x0 < element->x1);
 				if (i0->x0 < element->x0) {
 					assert(i0->x0 < element->x0 && element->x0 < i0->x1);
 					ElementStack stack = *i0;
@@ -191,31 +187,25 @@ void nitro::Canvas::prepare() {
 					stacks.insert(left);
 					i0 = stacks.insert(stack).first;
 				}
-				--i1;
-				if (element->x1 < i1->x1) {
-					assert(i1->x0 < element->x1 && element->x1 < i1->x1);
-					ElementStack stack = *i1;
-					stacks.erase(i1);
+				if (element->x1 < i0->x1) {
+					assert(i0->x0 < element->x1 && element->x1 < i0->x1);
+					ElementStack stack = *i0;
+					stacks.erase(i0);
 					ElementStack left = stack.split_horizontally(element->x1);
-					i1 = stacks.insert(left).first;
-					stacks.insert(stack);
+					i0 = stacks.insert(left).first;
+					i1 = stacks.insert(stack).first;
 				}
-				++i1;
-				// insert the element into the stacks
-				float x = element->x0;
-				while (i0 != i1) {
-					if (x < i0->x0) {
-						// fill the gap
-						stacks.insert(ElementStack(element, x, i0->x0));
-					}
-					i0->get_element(event.y, new_elements);
-					i0->insert(element);
-					x = i0->x1;
-					++i0;
+				if (x < i0->x0) {
+					// fill the gap
+					stacks.insert(ElementStack(element, x, i0->x0));
 				}
-				if (x < element->x1) {
-					stacks.insert(ElementStack(element, x, element->x1));
-				}
+				i0->get_element(event.y, new_elements);
+				i0->insert(element);
+				x = i0->x1;
+				++i0;
+			}
+			if (x < element->x1) {
+				stacks.insert(ElementStack(element, x, element->x1));
 			}
 		}
 		else {
