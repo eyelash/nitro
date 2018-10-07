@@ -83,9 +83,6 @@ class Color {
 public:
 	constexpr Color(): Color(0.f, 0.f, 0.f, 0.f) {}
 	constexpr Color(float r, float g, float b): Color(r, g, b, 1.f) {}
-	static constexpr Color create(float r, float g, float b, float a = 1.f) {
-		return Color(r*a, g*a, b*a, a);
-	}
 	constexpr gles2::vec4 unpremultiply() const {
 		return a == 0.f ? gles2::vec4 {0.f, 0.f, 0.f, 0.f} : gles2::vec4 {r/a, g/a, b/a, a};
 	}
@@ -120,9 +117,6 @@ public:
 	// intersect
 	constexpr Rectangle operator &(const Rectangle& r) const {
 		return Rectangle(max(x0, r.x0), max(y0, r.y0), min(x1, r.x1), min(y1, r.y1));
-	}
-	constexpr Quad get_quad() const {
-		return Quad(x0, y0, x1, y1);
 	}
 };
 
@@ -161,15 +155,17 @@ struct Texture {
 	Texture operator *(const Quad& t) const;
 };
 
+struct CanvasElement: Rectangle {
+	Color color;
+	Texture texture;
+	Texture mask;
+	Texture inverted_mask;
+	CanvasElement(float x0, float y0, float x1, float y1, const Color& color, const Texture& texture, const Texture& mask, const Texture& inverted_mask);
+	void draw(const gles2::mat4& projection) const;
+};
+
 class Canvas {
-	struct Element: Rectangle {
-		Color color;
-		Texture texture;
-		Texture mask;
-		Texture inverted_mask;
-		Element(float x0, float y0, float x1, float y1, const Color& color, const Texture& texture, const Texture& mask, const Texture& inverted_mask);
-	};
-	std::vector<Element> elements;
+	std::vector<CanvasElement> elements;
 public:
 	void clear();
 	void set_color(float x, float y, float width, float height, const Color& color);
@@ -244,74 +240,12 @@ public:
 	void add_child(Node* node);
 };
 
-class ColorNode: public Node {
-	Color _color;
-public:
-	ColorNode();
-	void draw(const DrawContext& draw_context) override;
-	const Color& get_color() const;
-	void set_color(const Color& color);
-	Property<Color> color();
-};
-
-class TextureNode: public Node {
-	Texture texture;
-	float _alpha;
-public:
-	TextureNode();
-	static TextureNode create_from_file(const char* file_name, float x = 0.f, float y = 0.f);
-	void draw(const DrawContext& draw_context) override;
-	void set_texture(const Texture& texture);
-	float get_alpha() const;
-	void set_alpha(float alpha);
-	Property<float> alpha();
-};
-
-class ColorMaskNode: public Node {
-	Color _color;
-	Texture mask;
-public:
-	ColorMaskNode();
-	static ColorMaskNode create_from_file(const char* file_name, const Color& color);
-	void draw(const DrawContext& draw_context) override;
-	const Color& get_color() const;
-	void set_color(const Color& color);
-	Property<Color> color();
-	void set_mask(const Texture& mask);
-};
-
-class TextureMaskNode: public Node {
-	Texture texture;
-	Texture mask;
-	float _alpha;
-public:
-	TextureMaskNode();
-	void draw(const DrawContext& draw_context) override;
-	void set_texture(const Texture& texture);
-	void set_mask(const Texture& mask);
-	float get_alpha() const;
-	void set_alpha(float alpha);
-	Property<float> alpha();
-};
-
-class Clip: public Bin {
-	std::shared_ptr<gles2::FramebufferObject> fbo;
-	TextureNode image;
-public:
-	Clip();
-	void prepare_draw() override;
-	void draw(const DrawContext& draw_context) override;
-	void layout() override;
-	float get_alpha() const;
-	void set_alpha(float alpha);
-	Property<float> alpha();
-};
-
 struct Glyph {
 	Texture texture;
 	float x, y;
 	float width, height;
 	Glyph(const Texture& texture, float x, float y, float width, float height);
+	void draw(const Color& color, const gles2::mat4& projection) const;
 };
 
 class Font {
@@ -345,13 +279,13 @@ public:
 };
 
 class Text: public Node {
-	std::vector<ColorMaskNode*> glyphs;
+	std::vector<Glyph> glyphs;
+	Color color;
 public:
 	Text(FontSet* font, const char* text, const Color& color);
-	Node* get_child(size_t index) override;
+	void draw(const DrawContext& draw_context) override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
-	Property<Color> color();
 };
 
 enum class HorizontalAlignment {
@@ -364,6 +298,7 @@ enum class VerticalAlignment {
 	CENTER,
 	BOTTOM
 };
+
 class TextContainer: public Node {
 	Text text;
 	HorizontalAlignment horizontal_alignment;
@@ -374,7 +309,6 @@ public:
 	void layout() override;
 	const Color& get_color() const;
 	void set_color(const Color& color);
-	Property<Color> color();
 };
 
 class Window: public Bin {

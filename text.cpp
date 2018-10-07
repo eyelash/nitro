@@ -50,6 +50,9 @@ static bool compare_scripts(hb_script_t script1, hb_script_t script2) {
 nitro::Glyph::Glyph(const Texture& texture, float x, float y, float width, float height): texture(texture), x(x), y(y), width(width), height(height) {
 
 }
+void nitro::Glyph::draw(const Color& color, const gles2::mat4& projection) const {
+	CanvasElement(x, y, x + width, y + height, color, Texture(), texture, Texture()).draw(projection);
+}
 
 // Font
 static FT_Library initialize_freetype() {
@@ -134,7 +137,7 @@ nitro::Font* nitro::FontSet::get_font(uint32_t character) {
 }
 
 // Text
-nitro::Text::Text(FontSet* font_set, const char* text, const Color& color) {
+nitro::Text::Text(FontSet* font_set, const char* text, const Color& color): color(color) {
 	// TODO: handle bidirectional text
 	hb_unicode_funcs_t* funcs = hb_unicode_funcs_get_default();
 	float x = 0.f;
@@ -159,12 +162,9 @@ nitro::Text::Text(FontSet* font_set, const char* text, const Color& color) {
 			hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer, nullptr);
 			for (unsigned int i = 0; i < length; ++i) {
 				Glyph glyph = font->render_glyph(infos[i].codepoint);
-				ColorMaskNode* node = new ColorMaskNode();
-				node->set_location(x + positions[i].x_offset / 64 + glyph.x, y + positions[i].y_offset / 64 + glyph.y);
-				node->set_size(glyph.width, glyph.height);
-				node->set_color(color);
-				node->set_mask(glyph.texture);
-				glyphs.push_back(node);
+				glyph.x = x + positions[i].x_offset / 64 + glyph.x;
+				glyph.y = y + positions[i].y_offset / 64 + glyph.y;
+				glyphs.push_back(glyph);
 				x += positions[i].x_advance / 64;
 				y += positions[i].y_advance / 64;
 			}
@@ -178,19 +178,16 @@ nitro::Text::Text(FontSet* font_set, const char* text, const Color& color) {
 	}
 	set_size(x, font_set->get_height());
 }
-nitro::Node* nitro::Text::get_child(size_t index) {
-	return index < glyphs.size() ? glyphs[index] : nullptr;
-}
-const nitro::Color& nitro::Text::get_color() const {
-	return glyphs[0]->get_color();
-}
-void nitro::Text::set_color(const Color& color) {
-	for (ColorMaskNode* mask: glyphs) {
-		mask->set_color(color);
+void nitro::Text::draw(const DrawContext& draw_context) {
+	for (const Glyph& glyph: glyphs) {
+		glyph.draw(color, draw_context.projection);
 	}
 }
-nitro::Property<nitro::Color> nitro::Text::color() {
-	return create_property<Color, Text, &Text::get_color, &Text::set_color>(this);
+const nitro::Color& nitro::Text::get_color() const {
+	return color;
+}
+void nitro::Text::set_color(const Color& color) {
+	this->color = color;
 }
 
 // TextContainer
@@ -215,7 +212,4 @@ const nitro::Color& nitro::TextContainer::get_color() const {
 }
 void nitro::TextContainer::set_color(const Color& color) {
 	text.set_color(color);
-}
-nitro::Property<nitro::Color> nitro::TextContainer::color() {
-	return text.color();
 }

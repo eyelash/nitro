@@ -12,14 +12,6 @@ sources = [
 shaders = [
 	'shaders/canvas.vs.glsl',
 	'shaders/canvas.fs.glsl',
-	'shaders/color.fs.glsl',
-	'shaders/color.vs.glsl',
-	'shaders/texture.fs.glsl',
-	'shaders/texture.vs.glsl',
-	'shaders/color_mask.fs.glsl',
-	'shaders/color_mask.vs.glsl',
-	'shaders/texture_mask.fs.glsl',
-	'shaders/texture_mask.vs.glsl',
 ]
 dependencies = [
 	dependency('epoxy'),
