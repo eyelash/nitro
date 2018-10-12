@@ -168,10 +168,10 @@ class Canvas {
 	std::vector<CanvasElement> elements;
 public:
 	void clear();
-	void set_color(float x, float y, float width, float height, const Color& color);
-	void set_texture(float x, float y, float width, float height, const Texture& texture);
-	void set_mask(float x, float y, float width, float height, const Texture& mask);
-	void set_inverted_mask(float x, float y, float width, float height, const Texture& inverted_mask);
+	void set_color(float x0, float y0, float x1, float y1, const Color& color);
+	void set_texture(float x0, float y0, float x1, float y1, const Texture& texture);
+	void set_mask(float x0, float y0, float x1, float y1, const Texture& mask);
+	void set_inverted_mask(float x0, float y0, float x1, float y1, const Texture& inverted_mask);
 	void prepare();
 	void draw(const gles2::mat4& projection) const;
 };
@@ -348,6 +348,17 @@ class RoundedRectangle: public Node {
 	float radius;
 public:
 	RoundedRectangle(const Color& color, float radius);
+	void draw(const DrawContext& draw_context) override;
+	void layout() override;
+};
+
+class Shadow: public Node {
+	Canvas canvas;
+	Color color;
+	float radius;
+	float blur_radius;
+public:
+	Shadow(const Color& color, float radius, float blur_radius);
 	void draw(const DrawContext& draw_context) override;
 	void layout() override;
 };

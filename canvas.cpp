@@ -83,20 +83,28 @@ void nitro::Canvas::clear() {
 	elements.clear();
 }
 
-void nitro::Canvas::set_color(float x, float y, float width, float height, const Color& color) {
-	elements.emplace_back(x, y, x + width, y + height, color, Texture(), Texture(), Texture());
+void nitro::Canvas::set_color(float x0, float y0, float x1, float y1, const Color& color) {
+	if (x0 < x1 && y0 < y1) {
+		elements.emplace_back(x0, y0, x1, y1, color, Texture(), Texture(), Texture());
+	}
 }
 
-void nitro::Canvas::set_texture(float x, float y, float width, float height, const Texture& texture) {
-	elements.emplace_back(x, y, x + width, y + height, Color(), texture, Texture(), Texture());
+void nitro::Canvas::set_texture(float x0, float y0, float x1, float y1, const Texture& texture) {
+	if (x0 < x1 && y0 < y1) {
+		elements.emplace_back(x0, y0, x1, y1, Color(), texture, Texture(), Texture());
+	}
 }
 
-void nitro::Canvas::set_mask(float x, float y, float width, float height, const Texture& mask) {
-	elements.emplace_back(x, y, x + width, y + height, Color(), Texture(), mask, Texture());
+void nitro::Canvas::set_mask(float x0, float y0, float x1, float y1, const Texture& mask) {
+	if (x0 < x1 && y0 < y1) {
+		elements.emplace_back(x0, y0, x1, y1, Color(), Texture(), mask, Texture());
+	}
 }
 
-void nitro::Canvas::set_inverted_mask(float x, float y, float width, float height, const Texture& inverted_mask) {
-	elements.emplace_back(x, y, x + width, y + height, Color(), Texture(), Texture(), inverted_mask);
+void nitro::Canvas::set_inverted_mask(float x0, float y0, float x1, float y1, const Texture& inverted_mask) {
+	if (x0 < x1 && y0 < y1) {
+		elements.emplace_back(x0, y0, x1, y1, Color(), Texture(), Texture(), inverted_mask);
+	}
 }
 
 void nitro::Canvas::prepare() {

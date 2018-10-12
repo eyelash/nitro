@@ -140,28 +140,25 @@ void nitro::RoundedRectangle::draw(const DrawContext& draw_context) {
 }
 void nitro::RoundedRectangle::layout() {
 	canvas.clear();
-	canvas.set_color(0, 0, get_width(), get_height(), color);
-	Texture mask = create_rounded_corner_texture(radius);
+	const Texture mask = create_rounded_corner_texture(radius);
+	const float x0 = 0.f;
+	const float y0 = 0.f;
+	const float x1 = radius;
+	const float y1 = radius;
+	const float x2 = get_width() - radius;
+	const float y2 = get_height() - radius;
+	const float x3 = get_width();
+	const float y3 = get_height();
+	canvas.set_color(x0, y0, x3, y3, color);
 	Quad texcoord;
-	canvas.set_mask(get_width() - radius, get_height() - radius, radius, radius, mask * texcoord);
+	canvas.set_mask(x2, y2, x3, y3, mask * texcoord);
 	texcoord = texcoord.rotate();
-	canvas.set_mask(0, get_height() - radius, radius, radius, mask * texcoord);
+	canvas.set_mask(x0, y2, x1, y3, mask * texcoord);
 	texcoord = texcoord.rotate();
-	canvas.set_mask(0, 0, radius, radius, mask * texcoord);
+	canvas.set_mask(x0, y0, x1, y1, mask * texcoord);
 	texcoord = texcoord.rotate();
-	canvas.set_mask(get_width() - radius, 0, radius, radius, mask * texcoord);
+	canvas.set_mask(x2, y0, x3, y1, mask * texcoord);
 	canvas.prepare();
-}
-
-static nitro::Texture create_rounded_border_texture(int radius, int width) {
-	std::vector<unsigned char> data (radius * radius);
-	for (int y = 0; y < radius; ++y) {
-		for (int x = 0; x < radius; ++x) {
-			const float value = rounded_corner((float)radius, (float)x, (float)y) - rounded_corner((float)(radius-width), (float)x, (float)y);
-			data[y*radius+x] = value * 255.f + 0.5f;
-		}
-	}
-	return nitro::Texture::create_from_data(radius, radius, 1, data.data());
 }
 
 static std::vector<float> create_gaussian_kernel(int radius) {
@@ -174,14 +171,14 @@ static std::vector<float> create_gaussian_kernel(int radius) {
 	}
 	return kernel;
 }
-static void blur(const std::vector<float>& kernel, std::vector<unsigned char>& buffer, int w, int h) {
-	const int center = kernel.size() / 2;
+static void blur(int radius, std::vector<unsigned char>& buffer, int w, int h) {
+	const std::vector<float> kernel = create_gaussian_kernel(radius);
 	std::vector<unsigned char> tmp (buffer.size());
 	for (int y = 0; y < h; ++y) {
 		for (int x = 0; x < w; ++x) {
 			float sum = 0.f;
-			for (unsigned int k = 0; k < kernel.size(); ++k) {
-				int kx = x + k - center;
+			for (int k = 0; k < radius * 2 + 1; ++k) {
+				int kx = x + k - radius;
 				if (kx < 0) kx = 0;
 				else if (kx >= w) kx = w - 1;
 				sum += buffer[y * w + kx] * kernel[k];
@@ -192,8 +189,8 @@ static void blur(const std::vector<float>& kernel, std::vector<unsigned char>& b
 	for (int y = 0; y < h; ++y) {
 		for (int x = 0; x < w; ++x) {
 			float sum = 0.f;
-			for (unsigned int k = 0; k < kernel.size(); ++k) {
-				int ky = y + k - center;
+			for (int k = 0; k < radius * 2 + 1; ++k) {
+				int ky = y + k - radius;
 				if (ky < 0) ky = 0;
 				else if (ky >= h) ky = h - 1;
 				sum += tmp[ky * w + x] * kernel[k];
@@ -218,6 +215,71 @@ static nitro::Texture create_blurred_corner_texture(int radius, int blur_radius)
 			buffer[i] = rounded_corner(radius, x, y) * 255.f + .5f;
 		}
 	}
-	blur(create_gaussian_kernel(blur_radius), buffer, size, size);
+	blur(blur_radius, buffer, size, size);
 	return nitro::Texture::create_from_data(size, size, 1, buffer.data());
+}
+
+// Shadow
+nitro::Shadow::Shadow(const Color& color, float radius, float blur_radius): color(color), radius(radius), blur_radius(blur_radius) {
+
+}
+void nitro::Shadow::draw(const DrawContext& draw_context) {
+	canvas.draw(draw_context.projection);
+}
+void nitro::Shadow::layout() {
+	canvas.clear();
+	{
+		const Texture mask = create_blurred_corner_texture(radius, blur_radius);
+		const float x0 = -blur_radius;
+		const float y0 = -blur_radius;
+		const float x1 = radius + blur_radius;
+		const float y1 = radius + blur_radius;
+		const float x2 = get_width() - (radius + blur_radius);
+		const float y2 = get_height() - (radius + blur_radius);
+		const float x3 = get_width() + blur_radius;
+		const float y3 = get_height() + blur_radius;
+		canvas.set_color(x0, y0, x3, y3, color);
+		{
+			Quad texcoord;
+			canvas.set_mask(x2, y2, x3, y3, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_mask(x0, y2, x1, y3, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_mask(x0, y0, x1, y1, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_mask(x2, y0, x3, y1, mask * texcoord);
+		}
+		{
+			Quad texcoord(0.f, 0.f, 0.f, 1.f);
+			canvas.set_mask(x1, y2, x2, y3, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_mask(x0, y1, x1, y2, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_mask(x1, y0, x2, y1, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_mask(x2, y1, x3, y2, mask * texcoord);
+		}
+	}
+	{
+		const Texture mask = create_rounded_corner_texture(radius);
+		const float x0 = 0.f;
+		const float y0 = 0.f;
+		const float x1 = radius;
+		const float y1 = radius;
+		const float x2 = get_width() - radius;
+		const float y2 = get_height() - radius;
+		const float x3 = get_width();
+		const float y3 = get_height();
+		canvas.set_color(x1, y0, x2, y3, Color());
+		canvas.set_color(x0, y1, x3, y2, Color());
+		Quad texcoord;
+		canvas.set_inverted_mask(x2, y2, x3, y3, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_inverted_mask(x0, y2, x1, y3, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_inverted_mask(x0, y0, x1, y1, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_inverted_mask(x2, y0, x3, y1, mask * texcoord);
+	}
+	canvas.prepare();
 }
