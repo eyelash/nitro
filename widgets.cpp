@@ -273,7 +273,7 @@ static nitro::Texture create_blurred_corner_texture(int radius, int blur_radius)
 }
 
 // Shadow
-nitro::Shadow::Shadow(const Color& color, float radius, float blur_radius): color(color), radius(radius), blur_radius(blur_radius) {
+nitro::Shadow::Shadow(const Color& color, float radius, float blur_radius, float x_offset, float y_offset): color(color), radius(radius), blur_radius(blur_radius), x_offset(x_offset), y_offset(y_offset) {
 
 }
 void nitro::Shadow::draw(const DrawContext& draw_context) {
@@ -283,14 +283,14 @@ void nitro::Shadow::layout() {
 	canvas.clear();
 	{
 		const Texture mask = create_blurred_corner_texture(radius, blur_radius);
-		const float x0 = -blur_radius;
-		const float y0 = -blur_radius;
-		const float x1 = radius + blur_radius;
-		const float y1 = radius + blur_radius;
-		const float x2 = get_width() - (radius + blur_radius);
-		const float y2 = get_height() - (radius + blur_radius);
-		const float x3 = get_width() + blur_radius;
-		const float y3 = get_height() + blur_radius;
+		const float x0 = -blur_radius + x_offset;
+		const float y0 = -blur_radius + y_offset;
+		const float x1 = radius + blur_radius + x_offset;
+		const float y1 = radius + blur_radius + y_offset;
+		const float x2 = get_width() - (radius + blur_radius) + x_offset;
+		const float y2 = get_height() - (radius + blur_radius) + y_offset;
+		const float x3 = get_width() + blur_radius + x_offset;
+		const float y3 = get_height() + blur_radius + y_offset;
 		canvas.set_color(x0, y0, x3, y3, color);
 		{
 			Quad texcoord;
@@ -333,6 +333,70 @@ void nitro::Shadow::layout() {
 		canvas.set_inverted_mask(x0, y0, x1, y1, mask * texcoord);
 		texcoord = texcoord.rotate();
 		canvas.set_inverted_mask(x2, y0, x3, y1, mask * texcoord);
+	}
+	canvas.prepare();
+}
+
+// InsetShadow
+nitro::InsetShadow::InsetShadow(const Color& color, float radius, float blur_radius, float x_offset, float y_offset): color(color), radius(radius), blur_radius(blur_radius), x_offset(x_offset), y_offset(y_offset) {
+
+}
+void nitro::InsetShadow::draw(const DrawContext& draw_context) {
+	canvas.draw(draw_context.projection);
+}
+void nitro::InsetShadow::layout() {
+	canvas.clear();
+	{
+		const Texture mask = create_rounded_corner_texture(radius);
+		const float x0 = 0.f;
+		const float y0 = 0.f;
+		const float x1 = radius;
+		const float y1 = radius;
+		const float x2 = get_width() - radius;
+		const float y2 = get_height() - radius;
+		const float x3 = get_width();
+		const float y3 = get_height();
+		canvas.set_color(x0, y0, x3, y3, color);
+		Quad texcoord;
+		canvas.set_mask(x2, y2, x3, y3, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_mask(x0, y2, x1, y3, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_mask(x0, y0, x1, y1, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_mask(x2, y0, x3, y1, mask * texcoord);
+	}
+	{
+		const Texture mask = create_blurred_corner_texture(radius, blur_radius);
+		const float x0 = -blur_radius + x_offset;
+		const float y0 = -blur_radius + y_offset;
+		const float x1 = radius + blur_radius + x_offset;
+		const float y1 = radius + blur_radius + y_offset;
+		const float x2 = get_width() - (radius + blur_radius) + x_offset;
+		const float y2 = get_height() - (radius + blur_radius) + y_offset;
+		const float x3 = get_width() + blur_radius + x_offset;
+		const float y3 = get_height() + blur_radius + y_offset;
+		canvas.set_color(x1, y1, x2, y2, Color());
+		{
+			Quad texcoord;
+			canvas.set_inverted_mask(x2, y2, x3, y3, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_inverted_mask(x0, y2, x1, y3, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_inverted_mask(x0, y0, x1, y1, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_inverted_mask(x2, y0, x3, y1, mask * texcoord);
+		}
+		{
+			Quad texcoord(0.f, 0.f, 0.f, 1.f);
+			canvas.set_inverted_mask(x1, y2, x2, y3, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_inverted_mask(x0, y1, x1, y2, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_inverted_mask(x1, y0, x2, y1, mask * texcoord);
+			texcoord = texcoord.rotate();
+			canvas.set_inverted_mask(x2, y1, x3, y2, mask * texcoord);
+		}
 	}
 	canvas.prepare();
 }

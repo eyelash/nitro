@@ -368,8 +368,21 @@ class Shadow: public Node {
 	Color color;
 	float radius;
 	float blur_radius;
+	float x_offset, y_offset;
 public:
-	Shadow(const Color& color, float radius, float blur_radius);
+	Shadow(const Color& color, float radius, float blur_radius, float x_offset = 0.f, float y_offset = 0.f);
+	void draw(const DrawContext& draw_context) override;
+	void layout() override;
+};
+
+class InsetShadow: public Node {
+	Canvas canvas;
+	Color color;
+	float radius;
+	float blur_radius;
+	float x_offset, y_offset;
+public:
+	InsetShadow(const Color& color, float radius, float blur_radius, float x_offset = 0.f, float y_offset = 0.f);
 	void draw(const DrawContext& draw_context) override;
 	void layout() override;
 };
