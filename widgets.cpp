@@ -161,6 +161,59 @@ void nitro::RoundedRectangle::layout() {
 	canvas.prepare();
 }
 
+// RoundedBorder
+nitro::RoundedBorder::RoundedBorder(float border_width, const Color& color, float radius): border_width(border_width), color(color), radius(radius) {
+
+}
+void nitro::RoundedBorder::draw(const DrawContext& draw_context) {
+	canvas.draw(draw_context.projection);
+}
+void nitro::RoundedBorder::layout() {
+	canvas.clear();
+	{
+		const Texture mask = create_rounded_corner_texture(radius);
+		const float x0 = 0.f;
+		const float y0 = 0.f;
+		const float x1 = radius;
+		const float y1 = radius;
+		const float x2 = get_width() - radius;
+		const float y2 = get_height() - radius;
+		const float x3 = get_width();
+		const float y3 = get_height();
+		canvas.set_color(x0, y0, x3, y3, color);
+		Quad texcoord;
+		canvas.set_mask(x2, y2, x3, y3, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_mask(x0, y2, x1, y3, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_mask(x0, y0, x1, y1, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_mask(x2, y0, x3, y1, mask * texcoord);
+	}
+	{
+		const Texture mask = create_rounded_corner_texture(radius - border_width);
+		const float x0 = border_width;
+		const float y0 = border_width;
+		const float x1 = radius;
+		const float y1 = radius;
+		const float x2 = get_width() - radius;
+		const float y2 = get_height() - radius;
+		const float x3 = get_width() - border_width;
+		const float y3 = get_height() - border_width;
+		canvas.set_color(x1, y0, x2, y3, Color());
+		canvas.set_color(x0, y1, x3, y2, Color());
+		Quad texcoord;
+		canvas.set_inverted_mask(x2, y2, x3, y3, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_inverted_mask(x0, y2, x1, y3, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_inverted_mask(x0, y0, x1, y1, mask * texcoord);
+		texcoord = texcoord.rotate();
+		canvas.set_inverted_mask(x2, y0, x3, y1, mask * texcoord);
+	}
+	canvas.prepare();
+}
+
 static std::vector<float> create_gaussian_kernel(int radius) {
 	std::vector<float> kernel (radius * 2 + 1);
 	const float sigma = radius / 3.f;

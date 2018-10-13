@@ -352,6 +352,17 @@ public:
 	void layout() override;
 };
 
+class RoundedBorder: public Node {
+	Canvas canvas;
+	float border_width;
+	Color color;
+	float radius;
+public:
+	RoundedBorder(float border_width, const Color& color, float radius);
+	void draw(const DrawContext& draw_context) override;
+	void layout() override;
+};
+
 class Shadow: public Node {
 	Canvas canvas;
 	Color color;
