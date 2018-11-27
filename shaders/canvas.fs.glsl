@@ -5,6 +5,7 @@ uniform bool use_mask;
 uniform bool use_inverted_mask;
 
 uniform sampler2D texture;
+uniform float alpha;
 uniform sampler2D mask;
 uniform sampler2D inverted_mask;
 
@@ -15,7 +16,7 @@ varying vec4 v_inverted_mask_texcoord;
 
 void main() {
 	if (use_texture) {
-		gl_FragColor = texture2D(texture, v_texture_texcoord.xy);
+		gl_FragColor = texture2D(texture, v_texture_texcoord.xy) * vec4(1.0, 1.0, 1.0, alpha);
 	}
 	else {
 		gl_FragColor = v_color;

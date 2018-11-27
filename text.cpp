@@ -51,7 +51,7 @@ nitro::Glyph::Glyph(const Texture& texture, float x, float y, float width, float
 
 }
 void nitro::Glyph::draw(const Color& color, const gles2::mat4& projection) const {
-	CanvasElement(x, y, x + width, y + height, color, Texture(), texture, Texture()).draw(projection);
+	CanvasElement(x, y, x + width, y + height, color, Texture(), 0.f, texture, Texture()).draw(projection);
 }
 
 // Font

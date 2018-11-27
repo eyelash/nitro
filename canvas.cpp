@@ -33,6 +33,7 @@ public:
 	GLint color_location;
 	GLint texture_location;
 	GLint texture_texcoord_location;
+	GLint alpha_location;
 	GLint mask_location;
 	GLint mask_texcoord_location;
 	GLint inverted_mask_location;
@@ -46,6 +47,7 @@ public:
 		color_location = get_attribute_location("color");
 		texture_location = get_uniform_location("texture");
 		texture_texcoord_location = get_attribute_location("texture_texcoord");
+		alpha_location = get_uniform_location("alpha");
 		mask_location = get_uniform_location("mask");
 		mask_texcoord_location = get_attribute_location("mask_texcoord");
 		inverted_mask_location = get_uniform_location("inverted_mask");
@@ -53,7 +55,7 @@ public:
 	}
 };
 
-nitro::CanvasElement::CanvasElement(float x0, float y0, float x1, float y1, const Color& color, const Texture& texture, const Texture& mask, const Texture& inverted_mask): Rectangle(x0, y0, x1, y1), color(color), texture(texture), mask(mask), inverted_mask(inverted_mask) {
+nitro::CanvasElement::CanvasElement(float x0, float y0, float x1, float y1, const Color& color, const Texture& texture, float alpha, const Texture& mask, const Texture& inverted_mask): Rectangle(x0, y0, x1, y1), color(color), texture(texture), alpha(alpha), mask(mask), inverted_mask(inverted_mask) {
 
 }
 
@@ -72,6 +74,7 @@ void nitro::CanvasElement::draw(const gles2::mat4& projection) const {
 		gles2::AttributeVec4(program.color_location, color.unpremultiply()),
 		gles2::TextureState(texture.texture.get(), GL_TEXTURE0, program.texture_location),
 		gles2::AttributeArray(program.texture_texcoord_location, 2, GL_FLOAT, texture.texcoord.get_data()),
+		gles2::UniformFloat(program.alpha_location, alpha),
 		gles2::TextureState(mask.texture.get(), GL_TEXTURE1, program.mask_location),
 		gles2::AttributeArray(program.mask_texcoord_location, 2, GL_FLOAT, mask.texcoord.get_data()),
 		gles2::TextureState(inverted_mask.texture.get(), GL_TEXTURE2, program.inverted_mask_location),
@@ -85,25 +88,25 @@ void nitro::Canvas::clear() {
 
 void nitro::Canvas::set_color(float x0, float y0, float x1, float y1, const Color& color) {
 	if (x0 < x1 && y0 < y1) {
-		elements.emplace_back(x0, y0, x1, y1, color, Texture(), Texture(), Texture());
+		elements.emplace_back(x0, y0, x1, y1, color, Texture(), 0.f, Texture(), Texture());
 	}
 }
 
-void nitro::Canvas::set_texture(float x0, float y0, float x1, float y1, const Texture& texture) {
+void nitro::Canvas::set_texture(float x0, float y0, float x1, float y1, const Texture& texture, float alpha) {
 	if (x0 < x1 && y0 < y1) {
-		elements.emplace_back(x0, y0, x1, y1, Color(), texture, Texture(), Texture());
+		elements.emplace_back(x0, y0, x1, y1, Color(), texture, alpha, Texture(), Texture());
 	}
 }
 
 void nitro::Canvas::set_mask(float x0, float y0, float x1, float y1, const Texture& mask) {
 	if (x0 < x1 && y0 < y1) {
-		elements.emplace_back(x0, y0, x1, y1, Color(), Texture(), mask, Texture());
+		elements.emplace_back(x0, y0, x1, y1, Color(), Texture(), 0.f, mask, Texture());
 	}
 }
 
 void nitro::Canvas::set_inverted_mask(float x0, float y0, float x1, float y1, const Texture& inverted_mask) {
 	if (x0 < x1 && y0 < y1) {
-		elements.emplace_back(x0, y0, x1, y1, Color(), Texture(), Texture(), inverted_mask);
+		elements.emplace_back(x0, y0, x1, y1, Color(), Texture(), 0.f, Texture(), inverted_mask);
 	}
 }
 
@@ -146,6 +149,7 @@ void nitro::Canvas::prepare() {
 			}
 			Color color;
 			Texture texture;
+			float alpha = 0.f;
 			Texture mask;
 			Texture inverted_mask;
 			for (const CanvasElement* element: elements) {
@@ -156,7 +160,9 @@ void nitro::Canvas::prepare() {
 					(y1 - element->y0) / (element->y1 - element->y0)
 				);
 				if (element->texture) {
+					color = Color();
 					texture = element->texture * quad;
+					alpha = element->alpha;
 				}
 				else if (element->mask) {
 					mask = element->mask * quad;
@@ -167,10 +173,11 @@ void nitro::Canvas::prepare() {
 				else {
 					color = element->color;
 					texture = Texture();
+					alpha = 0.f;
 				}
 			}
-			if (color || texture) {
-				new_elements.push_back(CanvasElement(x0, y0, x1, y1, color, texture, mask, inverted_mask));
+			if (color || (texture && alpha > 0.f)) {
+				new_elements.push_back(CanvasElement(x0, y0, x1, y1, color, texture, alpha, mask, inverted_mask));
 			}
 			y0 = y1;
 		}

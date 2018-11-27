@@ -158,9 +158,10 @@ struct Texture {
 struct CanvasElement: Rectangle {
 	Color color;
 	Texture texture;
+	float alpha;
 	Texture mask;
 	Texture inverted_mask;
-	CanvasElement(float x0, float y0, float x1, float y1, const Color& color, const Texture& texture, const Texture& mask, const Texture& inverted_mask);
+	CanvasElement(float x0, float y0, float x1, float y1, const Color& color, const Texture& texture, float alpha, const Texture& mask, const Texture& inverted_mask);
 	void draw(const gles2::mat4& projection) const;
 };
 
@@ -169,7 +170,7 @@ class Canvas {
 public:
 	void clear();
 	void set_color(float x0, float y0, float x1, float y1, const Color& color);
-	void set_texture(float x0, float y0, float x1, float y1, const Texture& texture);
+	void set_texture(float x0, float y0, float x1, float y1, const Texture& texture, float alpha = 1.f);
 	void set_mask(float x0, float y0, float x1, float y1, const Texture& mask);
 	void set_inverted_mask(float x0, float y0, float x1, float y1, const Texture& inverted_mask);
 	void prepare();
