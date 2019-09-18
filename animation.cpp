@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2019, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -46,15 +46,19 @@ const nitro::AnimationType nitro::AnimationType::DECELERATING = AnimationType(&d
 const nitro::AnimationType nitro::AnimationType::OSCILLATING = AnimationType(&oscillating_get_y);
 const nitro::AnimationType nitro::AnimationType::SWAY = AnimationType(&sway_get_y);
 
-long nitro::Animation::time;
+std::uint64_t nitro::Animation::time = 0;
 std::vector<nitro::Animation*> nitro::Animation::animations;
 
 void nitro::Animation::add_animation(nitro::Animation* animation) {
 	animations.push_back(animation);
 }
 
-void nitro::Animation::set_time(long time) {
-	Animation::time = time;
+std::uint64_t nitro::Animation::get_time() {
+	return time;
+}
+
+void nitro::Animation::advance_time(float seconds) {
+	time += seconds * 1000000.f + .5f;
 }
 
 void nitro::Animation::apply_all() {

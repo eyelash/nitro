@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017, Elias Aebi
+Copyright (c) 2016-2019, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -18,7 +18,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "nitro.hpp"
 #include <X11/Xlib.h>
 #include <epoxy/egl.h>
-#include <time.h>
 #include <poll.h>
 #include <cstdio>
 
@@ -28,12 +27,6 @@ static EGLDisplay egl_display;
 static EGLSurface surface;
 static bool running;
 static Atom XA_WM_DELETE_WINDOW;
-
-static void set_time() {
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	nitro::Animation::set_time(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
-}
 
 nitro::Window::Window(int width, int height, const char* title): draw_context(gles2::project(width, height)), needs_redraw(false) {
 	display = XOpenDisplay(nullptr);
@@ -101,8 +94,6 @@ nitro::Window::Window(int width, int height, const char* title): draw_context(gl
 	XStoreName(display, window, title);
 	XA_WM_DELETE_WINDOW = XInternAtom(display, "WM_DELETE_WINDOW", False);
 	XSetWMProtocols(display, window, &XA_WM_DELETE_WINDOW, 1);
-
-	set_time();
 }
 
 void nitro::Window::layout() {
@@ -156,7 +147,7 @@ void nitro::Window::run() {
 	running = true;
 	while (running) {
 		dispatch_events();
-		set_time();
+		Animation::advance_time(1.f / 60.f);
 		Animation::apply_all();
 		if (needs_redraw) {
 			prepare_draw();

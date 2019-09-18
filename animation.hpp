@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2018, Elias Aebi
+Copyright (c) 2016-2019, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -15,6 +15,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 */
 
+#include <cstdint>
 #include <vector>
 
 namespace nitro {
@@ -69,45 +70,43 @@ public:
 
 class Animation {
 	static std::vector<Animation*> animations;
+	static std::uint64_t time;
 public:
 	virtual ~Animation() {}
-	static long time;
 	virtual bool apply() = 0;
 	static void add_animation(Animation* animation);
-	static void set_time(long time);
+	static std::uint64_t get_time();
+	static void advance_time(float seconds);
 	static void apply_all();
 };
 
 template <class T> class Animator: public Animation {
 	T start_value, end_value;
-	long start_time, duration;
+	std::uint64_t start_time, duration;
 	Property<T> property;
 	AnimationType type;
 	bool running;
 public:
-	Animator(const Property<T>& property): property(property), running(false) {
-
-	}
-	void animate(T to, long duration, AnimationType type = AnimationType::SWAY) {
+	Animator(const Property<T>& property): property(property), running(false) {}
+	void animate(T to, float duration, AnimationType type = AnimationType::SWAY) {
 		start_value = property.get();
 		end_value = to;
-		start_time = Animation::time;
-		this->duration = duration;
+		start_time = get_time();
+		this->duration = duration * 1000000.f + .5f;
 		this->type = type;
 		if (!running) {
 			running = true;
 			Animation::add_animation(this);
 		}
 	}
-	bool apply() {
-		float x = (float)(time-start_time)/duration;
+	bool apply() override {
+		const float x = static_cast<float>(get_time() - start_time) / duration;
 		if (x >= 1.f) {
 			property.set(end_value);
 			running = false;
 			return true;
 		}
-		x = type.get_y(x);
-		property.set(linear(start_value, end_value, x));
+		property.set(linear(start_value, end_value, type.get_y(x)));
 		return false;
 	}
 };
