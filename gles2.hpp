@@ -340,26 +340,11 @@ public:
 	}
 };
 
-inline void enable_state() {
-
-}
-template <class T0, class... T> void enable_state(const T0& state0, const T&... state) {
-	state0.enable();
-	enable_state(state...);
-}
-inline void disable_state() {
-
-}
-template <class T0, class... T> void disable_state(const T0& state0, const T&... state) {
-	disable_state(state...);
-	state0.disable();
-}
-
 template <class... T> void draw(const Program* program, GLenum mode, GLsizei count, const T&... state) {
 	glUseProgram(program->identifier);
-	enable_state(state...);
+	(state.enable(), ...);
 	glDrawArrays(mode, 0, count);
-	disable_state(state...);
+	(..., state.disable());
 }
 
 }

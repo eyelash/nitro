@@ -1,4 +1,4 @@
-project('nitro', 'cpp', default_options: ['cpp_std=c++11'])
+project('nitro', 'cpp', default_options: ['cpp_std=c++17'])
 
 sources = [
 	'nitro.cpp',
