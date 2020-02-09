@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2019, Elias Aebi
+Copyright (c) 2016-2020, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -25,6 +25,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <fontconfig/fontconfig.h>
+#include <poll.h>
 
 namespace nitro {
 
@@ -315,13 +316,34 @@ public:
 class Window: public Bin {
 	DrawContext draw_context;
 	bool needs_redraw;
+	int get_fd();
 	void dispatch_events();
+	bool running;
 public:
 	Window(int width, int height, const char* title);
 	void draw(const DrawContext& draw_context) override;
 	void layout() override;
 	void request_redraw() override;
-	void run();
+	template <class... T> void run(T&... t) {
+		struct pollfd fds[] = {{get_fd(), POLLIN}, {t.get_fd(), POLLIN}...};
+		running = true;
+		while (true) {
+			dispatch_events();
+			(t.dispatch(), ...);
+			if (!running) {
+				break;
+			}
+			if (Animation::apply_all(1.f / 60.f) || needs_redraw) {
+				prepare_draw();
+				draw(draw_context);
+				needs_redraw = false;
+			}
+			else {
+				poll(fds, 1 + sizeof...(T), -1);
+			}
+		}
+	}
+	void quit();
 };
 
 class Padding: public Bin {

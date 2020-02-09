@@ -18,14 +18,12 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "nitro.hpp"
 #include <X11/Xlib.h>
 #include <epoxy/egl.h>
-#include <poll.h>
 #include <cstdio>
 
 static Display* display;
 static Window window;
 static EGLDisplay egl_display;
 static EGLSurface surface;
-static bool running;
 static Atom XA_WM_DELETE_WINDOW;
 
 nitro::Window::Window(int width, int height, const char* title): draw_context(gles2::project(width, height)), needs_redraw(false) {
@@ -107,6 +105,8 @@ void nitro::Window::draw(const DrawContext& draw_context) {
 }
 
 void nitro::Window::layout() {
+	glViewport(0, 0, get_width(), get_height());
+	draw_context.projection = gles2::project(get_width(), get_height());
 	Bin::layout();
 	request_redraw();
 }
@@ -115,13 +115,17 @@ void nitro::Window::request_redraw() {
 	needs_redraw = true;
 }
 
+int nitro::Window::get_fd() {
+	return ConnectionNumber(display);
+}
+
 void nitro::Window::dispatch_events() {
 	XEvent event;
 	while (XPending(display)) {
 		XNextEvent(display, &event);
 		switch (event.type) {
 		case Expose:
-			needs_redraw = true;
+			request_redraw();
 			break;
 		case MotionNotify:
 			mouse_motion(Point(event.xmotion.x, get_height() - event.xmotion.y));
@@ -140,31 +144,16 @@ void nitro::Window::dispatch_events() {
 			break;
 		case ConfigureNotify:
 			set_size(event.xconfigure.width, event.xconfigure.height);
-			glViewport(0, 0, event.xconfigure.width, event.xconfigure.height);
-			draw_context.projection = gles2::project(event.xconfigure.width, event.xconfigure.height);
 			break;
 		case ClientMessage:
 			if ((Atom)event.xclient.data.l[0] == XA_WM_DELETE_WINDOW) {
-				running = false;
+				quit();
 			}
 			break;
 		}
 	}
 }
 
-void nitro::Window::run() {
-	struct pollfd fd = {ConnectionNumber(display), POLLIN};
-	running = true;
-	dispatch_events();
-	while (running) {
-		if (Animation::apply_all(1.f / 60.f) || needs_redraw) {
-			prepare_draw();
-			draw(draw_context);
-			needs_redraw = false;
-		}
-		else {
-			poll(&fd, 1, -1);
-		}
-		dispatch_events();
-	}
+void nitro::Window::quit() {
+	running = false;
 }
