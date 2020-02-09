@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2018, Elias Aebi
+Copyright (c) 2016-2020, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -96,22 +96,32 @@ static float int_circle(float x) {
 // computes (the area of) the intersection of the unit circle with the given rectangle (x, y, w, h)
 // x, y, w and h are all assumed to be non-negative
 static float rounded_corner_area(float x, float y, const float w, const float h) {
-	if (x*x+y*y >= 1.f) return 0.f;
+	if (x * x + y * y >= 1.f) {
+		// completely outside
+		return 0.f;
+	}
 	// assert(x < 1.f && y < 1.f);
 
 	float x1 = std::min(x + w, 1.f);
 	float y1 = std::min(y + h, 1.f);
+
+	if (x1 * x1 + y1 * y1 <= 1.f) {
+		// completely inside
+		return w * h;
+	}
+
 	float result = 0.f;
 
 	const float cy1 = circle(y1);
-	if (cy1 >= x1) return w * h; // completely inside
 	if (cy1 > x) {
 		result += (cy1 - x) * h;
 		x = cy1;
 	}
 
 	const float cy = circle(y);
-	if (cy < x1) x1 = cy;
+	if (cy < x1) {
+		x1 = cy;
+	}
 
 	result += int_circle(x1) - int_circle(x) - (x1 - x) * y;
 	return result;
@@ -122,10 +132,10 @@ static float rounded_corner(float radius, float x, float y, float w = 1.f, float
 	return rounded_corner_area(x/radius, y/radius, w, h) / (w * h);
 }
 static nitro::Texture create_rounded_corner_texture(int radius) {
-	std::vector<unsigned char> data (radius * radius);
+	std::vector<unsigned char> data(radius * radius);
 	for (int y = 0; y < radius; ++y) {
 		for (int x = 0; x < radius; ++x) {
-			data[y*radius+x] = rounded_corner((float)radius, (float)x, (float)y) * 255.f + 0.5f;
+			data[y*radius+x] = rounded_corner(radius, x, y) * 255.f + 0.5f;
 		}
 	}
 	return nitro::Texture::create_from_data(radius, radius, 1, data.data());
@@ -215,7 +225,7 @@ void nitro::RoundedBorder::layout() {
 }
 
 static std::vector<float> create_gaussian_kernel(int radius) {
-	std::vector<float> kernel (radius * 2 + 1);
+	std::vector<float> kernel(radius * 2 + 1);
 	const float sigma = radius / 3.f;
 	const float factor = 1.f / sqrtf(2.f * M_PI * sigma*sigma);
 	for (unsigned int i = 0; i < kernel.size(); ++i) {
@@ -224,48 +234,50 @@ static std::vector<float> create_gaussian_kernel(int radius) {
 	}
 	return kernel;
 }
+constexpr int clamp(int value, int min, int max) {
+	return value < min ? min : (max < value ? max : value);
+}
 static void blur(int radius, std::vector<unsigned char>& buffer, int w, int h) {
 	const std::vector<float> kernel = create_gaussian_kernel(radius);
-	std::vector<unsigned char> tmp (buffer.size());
+	std::vector<unsigned char> tmp(buffer.size());
 	for (int y = 0; y < h; ++y) {
 		for (int x = 0; x < w; ++x) {
 			float sum = 0.f;
 			for (int k = 0; k < radius * 2 + 1; ++k) {
-				int kx = x + k - radius;
-				if (kx < 0) kx = 0;
-				else if (kx >= w) kx = w - 1;
+				const int kx = clamp(x + k - radius, 0, w - 1);
 				sum += buffer[y * w + kx] * kernel[k];
 			}
-			tmp[y * w + x] = sum + .5f;
+			tmp[y * w + x] = sum + 0.5f;
 		}
 	}
 	for (int y = 0; y < h; ++y) {
 		for (int x = 0; x < w; ++x) {
 			float sum = 0.f;
 			for (int k = 0; k < radius * 2 + 1; ++k) {
-				int ky = y + k - radius;
-				if (ky < 0) ky = 0;
-				else if (ky >= h) ky = h - 1;
+				const int ky = clamp(y + k - radius, 0, h - 1);
 				sum += tmp[ky * w + x] * kernel[k];
 			}
-			buffer[y * w + x] = sum + .5f;
+			buffer[y * w + x] = sum + 0.5f;
 		}
 	}
 }
 static nitro::Texture create_blurred_corner_texture(int radius, int blur_radius) {
-	int size = radius + blur_radius * 2;
-	std::vector<unsigned char> buffer (size * size);
+	const int size = radius + blur_radius * 2;
+	std::vector<unsigned char> buffer(size * size);
 	for (int y = 0; y < size; ++y) {
 		for (int x = 0; x < size; ++x) {
 			const int i = y * size + x;
-			const bool inside = x - blur_radius < radius && y - blur_radius < radius;
-			buffer[i] = inside ? 255 : 0;
-		}
-	}
-	for (int y = 0; y < radius; ++y) {
-		for (int x = 0; x < radius; ++x) {
-			const int i = (y + blur_radius) * size + (x + blur_radius);
-			buffer[i] = rounded_corner(radius, x, y) * 255.f + .5f;
+			if (x < blur_radius + radius && y < blur_radius + radius) {
+				if (x >= blur_radius && y >= blur_radius) {
+					buffer[i] = rounded_corner(radius, x - blur_radius, y - blur_radius) * 255.f + 0.5f;
+				}
+				else {
+					buffer[i] = 255;
+				}
+			}
+			else {
+				buffer[i] = 0;
+			}
 		}
 	}
 	blur(blur_radius, buffer, size, size);
