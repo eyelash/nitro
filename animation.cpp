@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2019, Elias Aebi
+Copyright (c) 2016-2020, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -57,13 +57,14 @@ std::uint64_t nitro::Animation::get_time() {
 	return time;
 }
 
-void nitro::Animation::advance_time(float seconds) {
-	time += seconds * 1000000.f + .5f;
-}
-
-void nitro::Animation::apply_all() {
+bool nitro::Animation::apply_all(float advance_seconds) {
+	if (animations.empty()) {
+		return false;
+	}
+	time += advance_seconds * 1000000.f + .5f;
 	auto it = std::remove_if(animations.begin(), animations.end(), [](Animation* animation) {
 		return animation->apply();
 	});
 	animations.erase(it, animations.end());
+	return true;
 }

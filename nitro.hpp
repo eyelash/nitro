@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2018, Elias Aebi
+Copyright (c) 2016-2019, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -318,6 +318,7 @@ class Window: public Bin {
 	void dispatch_events();
 public:
 	Window(int width, int height, const char* title);
+	void draw(const DrawContext& draw_context) override;
 	void layout() override;
 	void request_redraw() override;
 	void run();

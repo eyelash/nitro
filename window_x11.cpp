@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2019, Elias Aebi
+Copyright (c) 2016-2020, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -94,6 +94,16 @@ nitro::Window::Window(int width, int height, const char* title): draw_context(gl
 	XStoreName(display, window, title);
 	XA_WM_DELETE_WINDOW = XInternAtom(display, "WM_DELETE_WINDOW", False);
 	XSetWMProtocols(display, window, &XA_WM_DELETE_WINDOW, 1);
+
+	XMapWindow(display, window);
+}
+
+void nitro::Window::draw(const DrawContext& draw_context) {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, get_width(), get_height());
+	glClear(GL_COLOR_BUFFER_BIT);
+	Bin::draw(draw_context);
+	eglSwapBuffers(egl_display, surface);
 }
 
 void nitro::Window::layout() {
@@ -143,25 +153,18 @@ void nitro::Window::dispatch_events() {
 }
 
 void nitro::Window::run() {
-	XMapWindow(display, window);
+	struct pollfd fd = {ConnectionNumber(display), POLLIN};
 	running = true;
+	dispatch_events();
 	while (running) {
-		dispatch_events();
-		Animation::advance_time(1.f / 60.f);
-		Animation::apply_all();
-		if (needs_redraw) {
+		if (Animation::apply_all(1.f / 60.f) || needs_redraw) {
 			prepare_draw();
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glViewport(0, 0, get_width(), get_height());
-			glClear(GL_COLOR_BUFFER_BIT);
 			draw(draw_context);
 			needs_redraw = false;
-			//glFlush();
-			eglSwapBuffers(egl_display, surface);
 		}
 		else {
-			struct pollfd fd = {ConnectionNumber(display), POLLIN};
-			poll(&fd, 1, 15);
+			poll(&fd, 1, -1);
 		}
+		dispatch_events();
 	}
 }

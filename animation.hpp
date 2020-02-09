@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2019, Elias Aebi
+Copyright (c) 2016-2020, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -76,8 +76,7 @@ public:
 	virtual bool apply() = 0;
 	static void add_animation(Animation* animation);
 	static std::uint64_t get_time();
-	static void advance_time(float seconds);
-	static void apply_all();
+	static bool apply_all(float advance_seconds);
 };
 
 template <class T> class Animator: public Animation {
