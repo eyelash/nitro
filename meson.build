@@ -6,6 +6,7 @@ sources = [
 	'canvas.cpp',
 	'animation.cpp',
 	'text.cpp',
+	'window_drm.cpp',
 	'window_x11.cpp',
 	'widgets.cpp',
 ]
@@ -15,6 +16,8 @@ shaders = [
 ]
 dependencies = [
 	dependency('epoxy'),
+	dependency('libdrm'),
+	dependency('gbm'),
 	dependency('x11'),
 	dependency('libpng', version: '>= 1.5.4'),
 	dependency('harfbuzz'),

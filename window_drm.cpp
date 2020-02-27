@@ -57,7 +57,7 @@ static drmModeCrtc* find_crtc(drmModeRes* resources, drmModeEncoder* encoder) {
 	return nullptr;
 }
 
-nitro::Window::Window(int width, int height, const char* title): draw_context(gles2::project(width, height)), needs_redraw(false) {
+nitro::WindowDRM::WindowDRM(int width, int height, const char* title): Window(width, height) {
 	device = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
 	drmModeRes* resources = drmModeGetResources(device);
 	drmModeConnector* connector = find_connector(resources);
@@ -112,7 +112,7 @@ nitro::Window::Window(int width, int height, const char* title): draw_context(gl
 	set_size(mode_info.hdisplay, mode_info.vdisplay);
 }
 
-void nitro::Window::draw(const DrawContext& draw_context) {
+void nitro::WindowDRM::draw(const DrawContext& draw_context) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, get_width(), get_height());
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -135,24 +135,9 @@ void nitro::Window::draw(const DrawContext& draw_context) {
 	previous_fb = fb;
 }
 
-void nitro::Window::layout() {
-	glViewport(0, 0, get_width(), get_height());
-	draw_context.projection = gles2::project(get_width(), get_height());
-	Bin::layout();
-	request_redraw();
-}
-
-void nitro::Window::request_redraw() {
-	needs_redraw = true;
-}
-
-int nitro::Window::get_fd() {
+int nitro::WindowDRM::get_fd() {
 	return 0;
 }
 
-void nitro::Window::dispatch_events() {
-}
-
-void nitro::Window::quit() {
-	running = false;
+void nitro::WindowDRM::dispatch_events() {
 }

@@ -267,3 +267,19 @@ void nitro::SimpleContainer::add_child(Node* node) {
 	children.push_back(node);
 	node->set_parent(this);
 }
+
+// Window
+nitro::Window::Window(int width, int height): draw_context(gles2::project(width, height)), needs_redraw(false) {
+
+}
+void nitro::Window::layout() {
+	draw_context.projection = gles2::project(get_width(), get_height());
+	Bin::layout();
+	request_redraw();
+}
+void nitro::Window::request_redraw() {
+	needs_redraw = true;
+}
+void nitro::Window::quit() {
+	running = false;
+}

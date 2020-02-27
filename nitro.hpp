@@ -316,12 +316,11 @@ public:
 class Window: public Bin {
 	DrawContext draw_context;
 	bool needs_redraw;
-	int get_fd();
-	void dispatch_events();
 	bool running;
 public:
-	Window(int width, int height, const char* title);
-	void draw(const DrawContext& draw_context) override;
+	Window(int width, int height);
+	virtual int get_fd() = 0;
+	virtual void dispatch_events() = 0;
 	void layout() override;
 	void request_redraw() override;
 	template <class... T> void run(T&... t) {
@@ -344,6 +343,22 @@ public:
 		}
 	}
 	void quit();
+};
+
+class WindowDRM: public Window {
+public:
+	WindowDRM(int width, int height, const char* title);
+	void draw(const DrawContext& draw_context) override;
+	int get_fd() override;
+	void dispatch_events() override;
+};
+
+class WindowX11: public Window {
+public:
+	WindowX11(int width, int height, const char* title);
+	void draw(const DrawContext& draw_context) override;
+	int get_fd() override;
+	void dispatch_events() override;
 };
 
 class Padding: public Bin {

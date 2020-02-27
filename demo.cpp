@@ -3,7 +3,7 @@
 using namespace nitro;
 
 int main() {
-	Window window(800, 500, "demo");
+	WindowX11 window(800, 500, "demo");
 
 	window.run();
 }

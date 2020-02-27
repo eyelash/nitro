@@ -26,7 +26,7 @@ static EGLDisplay egl_display;
 static EGLSurface surface;
 static Atom XA_WM_DELETE_WINDOW;
 
-nitro::Window::Window(int width, int height, const char* title): draw_context(gles2::project(width, height)), needs_redraw(false) {
+nitro::WindowX11::WindowX11(int width, int height, const char* title): Window(width, height) {
 	display = XOpenDisplay(nullptr);
 	egl_display = eglGetDisplay(display);
 	eglInitialize(egl_display, nullptr, nullptr);
@@ -96,7 +96,7 @@ nitro::Window::Window(int width, int height, const char* title): draw_context(gl
 	XMapWindow(display, window);
 }
 
-void nitro::Window::draw(const DrawContext& draw_context) {
+void nitro::WindowX11::draw(const DrawContext& draw_context) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, get_width(), get_height());
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -104,22 +104,11 @@ void nitro::Window::draw(const DrawContext& draw_context) {
 	eglSwapBuffers(egl_display, surface);
 }
 
-void nitro::Window::layout() {
-	glViewport(0, 0, get_width(), get_height());
-	draw_context.projection = gles2::project(get_width(), get_height());
-	Bin::layout();
-	request_redraw();
-}
-
-void nitro::Window::request_redraw() {
-	needs_redraw = true;
-}
-
-int nitro::Window::get_fd() {
+int nitro::WindowX11::get_fd() {
 	return ConnectionNumber(display);
 }
 
-void nitro::Window::dispatch_events() {
+void nitro::WindowX11::dispatch_events() {
 	XEvent event;
 	while (XPending(display)) {
 		XNextEvent(display, &event);
@@ -152,8 +141,4 @@ void nitro::Window::dispatch_events() {
 			break;
 		}
 	}
-}
-
-void nitro::Window::quit() {
-	running = false;
 }
