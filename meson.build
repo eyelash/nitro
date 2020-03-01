@@ -16,6 +16,9 @@ shaders = [
 ]
 dependencies = [
 	dependency('epoxy'),
+	dependency('libudev'),
+	dependency('libinput'),
+	dependency('xkbcommon'),
 	dependency('libdrm'),
 	dependency('gbm'),
 	dependency('x11'),

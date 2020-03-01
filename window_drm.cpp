@@ -16,13 +16,20 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "nitro.hpp"
+#include <libinput.h>
+#include <xkbcommon/xkbcommon.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <gbm.h>
 #include <epoxy/egl.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <cstdio>
 
+static libinput* libinput;
+static xkb_context* xkb_context;
+static xkb_keymap* keymap;
+static xkb_state* xkb_state;
 static int device;
 static uint32_t connector_id;
 static drmModeModeInfo mode_info;
@@ -57,7 +64,25 @@ static drmModeCrtc* find_crtc(drmModeRes* resources, drmModeEncoder* encoder) {
 	return nullptr;
 }
 
+static int open_restricted(const char* path, int flags, void* user_data) {
+	return open(path, flags);
+}
+
+static void close_restricted(int fd, void* user_data) {
+	close(fd);
+}
+
 nitro::WindowDRM::WindowDRM(int width, int height, const char* title): Window(width, height) {
+	udev* udev = udev_new();
+
+	const libinput_interface interface = {&open_restricted, &close_restricted};
+	libinput = libinput_udev_create_context(&interface, nullptr, udev);
+	libinput_udev_assign_seat(libinput, "seat0");
+
+	xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	keymap = xkb_keymap_new_from_names(xkb_context, nullptr, XKB_KEYMAP_COMPILE_NO_FLAGS);
+	xkb_state = xkb_state_new(keymap);
+
 	device = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
 	drmModeRes* resources = drmModeGetResources(device);
 	drmModeConnector* connector = find_connector(resources);
@@ -136,8 +161,24 @@ void nitro::WindowDRM::draw(const DrawContext& draw_context) {
 }
 
 int nitro::WindowDRM::get_fd() {
-	return 0;
+	return libinput_get_fd(libinput);
 }
 
 void nitro::WindowDRM::dispatch_events() {
+	libinput_dispatch(libinput);
+	while (libinput_event* event = libinput_get_event(libinput)) {
+		const int type = libinput_event_get_type(event);
+		switch (type) {
+		case LIBINPUT_EVENT_KEYBOARD_KEY:
+			libinput_event_keyboard* keyboard_event = libinput_event_get_keyboard_event(event);
+			const uint32_t key = libinput_event_keyboard_get_key(keyboard_event);
+			const libinput_key_state state = libinput_event_keyboard_get_key_state(keyboard_event);
+			xkb_state_update_key(xkb_state, key + 8, static_cast<xkb_key_direction>(state));
+			if (state == LIBINPUT_KEY_STATE_PRESSED && xkb_state_key_get_utf32(xkb_state, key + 8) == 'q') {
+				quit();
+			}
+			break;
+		}
+		libinput_event_destroy(event);
+	}
 }
