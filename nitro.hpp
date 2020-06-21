@@ -192,7 +192,7 @@ class Node {
 public:
 	Node();
 	virtual ~Node();
-	virtual Node* get_child(size_t index);
+	virtual Node* get_child(std::size_t index);
 	virtual void prepare_draw();
 	virtual void draw(const DrawContext& draw_context);
 	virtual void layout();
@@ -228,7 +228,7 @@ class Bin: public Node {
 	Node* child;
 public:
 	Bin();
-	Node* get_child(size_t index) override;
+	Node* get_child(std::size_t index) override;
 	void layout() override;
 	Node* get_child();
 	void set_child(Node* child);
@@ -238,7 +238,7 @@ class SimpleContainer: public Node {
 	std::vector<Node*> children;
 public:
 	SimpleContainer();
-	Node* get_child(size_t index) override;
+	Node* get_child(std::size_t index) override;
 	void add_child(Node* node);
 };
 
@@ -307,7 +307,7 @@ class TextContainer: public Node {
 	VerticalAlignment vertical_alignment;
 public:
 	TextContainer(FontSet* font, const char* text, const Color& color, HorizontalAlignment horizontal_alignment = HorizontalAlignment::CENTER, VerticalAlignment vertical_alignment = VerticalAlignment::CENTER);
-	Node* get_child(size_t index) override;
+	Node* get_child(std::size_t index) override;
 	void layout() override;
 	const Color& get_color() const;
 	void set_color(const Color& color);

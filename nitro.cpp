@@ -86,7 +86,7 @@ nitro::Node::Node(): parent(nullptr), x(0.f), y(0.f), width(0.f), height(0.f), s
 nitro::Node::~Node() {
 
 }
-nitro::Node* nitro::Node::get_child(size_t index) {
+nitro::Node* nitro::Node::get_child(std::size_t index) {
 	return nullptr;
 }
 void nitro::Node::prepare_draw() {
@@ -234,7 +234,7 @@ nitro::Property<float> nitro::Node::position_y() {
 nitro::Bin::Bin(): child(nullptr) {
 
 }
-nitro::Node* nitro::Bin::get_child(size_t index) {
+nitro::Node* nitro::Bin::get_child(std::size_t index) {
 	return index == 0 ? child : nullptr;
 }
 void nitro::Bin::layout() {
@@ -260,7 +260,7 @@ void nitro::Bin::set_child(Node* child) {
 nitro::SimpleContainer::SimpleContainer() {
 
 }
-nitro::Node* nitro::SimpleContainer::get_child(size_t index) {
+nitro::Node* nitro::SimpleContainer::get_child(std::size_t index) {
 	return index < children.size() ? children[index] : nullptr;
 }
 void nitro::SimpleContainer::add_child(Node* node) {

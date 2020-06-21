@@ -194,7 +194,7 @@ void nitro::Text::set_color(const Color& color) {
 nitro::TextContainer::TextContainer(FontSet* font, const char* text, const Color& color, HorizontalAlignment horizontal_alignment, VerticalAlignment vertical_alignment): text(font, text, color), horizontal_alignment(horizontal_alignment), vertical_alignment(vertical_alignment) {
 	layout();
 }
-nitro::Node* nitro::TextContainer::get_child(size_t index) {
+nitro::Node* nitro::TextContainer::get_child(std::size_t index) {
 	return index == 0 ? &text : nullptr;
 }
 void nitro::TextContainer::layout() {
