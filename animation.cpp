@@ -58,10 +58,10 @@ std::uint64_t nitro::Animation::get_time() {
 }
 
 bool nitro::Animation::apply_all(float advance_seconds) {
+	time += advance_seconds * 1000000.f + .5f;
 	if (animations.empty()) {
 		return false;
 	}
-	time += advance_seconds * 1000000.f + .5f;
 	auto it = std::remove_if(animations.begin(), animations.end(), [](Animation* animation) {
 		return animation->apply();
 	});
