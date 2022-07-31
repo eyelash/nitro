@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017, Elias Aebi
+Copyright (c) 2016-2022, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -17,6 +17,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "gles2.hpp"
 #include <cstring>
+#include <cstdio>
 
 namespace gles2 {
 
@@ -34,7 +35,7 @@ Shader::Shader(const char* source, GLenum type) {
 		glGetShaderiv(identifier, GL_INFO_LOG_LENGTH, &log_length);
 		char* log = new char[log_length];
 		glGetShaderInfoLog(identifier, log_length, &log_length, log);
-		fprintf(stderr, "shader compilation error:\n%s\n", log);
+		std::fprintf(stderr, "shader compilation error:\n%s\n", log);
 		delete[] log;
 	}
 }
@@ -69,7 +70,7 @@ void Program::link() {
 		glGetProgramiv(identifier, GL_INFO_LOG_LENGTH, &log_length);
 		char* log = new char[log_length];
 		glGetProgramInfoLog(identifier, log_length, &log_length, log);
-		fprintf(stderr, "program link error:\n%s\n", log);
+		std::fprintf(stderr, "program link error:\n%s\n", log);
 		delete[] log;
 	}
 }
